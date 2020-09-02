@@ -30,8 +30,8 @@ After a variable has been declared it can be assigned values with this syntax:
 ident = expr;
 ```
 
-"expr" can be a literal, it can be another variable name or it can be a more complex expression combining simpler expressions with
-operators. The expression's type must match the type of the target variable.
+"expr" can be a literal, it can be another variable name or it can be a more complex expression combining simpler expressions
+with operators. The expression's type must match the type of the target variable.
 
 A number literal is formed by a string of decimal digits. This number should not be bigger than `2^32 - 1`.
 

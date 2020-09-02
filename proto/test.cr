@@ -1,16 +1,8 @@
 var i : int;
 
-i = 9;
+i = 10;
 
-var j: int;
-
-j = i;
-
-i = -j;
-
-j = -j;
-j = -1;
-
-if true {
+while i > 0 {
 	print i;
+	i = i - 1;
 }

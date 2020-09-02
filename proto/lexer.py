@@ -10,6 +10,9 @@ class Token:
 		
 	def __repr__(self):
 		return f"{self.value}"
+	
+	def __eq__(self, other):
+		return type(self) is type(other) and self.value == other.value
 
 class Ident(Token):
 	pass
@@ -40,7 +43,11 @@ specials = [
 	":",
 	";",
 	"=",
+	"+",
 	"-",
+	"*",
+	">",
+	"<",
 	"{",
 	"}",
 ]
@@ -62,6 +69,7 @@ keywords = [
 	"string",
 	"true",
 	"var",
+	"while",
 ]
 
 def lex(src):

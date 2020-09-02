@@ -120,6 +120,24 @@ class IfStmt:
 			)
 		)
 
+class WhileStmt:
+	def __init__(self, cond, body):
+		self.cond = cond
+		self.body = body
+	
+	def __repr__(self):
+		return self.to_str()
+	
+	def to_str(self, level = 0):
+		return (
+			" " * level
+			+ "while "
+			+ repr(self.cond)
+			+ " {\n"
+			+ self.body.to_str(level + 1)
+			+ "}"
+		)
+
 class UnknownType:
 	def __repr__(self):
 		return "<unknown-type>"
@@ -127,17 +145,33 @@ class UnknownType:
 	def __eq__(self, other):
 		return type(self) is type(other)
 
+UnknownType = UnknownType()
+
 class UnknownExpr:
+	def __init__(self):
+		self.data_type = UnknownType
+	
 	def __repr__(self):
 		return "<unknown-expression>"
 
 class Negate:
 	def __init__(self, expr):
 		self.expr = expr
+		self.data_type = expr.data_type
 	
 	def __repr__(self):
 		return "-" + repr(self.expr)
+
+class BinOp:
+	def __init__(self, left, right, op, data_type):
+		self.left = left
+		self.right = right
+		self.op = op
+		self.data_type = data_type
 	
+	def __repr__(self):
+		return f"({self.left} {self.op.value} {self.right})"
+
 class PrimType:
 	def __init__(self, name):
 		self.name = name
@@ -147,6 +181,10 @@ class PrimType:
 	
 	def __eq__(self, other):
 		return type(self) is type(other) and self.name == other.name
+
+IntType = PrimType("int")
+BoolType = PrimType("bool")
+StringType = PrimType("string")
 
 def parse(tokens):
 	begin = tokens
@@ -177,7 +215,10 @@ def parse(tokens):
 		return StmtList(stmts)
 
 	def parse_stmt(scope):
-		return parse_var_decl(scope) or parse_assign(scope) or parse_print(scope) or parse_if_stmt(scope)
+		return (
+			parse_var_decl(scope) or parse_assign(scope) or parse_print(scope) or parse_if_stmt(scope)
+			or parse_while_stmt(scope)
+		)
 
 	def parse_var_decl(scope):
 		if not parse_keyword("var"):
@@ -185,10 +226,11 @@ def parse(tokens):
 		
 		ident = parse_ident(scope, True) or throw("expected identifier after var") or next_dummy_ident()
 		parse_special(":") or throw("expected : after identifier")
-		data_type = parse_data_type() or throw("expected type after :") or UnknownType()
+		data_type = parse_data_type() or throw("expected type after :") or UnknownType
 		parse_special(";") or throw("expected ; after type")
 		var_decl = VarDecl(ident, data_type)
 		scope.declare(var_decl)
+		ident.data_type = data_type
 		return var_decl
 
 	def parse_assign(scope):
@@ -200,11 +242,11 @@ def parse(tokens):
 		ident_data_type = scope.lookup_type(ident)
 		parse_special("=") or throw("expected = after identifier")
 		expr = parse_expr(scope) or throw("expected expression after =") or UnknownExpr()
-		expr_data_type = infer_data_type(expr, scope)
+		expr_data_type = expr.data_type
 		
-		if ident_data_type == UnknownType():
+		if ident_data_type == UnknownType:
 			throw("type of", ident, "is unknown")
-		elif expr_data_type == UnknownType():
+		elif expr_data_type == UnknownType:
 			throw("type of", expr, "is unknown")
 		elif expr_data_type != ident_data_type:
 			throw("type mismatch, expected", ident_data_type, "got", expr_data_type)
@@ -225,9 +267,9 @@ def parse(tokens):
 			return
 		
 		cond = parse_expr(scope) or throw("expected condition after if") or UnknownExpr()
-		data_type = infer_data_type(cond, scope)
+		data_type = cond.data_type
 		
-		if data_type != PrimType("bool"):
+		if data_type != BoolType:
 			throw("condition", cond, "must be of type bool,", data_type, "given")
 		
 		parse_special("{") or throw("expected { after condition")
@@ -242,6 +284,22 @@ def parse(tokens):
 		
 		return IfStmt(cond, body, else_body)
 	
+	def parse_while_stmt(scope):
+		if not parse_keyword("while"):
+			return
+		
+		cond = parse_expr(scope) or throw("expected condition after while") or UnknownExpr()
+		data_type = cond.data_type
+		
+		if data_type != BoolType:
+			throw("condition", cond, "must be of type bool,", data_type, "given")
+		
+		parse_special("{") or throw("expected { after condition")
+		body = parse_body(scope)
+		parse_special("}") or throw("expected } after if-body")
+		
+		return WhileStmt(cond, body)
+	
 	def parse_data_type():
 		keyword = parse_keyword("int") or parse_keyword("bool") or parse_keyword("string")
 		
@@ -249,17 +307,60 @@ def parse(tokens):
 			return PrimType(keyword.value)
 
 	def parse_expr(scope):
+		return parse_binop(
+			scope, ["<", ">"],
+			lambda: parse_binop(
+				scope, ["+", "-"],
+				lambda: parse_binop(
+					scope, ["*"],
+					lambda: parse_negate(scope),
+				),
+			),
+		)
+	
+	def parse_binop(scope, ops, subparse):
+		left = subparse()
+		
+		if not left:
+			return
+		
+		op = parse_op(ops)
+		
+		if not op:
+			return left
+		
+		right = subparse() or throw("expected right side after", op) or UnknownExpr()
+		left_type = left.data_type
+		right_type = right.data_type
+		binop_type = infer_binop_type(left_type, right_type, op.value)
+		
+		if binop_type == UnknownType:
+			throw("can not", op, "a", left_type, "with a", right_type)
+		
+		return BinOp(left, right, op, binop_type)
+	
+	def parse_op(ops):
+		for op_name in ops:
+			op = parse_special(op_name)
+			
+			if op:
+				return op
+	
+	def parse_negate(scope):
 		if parse_special("-"):
 			expr = parse_expr(scope)
-			data_type = infer_data_type(expr, scope)
+			data_type = expr.data_type
 			
-			if data_type != PrimType("int"):
+			if data_type != IntType:
 				throw("can not negate non-number", expr)
 			
 			return Negate(expr)
 		
+		return parse_atom(scope)
+	
+	def parse_atom(scope):
 		return parse_int() or parse_bool() or parse_string() or parse_ident(scope)
-
+	
 	def parse_ident(scope, in_decl = False):
 		ident = parse_token(lexer.Ident)
 		
@@ -269,16 +370,31 @@ def parse(tokens):
 		if not in_decl and not scope.lookup(ident):
 			throw("could not find", ident)
 		
+		if not in_decl:
+			ident.data_type = scope.lookup_type(ident)
+		
 		return ident
 
 	def parse_int():
-		return parse_token(lexer.Int)
+		token = parse_token(lexer.Int)
+		
+		if token:
+			token.data_type = IntType
+			return token
 	
 	def parse_bool():
-		return parse_token(lexer.Bool)
+		token = parse_token(lexer.Bool)
+		
+		if token:
+			token.data_type = BoolType
+			return token
 	
 	def parse_string():
-		return parse_token(lexer.String)
+		token = parse_token(lexer.String)
+		
+		if token:
+			token.data_type = StringType
+			return token
 
 	def parse_keyword(name):
 		return parse_token(lexer.Keyword, name)
@@ -318,16 +434,13 @@ def parse(tokens):
 
 	return parse_unit()
 
-def infer_data_type(expr, scope):
-	if type(expr) is lexer.Int:
-		return PrimType("int")
-	elif type(expr) is lexer.Bool:
-		return PrimType("bool")
-	elif type(expr) is lexer.String:
-		return PrimType("string")
-	elif type(expr) is lexer.Ident:
-		return scope.lookup_type(expr)
-	elif type(expr) is Negate:
-		return PrimType("int")
+def infer_binop_type(left_type, right_type, op):
+	if op == "+" or op == "-" or op == "*":
+		if left_type == IntType and right_type == IntType:
+			return IntType
+	elif op == "<" or op == ">":
+		if left_type == IntType and right_type == IntType:
+			return BoolType
 	
-	return UnknownType()
+	return UnknownType
+

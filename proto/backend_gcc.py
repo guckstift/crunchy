@@ -22,11 +22,11 @@ def gen_var_decl(var_decl):
 	return gen_data_type(var_decl.data_type) + " " + gen_ident(var_decl.ident) + " = 0;"
 
 def gen_data_type(data_type):
-	if data_type.name == "int":
+	if data_type == parser.IntType:
 		return "int"
-	if data_type.name == "bool":
+	if data_type == parser.BoolType:
 		return "unsigned char"
-	if data_type.name == "string":
+	if data_type == parser.StringType:
 		return "char*"
 
 def gen_ident(ident):
@@ -47,22 +47,24 @@ def gen_stmt(stmt, scope):
 		return gen_print(stmt, scope)
 	elif type(stmt) is parser.IfStmt:
 		return gen_if_stmt(stmt, scope)
+	elif type(stmt) is parser.WhileStmt:
+		return gen_while_stmt(stmt, scope)
 
 def gen_assign(assign):
 	return gen_ident(assign.ident) + " = " + gen_expr(assign.expr) + ";"
 
 def gen_print(print_stmt, scope):
 	expr = print_stmt.expr
-	data_type = parser.infer_data_type(expr, scope)
+	data_type = expr.data_type
 	
-	if data_type == parser.PrimType("int"):
+	if data_type == parser.IntType:
 		return "printf(\"%i\\n\", " + gen_expr(expr) + ");"
-	elif data_type == parser.PrimType("bool"):
+	elif data_type == parser.BoolType:
 		if type(expr) is lexer.Bool:
 			return "printf(\"" + repr(expr) + "\\n\");"
 		else:
 			return "printf(\"%s\\n\", " + gen_expr(expr) + " ? \"true\" : \"false\");"
-	elif data_type == parser.PrimType("string"):
+	elif data_type == parser.StringType:
 		if type(expr) is lexer.String:
 			return "printf(\"" + expr.value + "\\n\");"
 		else:
@@ -87,6 +89,17 @@ def gen_if_stmt(if_stmt, scope, level = 0):
 		)
 	)
 
+def gen_while_stmt(while_stmt, scope, level = 0):
+	return (
+		" " * level
+		+ "while("
+		+ gen_expr(while_stmt.cond)
+		+ ") {\n"
+		+ gen_body(while_stmt.body, level + 1)
+		+ " " * (level + 1)
+		+ "}"
+	)
+
 def gen_body(body, level):
 	return gen_scope(body.scope, level + 1) + gen_stmts(body.stmts, body.scope, level + 1)
 
@@ -101,6 +114,8 @@ def gen_expr(expr):
 		return gen_str(expr)
 	elif type(expr) is parser.Negate:
 		return "- " + gen_expr(expr.expr)
+	elif type(expr) is parser.BinOp:
+		return "(" + gen_expr(expr.left) + expr.op.value + gen_expr(expr.right) + ")"
 
 def gen_int(integer):
 	return str(integer.value)
