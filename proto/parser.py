@@ -341,7 +341,7 @@ def parse(tokens):
 
 	def parse_expr(scope):
 		return parse_chainop(
-			scope, ["<", ">"],
+			scope, ["==", "!=", "<=", ">=", "<", ">"],
 			lambda: parse_chainop(
 				scope, ["+", "-"],
 				lambda: parse_chainop(
@@ -481,7 +481,7 @@ def infer_binop_type(left_type, right_type, op):
 	if op == "+" or op == "-" or op == "*":
 		if left_type == IntType and right_type == IntType:
 			return IntType
-	elif op == "<" or op == ">":
+	elif op in ["==", "!=", "<=", ">=", "<", ">"]:
 		if left_type == IntType and right_type == IntType:
 			return BoolType
 	

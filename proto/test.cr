@@ -3,7 +3,7 @@
 
 var i = 0;
 
-while i < 10 {
+while i != 10 {
 	i = i + 1;
 	var square = i * i;
 	print i, "^ 2 =", square;
