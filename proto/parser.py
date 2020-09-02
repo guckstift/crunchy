@@ -307,37 +307,40 @@ def parse(tokens):
 			return PrimType(keyword.value)
 
 	def parse_expr(scope):
-		return parse_binop(
+		return parse_chainop(
 			scope, ["<", ">"],
-			lambda: parse_binop(
+			lambda: parse_chainop(
 				scope, ["+", "-"],
-				lambda: parse_binop(
+				lambda: parse_chainop(
 					scope, ["*"],
 					lambda: parse_negate(scope),
 				),
 			),
 		)
 	
-	def parse_binop(scope, ops, subparse):
+	def parse_chainop(scope, ops, subparse):
 		left = subparse()
 		
 		if not left:
 			return
 		
-		op = parse_op(ops)
-		
-		if not op:
-			return left
-		
-		right = subparse() or throw("expected right side after", op) or UnknownExpr()
 		left_type = left.data_type
-		right_type = right.data_type
-		binop_type = infer_binop_type(left_type, right_type, op.value)
 		
-		if binop_type == UnknownType:
-			throw("can not", op, "a", left_type, "with a", right_type)
-		
-		return BinOp(left, right, op, binop_type)
+		while True:
+			op = parse_op(ops)
+			
+			if not op:
+				return left
+			
+			right = subparse() or throw("expected right side after", op) or UnknownExpr()
+			right_type = right.data_type
+			binop_type = infer_binop_type(left_type, right_type, op.value)
+			
+			if binop_type == UnknownType:
+				throw("can not", op, "a", left_type, "with a", right_type)
+			
+			left = BinOp(left, right, op, binop_type)
+			left_type = binop_type
 	
 	def parse_op(ops):
 		for op_name in ops:
