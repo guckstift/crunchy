@@ -145,6 +145,9 @@ class UnknownType:
 	
 	def __eq__(self, other):
 		return type(self) is type(other)
+	
+	def __bool__(self):
+		return False
 
 UnknownType = UnknownType()
 
@@ -248,7 +251,7 @@ def parse(tokens):
 			if not data_type:
 				data_type = init_data_type
 			
-			if init_data_type != data_type:
+			if init_data_type and init_data_type != data_type:
 				throw("initializer data type must be", data_type, "got", init_data_type)
 		
 		if not data_type and not init:
@@ -272,11 +275,7 @@ def parse(tokens):
 		expr = parse_expr(scope) or throw("expected expression after =") or UnknownExpr
 		expr_data_type = expr.data_type
 		
-		if ident_data_type == UnknownType:
-			throw("type of", ident, "is unknown")
-		elif expr_data_type == UnknownType:
-			throw("type of", expr, "is unknown")
-		elif expr_data_type != ident_data_type:
+		if ident_data_type and expr_data_type and expr_data_type != ident_data_type:
 			throw("type mismatch, expected", ident_data_type, "got", expr_data_type)
 		
 		parse_special(";") or throw("expected ; after expression")
@@ -364,7 +363,7 @@ def parse(tokens):
 			right_type = right.data_type
 			binop_type = infer_binop_type(left_type, right_type, op.value)
 			
-			if binop_type == UnknownType:
+			if left_type and right_type and binop_type == UnknownType:
 				throw("can not combine", left_type, "and", right_type, "with the operator", op)
 			
 			left = BinOp(left, right, op, binop_type)
@@ -398,11 +397,13 @@ def parse(tokens):
 		if not ident:
 			return
 		
-		if not in_decl and not scope.lookup(ident):
-			throw("could not find", ident)
-		
 		if not in_decl:
 			ident.data_type = scope.lookup_type(ident)
+			
+			if not scope.lookup(ident):
+				throw("could not find", ident)
+			elif ident.data_type == UnknownType:
+				throw(ident, "was not declared properly")
 		
 		ident.is_const = False
 		
