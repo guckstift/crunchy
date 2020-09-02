@@ -14,3 +14,5 @@ var user = name;
 
 print "Hello";
 print name;
+
+name = name + " World";
