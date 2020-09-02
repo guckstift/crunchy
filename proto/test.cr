@@ -1,44 +1,16 @@
+var i : int;
 
-/*
-var i : bool;
+i = 9;
 
-var si : string;
-si = "jkjK";
+var j: int;
 
-var j : number;
+j = i;
 
-i = true;
+i = -j;
 
-print si;
-
-# si = "Hello world";
-
-print si;
-print "LO";
-
-if i {
-	var kk : number;
-	i = false;
-	print kk;
-}
-
-
-j = 4548;
 j = -j;
+j = -1;
 
-print i;
-print j;
-*/
-var si : string;
-
-var b : bool;
-
-b = false;
-
-if b {
-	print "Hello";
+if true {
+	print i;
 }
-else {
-	print "World";
-}
-

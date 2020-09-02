@@ -17,7 +17,7 @@ class Ident(Token):
 class Keyword(Token):
 	pass
 
-class Number(Token):
+class Int(Token):
 	pass
 
 class String(Token):
@@ -57,7 +57,7 @@ keywords = [
 	"else",
 	"false",
 	"if",
-	"number",
+	"int",
 	"print",
 	"string",
 	"true",
@@ -99,7 +99,7 @@ def lex(src):
 				char = src[:1]
 			
 			val = parse_int(text, line)
-			record(Number, val)
+			record(Int, val)
 		
 		elif isWhite(char):
 			src = src[1:]

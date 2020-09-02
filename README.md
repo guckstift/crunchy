@@ -33,8 +33,8 @@ ident = expr;
 "expr" can be a literal, it can be another variable name and in case the expression's type is "number" the expression can be
 prefixed with `-` to negate it. The expression's type must match the type of the target variable.
 
-A number literal is formed by a string of decimal digits. This number should not be bigger than the hexadecimal 0xffFFffFF. Although it
-is stored as a 64-bit float it is only possible to notate numbers of unsigned 32-bit integer type.
+A number literal is formed by a string of decimal digits. This number should not be bigger than the hexadecimal 0xffFFffFF.
+Although it is stored as a 64-bit float it is only possible to notate numbers of unsigned 32-bit integer type.
 
 A string literal is enclosed in double-quotes `"`. Between those quotes can only appear ASCII characters that are not control
 characters, so e.g. no newlines or tabs are allowed in there.

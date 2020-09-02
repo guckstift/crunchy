@@ -243,7 +243,7 @@ def parse(tokens):
 		return IfStmt(cond, body, else_body)
 	
 	def parse_data_type():
-		keyword = parse_keyword("number") or parse_keyword("bool") or parse_keyword("string")
+		keyword = parse_keyword("int") or parse_keyword("bool") or parse_keyword("string")
 		
 		if keyword:
 			return PrimType(keyword.value)
@@ -253,12 +253,12 @@ def parse(tokens):
 			expr = parse_expr(scope)
 			data_type = infer_data_type(expr, scope)
 			
-			if data_type != PrimType("number"):
+			if data_type != PrimType("int"):
 				throw("can not negate non-number", expr)
 			
 			return Negate(expr)
 		
-		return parse_number() or parse_bool() or parse_string() or parse_ident(scope)
+		return parse_int() or parse_bool() or parse_string() or parse_ident(scope)
 
 	def parse_ident(scope, in_decl = False):
 		ident = parse_token(lexer.Ident)
@@ -271,8 +271,8 @@ def parse(tokens):
 		
 		return ident
 
-	def parse_number():
-		return parse_token(lexer.Number)
+	def parse_int():
+		return parse_token(lexer.Int)
 	
 	def parse_bool():
 		return parse_token(lexer.Bool)
@@ -319,8 +319,8 @@ def parse(tokens):
 	return parse_unit()
 
 def infer_data_type(expr, scope):
-	if type(expr) is lexer.Number:
-		return PrimType("number")
+	if type(expr) is lexer.Int:
+		return PrimType("int")
 	elif type(expr) is lexer.Bool:
 		return PrimType("bool")
 	elif type(expr) is lexer.String:
@@ -328,6 +328,6 @@ def infer_data_type(expr, scope):
 	elif type(expr) is lexer.Ident:
 		return scope.lookup_type(expr)
 	elif type(expr) is Negate:
-		return PrimType("number")
+		return PrimType("int")
 	
 	return UnknownType()

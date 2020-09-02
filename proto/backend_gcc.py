@@ -22,8 +22,8 @@ def gen_var_decl(var_decl):
 	return gen_data_type(var_decl.data_type) + " " + gen_ident(var_decl.ident) + " = 0;"
 
 def gen_data_type(data_type):
-	if data_type.name == "number":
-		return "double"
+	if data_type.name == "int":
+		return "int"
 	if data_type.name == "bool":
 		return "unsigned char"
 	if data_type.name == "string":
@@ -55,8 +55,8 @@ def gen_print(print_stmt, scope):
 	expr = print_stmt.expr
 	data_type = parser.infer_data_type(expr, scope)
 	
-	if data_type == parser.PrimType("number"):
-		return "printf(\"%ld\\n\", (long)" + gen_expr(expr) + ");"
+	if data_type == parser.PrimType("int"):
+		return "printf(\"%i\\n\", " + gen_expr(expr) + ");"
 	elif data_type == parser.PrimType("bool"):
 		if type(expr) is lexer.Bool:
 			return "printf(\"" + repr(expr) + "\\n\");"
@@ -93,8 +93,8 @@ def gen_body(body, level):
 def gen_expr(expr):
 	if type(expr) is lexer.Ident:
 		return gen_ident(expr)
-	elif type(expr) is lexer.Number:
-		return gen_number(expr)
+	elif type(expr) is lexer.Int:
+		return gen_int(expr)
 	elif type(expr) is lexer.Bool:
 		return gen_bool(expr)
 	elif type(expr) is lexer.String:
@@ -102,8 +102,8 @@ def gen_expr(expr):
 	elif type(expr) is parser.Negate:
 		return "- " + gen_expr(expr.expr)
 
-def gen_number(number):
-	return str(number.value)
+def gen_int(integer):
+	return str(integer.value)
 
 def gen_bool(boolean):
 	return "1" if boolean.value else "0"
