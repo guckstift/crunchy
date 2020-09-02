@@ -156,6 +156,8 @@ class UnknownExpr:
 	def __repr__(self):
 		return "<unknown-expression>"
 
+UnknownExpr = UnknownExpr()
+
 class Negate:
 	def __init__(self, expr):
 		self.expr = expr
@@ -233,16 +235,25 @@ def parse(tokens):
 			return
 		
 		ident = parse_ident(scope, True) or throw("expected identifier after var") or next_dummy_ident()
-		parse_special(":") or throw("expected : after identifier")
-		data_type = parse_data_type() or throw("expected type after :") or UnknownType
+		data_type = None
 		init = None
+		
+		if parse_special(":"):
+			data_type = parse_data_type() or throw("expected type after :") or UnknownType
 		
 		if parse_special("="):
 			init = parse_expr(scope)
 			init_data_type = init.data_type
 			
+			if not data_type:
+				data_type = init_data_type
+			
 			if init_data_type != data_type:
 				throw("initializer data type must be", data_type, "got", init_data_type)
+		
+		if not data_type and not init:
+			throw("expected at least one of a type specification or an initializer")
+			data_type = UnknownType
 		
 		parse_special(";") or throw("expected ; after type")
 		var_decl = VarDecl(ident, data_type, init)
@@ -258,7 +269,7 @@ def parse(tokens):
 		
 		ident_data_type = ident.data_type
 		parse_special("=") or throw("expected = after identifier")
-		expr = parse_expr(scope) or throw("expected expression after =") or UnknownExpr()
+		expr = parse_expr(scope) or throw("expected expression after =") or UnknownExpr
 		expr_data_type = expr.data_type
 		
 		if ident_data_type == UnknownType:
@@ -275,7 +286,7 @@ def parse(tokens):
 		if not parse_keyword("print"):
 			return
 		
-		expr = parse_expr(scope) or throw("expected expression after print") or UnknownExpr()
+		expr = parse_expr(scope) or throw("expected expression after print") or UnknownExpr
 		parse_special(";") or throw("expected ; after expression")
 		return Print(expr)
 	
@@ -283,7 +294,7 @@ def parse(tokens):
 		if not parse_keyword("if"):
 			return
 		
-		cond = parse_expr(scope) or throw("expected condition after if") or UnknownExpr()
+		cond = parse_expr(scope) or throw("expected condition after if") or UnknownExpr
 		data_type = cond.data_type
 		
 		if data_type != BoolType:
@@ -305,7 +316,7 @@ def parse(tokens):
 		if not parse_keyword("while"):
 			return
 		
-		cond = parse_expr(scope) or throw("expected condition after while") or UnknownExpr()
+		cond = parse_expr(scope) or throw("expected condition after while") or UnknownExpr
 		data_type = cond.data_type
 		
 		if data_type != BoolType:
@@ -349,12 +360,12 @@ def parse(tokens):
 			if not op:
 				return left
 			
-			right = subparse() or throw("expected right side after", op) or UnknownExpr()
+			right = subparse() or throw("expected right side after", op) or UnknownExpr
 			right_type = right.data_type
 			binop_type = infer_binop_type(left_type, right_type, op.value)
 			
 			if binop_type == UnknownType:
-				throw("can not", op, "a", left_type, "with a", right_type)
+				throw("can not combine", left_type, "and", right_type, "with the operator", op)
 			
 			left = BinOp(left, right, op, binop_type)
 			left_type = binop_type
