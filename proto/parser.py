@@ -89,11 +89,11 @@ class Assign:
 		return f"{self.ident!r} = {self.expr!r}"
 
 class Print:
-	def __init__(self, expr):
-		self.expr = expr
+	def __init__(self, expr_list):
+		self.expr_list = expr_list
 	
 	def __repr__(self):
-		return "print " + repr(self.expr)
+		return "print " + repr(self.expr_list)
 
 class IfStmt:
 	def __init__(self, cond, body, else_body = None):
@@ -286,8 +286,14 @@ def parse(tokens):
 			return
 		
 		expr = parse_expr(scope) or throw("expected expression after print") or UnknownExpr
+		expr_list = [expr]
+		
+		while parse_special(","):
+			expr = parse_expr(scope) or throw("expected expression after ,") or UnknownExpr
+			expr_list.append(expr)
+		
 		parse_special(";") or throw("expected ; after expression")
-		return Print(expr)
+		return Print(expr_list)
 	
 	def parse_if_stmt(scope):
 		if not parse_keyword("if"):

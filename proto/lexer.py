@@ -42,6 +42,7 @@ class End(Token):
 specials = [
 	":",
 	";",
+	",",
 	"=",
 	"+",
 	"-",

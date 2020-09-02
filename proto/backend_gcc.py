@@ -62,21 +62,30 @@ def gen_assign(assign):
 	return gen_ident(assign.ident) + " = " + gen_expr(assign.expr) + ";"
 
 def gen_print(print_stmt, scope):
-	expr = print_stmt.expr
-	data_type = expr.data_type
+	expr_list = print_stmt.expr_list
+	printf_format = []
+	printf_args = []
 	
-	if data_type == parser.IntType:
-		return "printf(\"%i\\n\", " + gen_expr(expr) + ");"
-	elif data_type == parser.BoolType:
-		if type(expr) is lexer.Bool:
-			return "printf(\"" + repr(expr) + "\\n\");"
-		else:
-			return "printf(\"%s\\n\", " + gen_expr(expr) + " ? \"true\" : \"false\");"
-	elif data_type == parser.StringType:
-		if type(expr) is lexer.String:
-			return "printf(\"" + expr.value + "\\n\");"
-		else:
-			return "printf(\"%s\\n\", " + gen_expr(expr) + ");"
+	for expr in expr_list:
+		data_type = expr.data_type
+		
+		if data_type == parser.IntType:
+			printf_format.append("%i")
+			printf_args.append(gen_expr(expr))
+		elif data_type == parser.BoolType:
+			if type(expr) is lexer.Bool:
+				printf_format.append(repr(expr))
+			else:
+				printf_format.append("%s")
+				printf_args.append(gen_expr(expr) + " ? \"true\" : \"false\"")
+		elif data_type == parser.StringType:
+			if type(expr) is lexer.String:
+				printf_format.append(expr.value)
+			else:
+				printf_format.append("%s")
+				printf_args.append(gen_expr(expr))
+	
+	return "printf(\"" + " ".join(printf_format) + "\\n\", " + ", ".join(printf_args) + ");"
 
 def gen_if_stmt(if_stmt, scope, level = 0):
 	return (

@@ -1,12 +1,10 @@
 #include <stdio.h>
-int foo = 1;
-int baz = 0;
-int x = 0;
-int y = 0;
+int i = 0;
 int main(int argc, char **argv) {
- foo = 9;
- baz = foo;
- baz = foo;
- x = (foo+baz);
- y = foo;
+ while((i<10)) {
+  int square = 0;
+  i = (i+1);
+  square = (i*i);
+  printf("%i ^ 2 = %i\n", i, square);
+ }
 }
