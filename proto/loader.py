@@ -11,9 +11,9 @@ def load_source(src_name):
 		char = chr(char_code)
 		
 		if char_code > 0x7f:
-			error.error("character code", char_code, "is not an ascii code")
+			error.error(0, "character code", char_code, "is not an ascii code")
 		elif char_code < 32 and char not in ["\n", "\t"]:
-			error.error("character code", char_code, "is not allowed")
+			error.error(0, "character code", char_code, "is not allowed")
 		
 		src_txt += char
 	

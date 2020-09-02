@@ -1,8 +1,11 @@
-var i : int;
 
-i = 10;
+# print squares from 1^2 to 10^2
 
-while i > 0 {
-	print i;
-	i = i - 1 + 0;
+var j : int = 4;
+
+var i : int = 2 + 1;
+
+while i < 10 {
+	i = i + 1;
+	print i * i;
 }

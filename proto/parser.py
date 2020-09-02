@@ -51,18 +51,19 @@ class Scope:
 		if var_decl:
 			return var_decl.data_type
 		
-		return UnknownType()
+		return UnknownType
 
 class VarDecl:
-	def __init__(self, ident, data_type):
+	def __init__(self, ident, data_type, init = None):
 		self.ident = ident
 		self.data_type = data_type
+		self.init = init
 	
 	def __repr__(self):
 		return self.to_str()
 	
 	def to_str(self, level = 0):
-		return " " * level + f"var {self.ident!r} : {self.data_type!r}"
+		return " " * level + f"var {self.ident!r} : {self.data_type!r}" + (" = " + repr(self.init) if self.init else "")
 
 class StmtList:
 	def __init__(self, stmts):
@@ -150,6 +151,7 @@ UnknownType = UnknownType()
 class UnknownExpr:
 	def __init__(self):
 		self.data_type = UnknownType
+		self.is_const = True
 	
 	def __repr__(self):
 		return "<unknown-expression>"
@@ -158,6 +160,7 @@ class Negate:
 	def __init__(self, expr):
 		self.expr = expr
 		self.data_type = expr.data_type
+		self.is_const = expr.is_const
 	
 	def __repr__(self):
 		return "-" + repr(self.expr)
@@ -168,6 +171,7 @@ class BinOp:
 		self.right = right
 		self.op = op
 		self.data_type = data_type
+		self.is_const = left.is_const and right.is_const
 	
 	def __repr__(self):
 		return f"({self.left} {self.op.value} {self.right})"
@@ -209,7 +213,11 @@ def parse(tokens):
 			if stmt is None:
 				break
 			
-			if type(stmt) is not VarDecl:
+			if type(stmt) is VarDecl:
+				if stmt.init and not stmt.init.is_const:
+					stmts.append(Assign(stmt.ident, stmt.init))
+					stmt.init = None
+			else:
 				stmts.append(stmt)
 		
 		return StmtList(stmts)
@@ -227,8 +235,17 @@ def parse(tokens):
 		ident = parse_ident(scope, True) or throw("expected identifier after var") or next_dummy_ident()
 		parse_special(":") or throw("expected : after identifier")
 		data_type = parse_data_type() or throw("expected type after :") or UnknownType
+		init = None
+		
+		if parse_special("="):
+			init = parse_expr(scope)
+			init_data_type = init.data_type
+			
+			if init_data_type != data_type:
+				throw("initializer data type must be", data_type, "got", init_data_type)
+		
 		parse_special(";") or throw("expected ; after type")
-		var_decl = VarDecl(ident, data_type)
+		var_decl = VarDecl(ident, data_type, init)
 		scope.declare(var_decl)
 		ident.data_type = data_type
 		return var_decl
@@ -239,7 +256,7 @@ def parse(tokens):
 		if not ident:
 			return
 		
-		ident_data_type = scope.lookup_type(ident)
+		ident_data_type = ident.data_type
 		parse_special("=") or throw("expected = after identifier")
 		expr = parse_expr(scope) or throw("expected expression after =") or UnknownExpr()
 		expr_data_type = expr.data_type
@@ -376,6 +393,8 @@ def parse(tokens):
 		if not in_decl:
 			ident.data_type = scope.lookup_type(ident)
 		
+		ident.is_const = False
+		
 		return ident
 
 	def parse_int():
@@ -383,6 +402,7 @@ def parse(tokens):
 		
 		if token:
 			token.data_type = IntType
+			token.is_const = True
 			return token
 	
 	def parse_bool():
@@ -390,6 +410,7 @@ def parse(tokens):
 		
 		if token:
 			token.data_type = BoolType
+			token.is_const = True
 			return token
 	
 	def parse_string():
@@ -397,6 +418,7 @@ def parse(tokens):
 		
 		if token:
 			token.data_type = StringType
+			token.is_const = True
 			return token
 
 	def parse_keyword(name):

@@ -1,9 +1,9 @@
 #include <stdio.h>
-int i = 0;
+int j = 4;
+int i = (2+1);
 int main(int argc, char **argv) {
- i = 10;
- while((i>0)) {
-  printf("%i\n", i);
-  i = ((i-1)+0);
+ while((i<10)) {
+  i = (i+1);
+  printf("%i\n", (i*i));
  }
 }

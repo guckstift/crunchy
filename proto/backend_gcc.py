@@ -19,7 +19,15 @@ def gen_scope(scope, level = 0):
 	return res
 
 def gen_var_decl(var_decl):
-	return gen_data_type(var_decl.data_type) + " " + gen_ident(var_decl.ident) + " = 0;"
+	res = gen_data_type(var_decl.data_type) + " " + gen_ident(var_decl.ident) + " = "
+	
+	if var_decl.init:
+		res += gen_expr(var_decl.init);
+	else:
+		res += "0";
+	
+	res += ";"
+	return res
 
 def gen_data_type(data_type):
 	if data_type == parser.IntType:
