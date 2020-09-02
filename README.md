@@ -68,6 +68,14 @@ The "print" statement prints a value of any type to the standard output onto a s
 print expr;
 ```
 
+"print" can also accept more than one value to be printed on a single line:
+
+```
+print expr1, expr2, expr3;
+```
+
+This outputs 3 expressions space-separated and not necessarily of the same type.
+
 The "if" statement looks like this:
 
 ```
@@ -95,8 +103,8 @@ while cond {
 }
 ```
 
-In all the above statements "cond" serves as the branch or loop condition. It must be of type "bool".
+In all of the above statements "cond" serves as the branch or loop condition. It must be of type "bool".
 
 Inside a "while", "if" or "else" body more statements can appear. The body establishes a new scope. Variables declared inside
-this scope are not accessible from outside the body. But variables of the enclsoing scopes are accessible from in there.
+this scope are not accessible from outside the body. But variables of the outer scopes are accessible from within there.
 
