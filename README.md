@@ -9,6 +9,9 @@ This is the first phase of development.
 source file as input and transpiles it into a C source code file. Then it passes this file to GCC to compile it into an
 executable.
 
+Single line comments can be started with a hash mark `#` and end with the end of the current line. Multiline comments look the
+same as in C, starting with `/*` and ending with `*/`.
+
 The language has 3 different primitive types and no more other types. The primitive types are:
 
 * "int" - a 32-bit signed integer number
@@ -49,6 +52,8 @@ An integer literal is formed by a string of decimal digits. This integer should 
 
 A string literal is enclosed in double-quotes `"`. Between those quotes only ASCII characters that are not control characters
 can appear, so e.g. no newlines or tabs are allowed in a string literal.
+
+An "int" expression can be negated by prefixing it with `-`.
 
 Two or more expressions of type "int" can be combined with `+`, `-` or `*` together. The `*` which forms a multiplication has
 higher precedence over `+` or `-` which form an addition or subtraction.
@@ -93,5 +98,5 @@ while cond {
 In all the above statements "cond" serves as the branch or loop condition. It must be of type "bool".
 
 Inside a "while", "if" or "else" body more statements can appear. The body establishes a new scope. Variables declared inside
-this scope are not accessible from outside the body. But variables of the outer scopes are accessible from in there.
+this scope are not accessible from outside the body. But variables of the enclsoing scopes are accessible from in there.
 
