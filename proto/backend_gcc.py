@@ -2,6 +2,8 @@ import subprocess
 import parser
 import lexer
 
+INDENT = "\t"
+
 def gen_code(tree):
 	code = "#include <stdio.h>\n"
 	code += gen_scope(tree.scope)
@@ -14,7 +16,7 @@ def gen_scope(scope, level = 0):
 	res = ""
 	
 	for decl in scope.var_decls:
-		res += " " * level + gen_var_decl(scope.var_decls[decl]) + "\n"
+		res += INDENT * level + gen_var_decl(scope.var_decls[decl]) + "\n"
 	
 	return res
 
@@ -38,13 +40,14 @@ def gen_data_type(data_type):
 		return "char*"
 
 def gen_ident(ident):
+	return ident.internal
 	return ident.value
 
 def gen_stmts(stmts, scope, level = 0):
 	res = ""
 	
 	for stmt in stmts.stmts:
-		res += " " * level + gen_stmt(stmt, scope) + "\n"
+		res += INDENT * level + gen_stmt(stmt, scope) + "\n"
 	
 	return res
 
@@ -85,21 +88,25 @@ def gen_print(print_stmt, scope):
 				printf_format.append("%s")
 				printf_args.append(gen_expr(expr))
 	
-	return "printf(\"" + " ".join(printf_format) + "\\n\", " + ", ".join(printf_args) + ");"
+	return (
+		"printf(\"" + " ".join(printf_format) + "\\n\""
+		+ (", " + ", ".join(printf_args) if len(printf_args) > 0 else "")
+		+ ");"
+	)
 
 def gen_if_stmt(if_stmt, scope, level = 0):
 	return (
-		" " * level
+		INDENT * level
 		+ "if("
 		+ gen_expr(if_stmt.cond)
 		+ ") {\n"
 		+ gen_body(if_stmt.body, level + 1)
-		+ " " * (level + 1)
+		+ INDENT * (level + 1)
 		+ "}"
 		+ (
 			" else {\n"
 			+ gen_body(if_stmt.else_body, level + 1)
-			+ " " * (level + 1)
+			+ INDENT * (level + 1)
 			+ "}"
 			if if_stmt.else_body
 			else ""
@@ -108,12 +115,12 @@ def gen_if_stmt(if_stmt, scope, level = 0):
 
 def gen_while_stmt(while_stmt, scope, level = 0):
 	return (
-		" " * level
+		INDENT * level
 		+ "while("
 		+ gen_expr(while_stmt.cond)
 		+ ") {\n"
 		+ gen_body(while_stmt.body, level + 1)
-		+ " " * (level + 1)
+		+ INDENT * (level + 1)
 		+ "}"
 	)
 

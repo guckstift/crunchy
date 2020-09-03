@@ -8,3 +8,11 @@ while i != 10 {
 	var square = i * i;
 	print i, "^ 2 =", square;
 }
+
+if true {
+	var i = true;
+	print i;
+}
+else {
+	print "JO";
+}

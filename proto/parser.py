@@ -18,6 +18,15 @@ class Scope:
 	def __init__(self, parent = None):
 		self.parent = parent
 		self.var_decls = {}
+		self.root = self.parent.root if self.parent else self
+		
+		if self is self.root:
+			self.internal_count = 0
+	
+	def next_internal(self):
+		internal = "v" + str(self.root.internal_count)
+		self.root.internal_count += 1
+		return internal
 	
 	def to_str(self, level = 0):
 		res = ""
@@ -35,6 +44,7 @@ class Scope:
 			error.error(ident.line, name, "is already declared")
 		else:
 			self.var_decls[name] = var_decl
+			ident.internal = self.next_internal()
 	
 	def lookup(self, ident):
 		name = ident.value
@@ -404,12 +414,15 @@ def parse(tokens):
 			return
 		
 		if not in_decl:
+			var_decl = scope.lookup(ident)
 			ident.data_type = scope.lookup_type(ident)
 			
-			if not scope.lookup(ident):
+			if not var_decl:
 				throw("could not find", ident)
 			elif ident.data_type == UnknownType:
 				throw(ident, "was not declared properly")
+			else:
+				ident.internal = var_decl.ident.internal
 		
 		ident.is_const = False
 		
