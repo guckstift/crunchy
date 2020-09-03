@@ -1,18 +1,20 @@
+var a = "hello";
+var b = "world";
+var c = "aw";
 
-# square numbers from 1^2 to 10^2
+var d = a + b + c;
+var i = 9;
 
-var i = 0;
+print "Hello" + " World" + "!", i, "jkjd" + "  asdfs ";
 
-while i != 10 {
-	i = i + 1;
-	var square = i * i;
-	print i, "^ 2 =", square;
-}
+#print "Hello" + " World!" + " This is a program.";# + " aw";
 
-if true {
-	var i = true;
-	print i;
-}
-else {
-	print "JO";
+var name = "Danny";
+
+var cond = true;
+
+if cond {
+	print "Hello " + name + "!";
+} else {
+	print "Bye " + name + "!?";
 }

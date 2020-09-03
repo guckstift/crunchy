@@ -22,11 +22,28 @@ class Scope:
 		
 		if self is self.root:
 			self.internal_count = 0
+			self.string_count = 0
+			self.strings = {}
 	
 	def next_internal(self):
 		internal = "v" + str(self.root.internal_count)
 		self.root.internal_count += 1
 		return internal
+	
+	def next_string_internal(self):
+		internal = "s" + str(self.root.string_count)
+		self.root.string_count += 1
+		return internal
+	
+	def add_string(self, string):
+		value = string.value
+		
+		if value not in self.root.strings:
+			internal = self.next_string_internal()
+			self.root.strings[value] = string
+			return internal
+		
+		return self.root.strings[value].internal
 	
 	def to_str(self, level = 0):
 		res = ""
@@ -405,7 +422,7 @@ def parse(tokens):
 		return parse_atom(scope)
 	
 	def parse_atom(scope):
-		return parse_int() or parse_bool() or parse_string() or parse_ident(scope)
+		return parse_int() or parse_bool() or parse_string(scope) or parse_ident(scope)
 	
 	def parse_ident(scope, in_decl = False):
 		ident = parse_token(lexer.Ident)
@@ -444,13 +461,14 @@ def parse(tokens):
 			token.is_const = True
 			return token
 	
-	def parse_string():
-		token = parse_token(lexer.String)
+	def parse_string(scope):
+		string = parse_token(lexer.String)
 		
-		if token:
-			token.data_type = StringType
-			token.is_const = True
-			return token
+		if string:
+			string.data_type = StringType
+			string.is_const = False
+			string.internal = scope.add_string(string)
+			return string
 
 	def parse_keyword(name):
 		return parse_token(lexer.Keyword, name)
@@ -491,7 +509,9 @@ def parse(tokens):
 	return parse_unit()
 
 def infer_binop_type(left_type, right_type, op):
-	if op == "+" or op == "-" or op == "*":
+	if op == "+" and left_type == StringType and right_type == StringType:
+		return StringType
+	elif op == "+" or op == "-" or op == "*":
 		if left_type == IntType and right_type == IntType:
 			return IntType
 	elif op in ["==", "!=", "<=", ">=", "<", ">"]:

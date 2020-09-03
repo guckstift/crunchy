@@ -2,14 +2,37 @@ import subprocess
 import parser
 import lexer
 
+c_lib = open("c_lib.c", "r").read()
 INDENT = "\t"
 
+def int_to_esc_seq(val):
+	s = ""
+	
+	for i in range(4):
+		b = val & 0xff
+		s += "\\x" + "{:02X}".format(b)
+		val >>= 8
+	
+	return s
+
 def gen_code(tree):
-	code = "#include <stdio.h>\n"
-	code += gen_scope(tree.scope)
+	scope = tree.scope
+	stmts = tree.stmts
+	code = c_lib + "\n"
+	code += gen_string_buffers(scope)
+	code += gen_scope(scope)
 	code += "int main(int argc, char **argv) {\n"
-	code += gen_stmts(tree.stmts, tree.scope, 1)
+	code += gen_stmts(stmts, scope, 1)
+	code += gen_cleanup(scope, 1)
 	code += "}\n"
+	return code
+
+def gen_string_buffers(scope):
+	code = ""
+	
+	for string in scope.root.strings:
+		code += gen_string_buffer_decl(scope.root.strings[string]) + "\n"
+	
 	return code
 
 def gen_scope(scope, level = 0):
@@ -19,6 +42,16 @@ def gen_scope(scope, level = 0):
 		res += INDENT * level + gen_var_decl(scope.var_decls[decl]) + "\n"
 	
 	return res
+
+def gen_string_buffer_decl(string):
+	return (
+		"char " + string.internal + "_buf[] = \""
+		+ int_to_esc_seq(1)
+		+ int_to_esc_seq(len(string.value))
+		+ '" "'
+		+ string.value
+		+ "\";"
+	)
 
 def gen_var_decl(var_decl):
 	res = gen_data_type(var_decl.data_type) + " " + gen_ident(var_decl.ident) + " = "
@@ -31,50 +64,70 @@ def gen_var_decl(var_decl):
 	res += ";"
 	return res
 
+def gen_cleanup(scope, level = 0):
+	res = ""
+	
+	for name in scope.var_decls:
+		decl = scope.var_decls[name]
+		
+		if decl.data_type == parser.StringType:
+			res += INDENT * level + "string_decref(" + gen_ident(decl.ident) + ");\n"
+	
+	return res
+
 def gen_data_type(data_type):
 	if data_type == parser.IntType:
 		return "int"
 	if data_type == parser.BoolType:
 		return "unsigned char"
 	if data_type == parser.StringType:
-		return "char*"
+		return "string*"
 
 def gen_ident(ident):
 	return ident.internal
-	return ident.value
 
 def gen_stmts(stmts, scope, level = 0):
 	res = ""
 	
 	for stmt in stmts.stmts:
-		res += INDENT * level + gen_stmt(stmt, scope) + "\n"
+		res += INDENT * level + gen_stmt(stmt, scope, level) + "\n"
 	
 	return res
 
-def gen_stmt(stmt, scope):
+def gen_stmt(stmt, scope, level = 0):
 	if type(stmt) is parser.Assign:
 		return gen_assign(stmt)
 	elif type(stmt) is parser.Print:
-		return gen_print(stmt, scope)
+		return gen_print(stmt, scope, level)
 	elif type(stmt) is parser.IfStmt:
 		return gen_if_stmt(stmt, scope)
 	elif type(stmt) is parser.WhileStmt:
 		return gen_while_stmt(stmt, scope)
 
 def gen_assign(assign):
-	return gen_ident(assign.ident) + " = " + gen_expr(assign.expr) + ";"
+	if assign.ident.data_type == parser.StringType:
+		generated_ident = gen_ident(assign.ident)
+		return generated_ident + " = string_assign(" + generated_ident + ", " + gen_expr(assign.expr) + ");"
+	else:
+		return gen_ident(assign.ident) + " = " + gen_expr(assign.expr) + ";"
 
-def gen_print(print_stmt, scope):
+def gen_print(print_stmt, scope, level = 0):
 	expr_list = print_stmt.expr_list
 	printf_format = []
 	printf_args = []
+	pre_statement = ""
+	post_statement = ""
+	string_cache_count = 0
 	
 	for expr in expr_list:
 		data_type = expr.data_type
 		
 		if data_type == parser.IntType:
-			printf_format.append("%i")
-			printf_args.append(gen_expr(expr))
+			if type(expr) is lexer.Int:
+				printf_format.append(repr(expr))
+			else:
+				printf_format.append("%i")
+				printf_args.append(gen_expr(expr))
 		elif data_type == parser.BoolType:
 			if type(expr) is lexer.Bool:
 				printf_format.append(repr(expr))
@@ -85,13 +138,22 @@ def gen_print(print_stmt, scope):
 			if type(expr) is lexer.String:
 				printf_format.append(expr.value)
 			else:
-				printf_format.append("%s")
-				printf_args.append(gen_expr(expr))
+				generated_expr = gen_expr(expr)
+				string_cache = "c" + str(string_cache_count)
+				string_cache_count += 1
+				pre_statement += "string* " + string_cache + " = string_incref(" + generated_expr + ");\n"
+				pre_statement += INDENT * level
+				printf_format.append("%.*s")
+				printf_args.append(string_cache + "->length")
+				printf_args.append(string_cache + "->data")
+				post_statement += "\n" + INDENT * level + "string_decref(" + string_cache + ");"
 	
 	return (
-		"printf(\"" + " ".join(printf_format) + "\\n\""
+		("{" + pre_statement if pre_statement else "")
+		+ "printf(\"" + " ".join(printf_format) + "\\n\""
 		+ (", " + ", ".join(printf_args) if len(printf_args) > 0 else "")
-		+ ");"
+		+ "); "
+		+ (post_statement + "}" if post_statement else "")
 	)
 
 def gen_if_stmt(if_stmt, scope, level = 0):
@@ -139,7 +201,10 @@ def gen_expr(expr):
 	elif type(expr) is parser.Negate:
 		return "- " + gen_expr(expr.expr)
 	elif type(expr) is parser.BinOp:
-		return "(" + gen_expr(expr.left) + expr.op.value + gen_expr(expr.right) + ")"
+		if expr.data_type == parser.StringType:
+			return "string_concat(" + gen_expr(expr.left) + ", " + gen_expr(expr.right) + ")"
+		else:
+			return "(" + gen_expr(expr.left) + expr.op.value + gen_expr(expr.right) + ")"
 
 def gen_int(integer):
 	return str(integer.value)
@@ -148,7 +213,7 @@ def gen_bool(boolean):
 	return "1" if boolean.value else "0"
 
 def gen_str(expr):
-	return '"' + expr.value + '"'
+	return "((string*)" + expr.internal + "_buf)"
 
 def compile_code(src_name, code):
 	target_name = src_name + ".c"
@@ -156,5 +221,5 @@ def compile_code(src_name, code):
 	fs.write(code)
 	fs.close()
 	exe_name = src_name + ".exe"
-	subprocess.run(["gcc", "-o", exe_name, target_name], check=True)
+	subprocess.run(["gcc", "-ansi", "-pedantic", "-o", exe_name, target_name], check=True)
 
