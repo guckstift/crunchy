@@ -1,4 +1,4 @@
-var a = "hello";
+var a : string = "hello";
 var b = "world";
 var c = "aw";
 
