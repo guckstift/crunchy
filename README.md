@@ -3,6 +3,23 @@
 "crunchy" is a programming language. This repository contains the crunchy compiler. The compiler is currently in "proto" phase.
 This is the first phase of development.
 
+## usage
+
+In the project's root directory do
+
+```
+./crunchy <source-file-name>
+```
+
+Try e.g.:
+
+```
+./crunchy test.cr
+```
+
+That should compile the latest test source code file I'm playing around with. If there are no compile errors, an executable is
+created (Currently named `<source-file-name>.exe`)
+
 ## proto
 
 "proto" is the current phase of the compiler's development. The crunchy proto compiler is written in Python 3. It takes a single
