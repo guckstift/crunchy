@@ -1,3 +1,4 @@
+import error
 
 class Body:
 	def __init__(self, scope, stmts = None):
@@ -147,7 +148,7 @@ class StmtList:
 		res = ""
 		
 		for stmt in self.stmts:
-			res += " " * level + stmt.to_str(level)
+			res += " " * level + stmt.to_str(level) + "\n"
 		
 		return res
 
@@ -165,6 +166,8 @@ class Assign:
 class Call:
 	def __init__(self, ident):
 		self.ident = ident
+		self.data_type = ident.data_type.return_type
+		self.is_const = False
 	
 	def __repr__(self):
 		return self.to_str()
@@ -289,6 +292,18 @@ class PrimType:
 IntType = PrimType("int")
 BoolType = PrimType("bool")
 StringType = PrimType("string")
+
+class VoidType:
+	def __repr__(self):
+		return "void"
+	
+	def __eq__(self, other):
+		return type(self) is type(other)
+	
+	def __bool__(self):
+		return False
+
+VoidType = VoidType()
 
 class FuncType:
 	def __init__(self, return_type = None):

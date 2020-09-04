@@ -2,28 +2,63 @@
 #include <string.h>
 #include <stdlib.h>
 
+#define _CRUNCHY_DEBUG
+
+#ifdef CRUNCHY_DEBUG
+	#define debug printf
+#else
+	#define debug
+#endif
+
 typedef struct {
 	int refs;
 	int length;
 	char data[1];
 } string;
 
+int num_mallocs = 0;
+
+void* crunchy_malloc(int size)
+{
+	debug("malloc\n");
+	num_mallocs ++;
+	return malloc(size);
+}
+
+void crunchy_free(void* ptr)
+{
+	debug("free\n");
+	num_mallocs --;
+	free(ptr);
+}
+
 string* string_incref(string* str)
 {
-	if(str) {
+	if(str && str->refs != -1) {
 		str->refs++;
+		debug("incref %lu to %i\n", (unsigned long)str, str->refs);
 	}
 	
 	return str;
 }
 
+void string_soft_decref(string* str)
+{
+	if(str && str->refs != 0x7fFFffFF) {
+		if(str->refs > 0) {
+			str->refs--;
+			debug("decref %lu to %i\n", (unsigned long)str, str->refs);
+		}
+	}
+}
+
 void string_decref(string* str)
 {
-	if(str) {
-		str->refs--;
+	if(str && str->refs != -1) {
+		string_soft_decref(str);
 		
-		if(str->refs == 0) {
-			free(str);
+		if(str->refs <= 0) {
+			crunchy_free(str);
 		}
 	}
 }
@@ -39,7 +74,7 @@ string* string_concat(string* left, string* right)
 	string* str = 0;
 	string_incref(left);
 	string_incref(right);
-	str = malloc(sizeof(string) - 1 + left->length + right->length);
+	str = crunchy_malloc(sizeof(string) - 1 + left->length + right->length);
 	str->refs = 0;
 	str->length = left->length + right->length;
 	memcpy(str->data, left->data, left->length);
@@ -49,43 +84,23 @@ string* string_concat(string* left, string* right)
 	return str;
 }
 
-char s0[] = "\x01\x00\x00\x00\x06\x00\x00\x00" "Global";
-char s1[] = "\x01\x00\x00\x00\x05\x00\x00\x00" "World";
-char s2[] = "\x01\x00\x00\x00\x04\x00\x00\x00" "text";
-char s3[] = "\x01\x00\x00\x00\x05\x00\x00\x00" "Hello";
-char s4[] = "\x01\x00\x00\x00\x05\x00\x00\x00" "Danny";
-string* v0 = 0;
-int v6() {
-	string* v4 = 0;
-	if(1) {
-		string* v1 = 0;
-		string* v2 = 0;
-		
-		string_decref(v1);
-		string_decref(v2);
-		string_decref(v4);
-		return 1;
-		v1 = string_assign(v1, ((string*)s1));
-		v2 = string_assign(v2, ((string*)s1));
-		string_decref(v1);
-		string_decref(v2);
-	} else {
-		string* v3 = 0;
-		v3 = string_assign(v3, ((string*)s2));
-		string_decref(v3);
-	}
-	v4 = string_assign(v4, ((string*)s3));
-	while(0) {
-		string* v5 = 0;
-		v5 = string_assign(v5, ((string*)s4));
-		string_decref(v5);
-	}
-	
-	string_decref(v4);
-	return 4;
-	string_decref(v4);
+char empty_string[] = "\xFF\xFF\xFF\xFF\x00\x00\x00\x00" "";
+char s1[] = "\xFF\xFF\xFF\xFF\x05\x00\x00\x00" "Hello";
+char s2[] = "\xFF\xFF\xFF\xFF\x05\x00\x00\x00" "World";
+char s3[] = "\xFF\xFF\xFF\xFF\x01\x00\x00\x00" " ";
+char s4[] = "\xFF\xFF\xFF\xFF\x03\x00\x00\x00" "Foo";
+char s5[] = "\xFF\xFF\xFF\xFF\x03\x00\x00\x00" "Bar";
+string* v1() {
+	string* v0 = ((string*)empty_string);
+	v0 = string_assign(v0, string_concat(((string*)s1), ((string*)s2)));
+	v0 = string_assign(v0, string_concat(v0, ((string*)s3)));
+	{string* string_res = string_incref(string_concat(string_concat(v0, ((string*)s4)), ((string*)s5)));
+	string_decref(v0);
+	string_soft_decref(string_res);
+	return string_res;}
+	string_decref(v0);
 }
 int main(int argc, char **argv) {
-	v0 = string_assign(v0, ((string*)s0));
-	string_decref(v0);
+	string_decref(v1());
+	debug("num left allocs %i\n", num_mallocs);
 }

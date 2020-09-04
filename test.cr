@@ -1,20 +1,10 @@
-var g = "Global";
-
-func foo() : int
+func foo() : string
 {
-	if true {
-		return 1;
-		var t = "World";
-		var t2 = "World";
-	} else {
-		var v = "text";
-	}
-	
-	var s = "Hello";
-	
-	while false {
-		var u = "Danny";
-	}
-	
-	return 4;
+	var x : string = "Hello" + "World";
+	x = x + " ";
+	return x + "Foo" + "Bar";
 }
+
+foo();
+
+

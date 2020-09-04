@@ -4,6 +4,9 @@ import error
 import lexer
 import ast
 
+empty_string = lexer.String(0, 0, "")
+empty_string.internal = "empty_string"
+
 def parse(tokens):
 	begin = tokens
 	dummy_ident_count = 0
@@ -15,6 +18,7 @@ def parse(tokens):
 
 	def parse_body(parent_scope = None, ctx = "global", return_type = None):
 		body_scope = ast.Scope(parent_scope, ctx, return_type)
+		body_scope.add_string(empty_string)
 		stmts = parse_stmts(body_scope)
 		return ast.Body(body_scope, stmts)
 
@@ -39,7 +43,7 @@ def parse(tokens):
 	def parse_stmt(scope):
 		return (
 			parse_var_decl(scope) or parse_func_decl(scope) or
-			parse_assign(scope) or parse_call(scope) or
+			parse_assign(scope) or parse_call_stmt(scope) or
 			parse_return(scope) or
 			parse_print(scope) or parse_if_stmt(scope) or parse_while_stmt(scope)
 		)
@@ -51,7 +55,7 @@ def parse(tokens):
 		ident = parse_ident(scope, True) or throw("expected identifier after func") or next_dummy_ident()
 		parse_special("(") or throw("expected ( after function name")
 		parse_special(")") or throw("expected ) after (")
-		return_type = None
+		return_type = ast.VoidType
 		
 		if parse_special(":"):
 			return_type = parse_data_type() or throw("expected type after :")
@@ -122,6 +126,8 @@ def parse(tokens):
 		
 		if type(expr_data_type) is ast.FuncType:
 			throw("can not assign function", expr, "to variable", ident)
+		elif expr_data_type == ast.VoidType:
+			throw("right-hand side expression is of type void")
 		
 		if (
 			ident_data_type and type(ident_data_type) is not ast.FuncType and
@@ -132,6 +138,15 @@ def parse(tokens):
 		
 		parse_special(";") or throw("expected ; after expression")
 		return ast.Assign(ident, expr)
+	
+	def parse_call_stmt(scope):
+		call = parse_call(scope)
+		
+		if not call:
+			return
+		
+		parse_special(";") or throw("expected ; after )")
+		return call
 	
 	def parse_call(scope):
 		backup()
@@ -148,7 +163,6 @@ def parse(tokens):
 			throw(ident, "is not a function")
 		
 		parse_special(")") or throw("expected ) after (")
-		parse_special(";") or throw("expected ; after )")
 		return ast.Call(ident)
 	
 	def parse_return(scope):
@@ -282,7 +296,7 @@ def parse(tokens):
 			
 			return ast.Negate(expr)
 		
-		return parse_atom(scope)
+		return parse_call(scope) or parse_atom(scope)
 	
 	def parse_atom(scope):
 		ident = parse_ident(scope)

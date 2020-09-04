@@ -25,6 +25,7 @@ def gen_code(tree):
 	code += "int main(int argc, char **argv) {\n"
 	code += gen_stmts(stmts, scope, 1)
 	code += gen_cleanup(scope, 1)
+	code += INDENT + "debug(\"num left allocs %i\\n\", num_mallocs);\n"
 	code += "}\n"
 	return code
 
@@ -34,14 +35,6 @@ def gen_body(body, level):
 		+ gen_stmts(body.stmts, body.scope, level)
 		+ gen_cleanup(body.scope, level)
 	)
-
-def gen_string_buffers(scope):
-	code = ""
-	
-	for string in scope.root.strings:
-		code += gen_string_buffer_decl(scope.root.strings[string]) + "\n"
-	
-	return code
 
 def gen_scope(scope, level = 0):
 	res = ""
@@ -54,10 +47,19 @@ def gen_scope(scope, level = 0):
 	
 	return res
 
+def gen_string_buffers(scope):
+	code = ""
+	
+	for string_value in scope.root.strings:
+		string = scope.root.strings[string_value]
+		code += gen_string_buffer_decl(string) + "\n"
+	
+	return code
+
 def gen_string_buffer_decl(string):
 	return (
 		"char " + string.internal + "[] = \""
-		+ int_to_esc_seq(1)
+		+ int_to_esc_seq(-1)
 		+ int_to_esc_seq(len(string.value))
 		+ '" "'
 		+ string.value
@@ -77,6 +79,8 @@ def gen_var_decl(var_decl):
 	
 	if var_decl.init:
 		res += gen_expr(var_decl.init);
+	elif var_decl.data_type == ast.StringType:
+		res += "((string*)empty_string)";
 	else:
 		res += "0";
 	
@@ -124,7 +128,7 @@ def gen_stmt(stmt, scope, level = 0):
 	if type(stmt) is ast.Assign:
 		return gen_assign(stmt)
 	elif type(stmt) is ast.Call:
-		return gen_call(stmt)
+		return gen_call_stmt(stmt)
 	elif type(stmt) is ast.Return:
 		return gen_return(stmt, scope, level)
 	elif type(stmt) is ast.Print:
@@ -141,14 +145,38 @@ def gen_assign(assign):
 	else:
 		return gen_ident(assign.ident) + " = " + gen_expr(assign.expr) + ";"
 
+def gen_call_stmt(call):
+	generated_call = gen_call(call)
+	
+	if call.data_type == ast.StringType:
+		return "string_decref(" + generated_call + ");"
+	else:
+		return generated_call + ";"
+	
 def gen_call(call):
-	return gen_ident(call.ident) + "();"
+	return gen_ident(call.ident) + "()"
 
 def gen_return(return_stmt, scope, level = 0):
-	return (
-		"\n" + gen_cleanup_recursive(scope, level) +
-		INDENT * level + "return" + (" " + gen_expr(return_stmt.expr) if return_stmt.expr else "") + ";"
-	)
+	res = ""
+	return_value = return_stmt.expr
+	return_type = return_value.data_type
+	generated_value = gen_expr(return_value)
+	
+	if return_type == ast.StringType:
+		res += "{string* string_res = string_incref(" + generated_value + ");"
+		generated_value = "string_res"
+	
+	res += "\n" + gen_cleanup_recursive(scope, level)
+	
+	if return_type == ast.StringType:
+		res += INDENT * level + "string_soft_decref(string_res);\n"
+	
+	res += INDENT * level + "return" + (" " + generated_value if return_value else "") + ";"
+	
+	if return_type == ast.StringType:
+		res += "}"
+	
+	return res
 
 def gen_print(print_stmt, scope, level = 0):
 	expr_list = print_stmt.expr_list
@@ -229,6 +257,8 @@ def gen_expr(expr):
 		return gen_bool(expr)
 	elif type(expr) is lexer.String:
 		return gen_str(expr)
+	elif type(expr) is ast.Call:
+		return gen_call(expr)
 	elif type(expr) is ast.Negate:
 		return "- " + gen_expr(expr.expr)
 	elif type(expr) is ast.BinOp:
