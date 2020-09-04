@@ -55,6 +55,8 @@ specials = [
 	">",
 	"{",
 	"}",
+	"(",
+	")",
 ]
 
 special_chars = []
@@ -68,9 +70,11 @@ keywords = [
 	"bool",
 	"else",
 	"false",
+	"func",
 	"if",
 	"int",
 	"print",
+	"return",
 	"string",
 	"true",
 	"var",

@@ -49,48 +49,43 @@ string* string_concat(string* left, string* right)
 	return str;
 }
 
-char s0_buf[] = "\x01\x00\x00\x00\x05\x00\x00\x00" "hello";
-char s1_buf[] = "\x01\x00\x00\x00\x05\x00\x00\x00" "world";
-char s2_buf[] = "\x01\x00\x00\x00\x02\x00\x00\x00" "aw";
-char s3_buf[] = "\x01\x00\x00\x00\x05\x00\x00\x00" "Hello";
-char s4_buf[] = "\x01\x00\x00\x00\x06\x00\x00\x00" " World";
-char s5_buf[] = "\x01\x00\x00\x00\x01\x00\x00\x00" "!";
-char s6_buf[] = "\x01\x00\x00\x00\x04\x00\x00\x00" "jkjd";
-char s7_buf[] = "\x01\x00\x00\x00\x08\x00\x00\x00" "  asdfs ";
-char s8_buf[] = "\x01\x00\x00\x00\x05\x00\x00\x00" "Danny";
-char s9_buf[] = "\x01\x00\x00\x00\x06\x00\x00\x00" "Hello ";
-char s10_buf[] = "\x01\x00\x00\x00\x04\x00\x00\x00" "Bye ";
-char s11_buf[] = "\x01\x00\x00\x00\x02\x00\x00\x00" "!?";
+char s0[] = "\x01\x00\x00\x00\x06\x00\x00\x00" "Global";
+char s1[] = "\x01\x00\x00\x00\x05\x00\x00\x00" "World";
+char s2[] = "\x01\x00\x00\x00\x04\x00\x00\x00" "text";
+char s3[] = "\x01\x00\x00\x00\x05\x00\x00\x00" "Hello";
+char s4[] = "\x01\x00\x00\x00\x05\x00\x00\x00" "Danny";
 string* v0 = 0;
-string* v1 = 0;
-string* v2 = 0;
-string* v3 = 0;
-int v4 = 9;
-string* v5 = 0;
-unsigned char v6 = 1;
-int main(int argc, char **argv) {
-	v0 = string_assign(v0, ((string*)s0_buf));
-	v1 = string_assign(v1, ((string*)s1_buf));
-	v2 = string_assign(v2, ((string*)s2_buf));
-	v3 = string_assign(v3, string_concat(string_concat(v0, v1), v2));
-	{string* c0 = string_incref(string_concat(string_concat(((string*)s3_buf), ((string*)s4_buf)), ((string*)s5_buf)));
-	string* c1 = string_incref(string_concat(((string*)s6_buf), ((string*)s7_buf)));
-	printf("%.*s %i %.*s\n", c0->length, c0->data, v4, c1->length, c1->data); 
-	string_decref(c0);
-	string_decref(c1);}
-	v5 = string_assign(v5, ((string*)s8_buf));
-	if(v6) {
-		{string* c0 = string_incref(string_concat(string_concat(((string*)s9_buf), v5), ((string*)s5_buf)));
-		printf("%.*s\n", c0->length, c0->data); 
-		string_decref(c0);}
+int v6() {
+	string* v4 = 0;
+	if(1) {
+		string* v1 = 0;
+		string* v2 = 0;
+		
+		string_decref(v1);
+		string_decref(v2);
+		string_decref(v4);
+		return 1;
+		v1 = string_assign(v1, ((string*)s1));
+		v2 = string_assign(v2, ((string*)s1));
+		string_decref(v1);
+		string_decref(v2);
 	} else {
-		{string* c0 = string_incref(string_concat(string_concat(((string*)s10_buf), v5), ((string*)s11_buf)));
-		printf("%.*s\n", c0->length, c0->data); 
-		string_decref(c0);}
+		string* v3 = 0;
+		v3 = string_assign(v3, ((string*)s2));
+		string_decref(v3);
 	}
+	v4 = string_assign(v4, ((string*)s3));
+	while(0) {
+		string* v5 = 0;
+		v5 = string_assign(v5, ((string*)s4));
+		string_decref(v5);
+	}
+	
+	string_decref(v4);
+	return 4;
+	string_decref(v4);
+}
+int main(int argc, char **argv) {
+	v0 = string_assign(v0, ((string*)s0));
 	string_decref(v0);
-	string_decref(v1);
-	string_decref(v2);
-	string_decref(v3);
-	string_decref(v5);
 }

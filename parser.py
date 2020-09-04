@@ -2,225 +2,7 @@
 
 import error
 import lexer
-
-class Body:
-	def __init__(self, scope, stmts):
-		self.scope = scope
-		self.stmts = stmts
-	
-	def __repr__(self):
-		return self.to_str()
-	
-	def to_str(self, level = 0):
-		return self.scope.to_str(level) + self.stmts.to_str(level)
-
-class Scope:
-	def __init__(self, parent = None):
-		self.parent = parent
-		self.var_decls = {}
-		self.root = self.parent.root if self.parent else self
-		
-		if self is self.root:
-			self.internal_count = 0
-			self.string_count = 0
-			self.strings = {}
-	
-	def next_internal(self):
-		internal = "v" + str(self.root.internal_count)
-		self.root.internal_count += 1
-		return internal
-	
-	def next_string_internal(self):
-		internal = "s" + str(self.root.string_count)
-		self.root.string_count += 1
-		return internal
-	
-	def add_string(self, string):
-		value = string.value
-		
-		if value not in self.root.strings:
-			internal = self.next_string_internal()
-			self.root.strings[value] = string
-			return internal
-		
-		return self.root.strings[value].internal
-	
-	def to_str(self, level = 0):
-		res = ""
-		
-		for name in self.var_decls:
-			res += self.var_decls[name].to_str(level) + "\n"
-		
-		return res
-	
-	def declare(self, var_decl):
-		ident = var_decl.ident
-		name = ident.value
-		
-		if name in self.var_decls:
-			error.error(ident.line, name, "is already declared")
-		else:
-			self.var_decls[name] = var_decl
-			ident.internal = self.next_internal()
-	
-	def lookup(self, ident):
-		name = ident.value
-		
-		if name in self.var_decls:
-			return self.var_decls[name]
-		
-		if self.parent:
-			return self.parent.lookup(ident)
-	
-	def lookup_type(self, ident):
-		var_decl = self.lookup(ident)
-		
-		if var_decl:
-			return var_decl.data_type
-		
-		return UnknownType
-
-class VarDecl:
-	def __init__(self, ident, data_type, init = None):
-		self.ident = ident
-		self.data_type = data_type
-		self.init = init
-	
-	def __repr__(self):
-		return self.to_str()
-	
-	def to_str(self, level = 0):
-		return " " * level + f"var {self.ident!r} : {self.data_type!r}" + (" = " + repr(self.init) if self.init else "")
-
-class StmtList:
-	def __init__(self, stmts):
-		self.stmts = stmts
-	
-	def __repr__(self):
-		return self.to_str()
-	
-	def to_str(self, level = 0):
-		res = ""
-		
-		for stmt in self.stmts:
-			res += " " * level + repr(stmt) + "\n"
-		
-		return res
-
-class Assign:
-	def __init__(self, ident, expr):
-		self.ident = ident
-		self.expr = expr
-	
-	def __repr__(self):
-		return f"{self.ident!r} = {self.expr!r}"
-
-class Print:
-	def __init__(self, expr_list):
-		self.expr_list = expr_list
-	
-	def __repr__(self):
-		return "print " + repr(self.expr_list)
-
-class IfStmt:
-	def __init__(self, cond, body, else_body = None):
-		self.cond = cond
-		self.body = body
-		self.else_body = else_body
-	
-	def __repr__(self):
-		return self.to_str()
-	
-	def to_str(self, level = 0):
-		return (
-			" " * level
-			+ "if "
-			+ repr(self.cond)
-			+ " {\n"
-			+ self.body.to_str(level + 1)
-			+ "}"
-			+ (
-				" else {\n"
-				+ self.else_body.to_str(level + 1)
-				+ "}"
-				if self.else_body
-				else ""
-			)
-		)
-
-class WhileStmt:
-	def __init__(self, cond, body):
-		self.cond = cond
-		self.body = body
-	
-	def __repr__(self):
-		return self.to_str()
-	
-	def to_str(self, level = 0):
-		return (
-			" " * level
-			+ "while "
-			+ repr(self.cond)
-			+ " {\n"
-			+ self.body.to_str(level + 1)
-			+ "}"
-		)
-
-class UnknownType:
-	def __repr__(self):
-		return "<unknown-type>"
-	
-	def __eq__(self, other):
-		return type(self) is type(other)
-	
-	def __bool__(self):
-		return False
-
-UnknownType = UnknownType()
-
-class UnknownExpr:
-	def __init__(self):
-		self.data_type = UnknownType
-		self.is_const = True
-	
-	def __repr__(self):
-		return "<unknown-expression>"
-
-UnknownExpr = UnknownExpr()
-
-class Negate:
-	def __init__(self, expr):
-		self.expr = expr
-		self.data_type = expr.data_type
-		self.is_const = expr.is_const
-	
-	def __repr__(self):
-		return "-" + repr(self.expr)
-
-class BinOp:
-	def __init__(self, left, right, op, data_type):
-		self.left = left
-		self.right = right
-		self.op = op
-		self.data_type = data_type
-		self.is_const = left.is_const and right.is_const
-	
-	def __repr__(self):
-		return f"({self.left} {self.op.value} {self.right})"
-
-class PrimType:
-	def __init__(self, name):
-		self.name = name
-	
-	def __repr__(self):
-		return self.name
-	
-	def __eq__(self, other):
-		return type(self) is type(other) and self.name == other.name
-
-IntType = PrimType("int")
-BoolType = PrimType("bool")
-StringType = PrimType("string")
+import ast
 
 def parse(tokens):
 	begin = tokens
@@ -231,10 +13,10 @@ def parse(tokens):
 		parse_end() or throw("unexpected end of source")
 		return unit
 
-	def parse_body(scope = None):
-		body_scope = Scope(scope)
+	def parse_body(parent_scope = None, ctx = "global", return_type = None):
+		body_scope = ast.Scope(parent_scope, ctx, return_type)
 		stmts = parse_stmts(body_scope)
-		return Body(body_scope, stmts)
+		return ast.Body(body_scope, stmts)
 
 	def parse_stmts(scope):
 		stmts = []
@@ -245,20 +27,44 @@ def parse(tokens):
 			if stmt is None:
 				break
 			
-			if type(stmt) is VarDecl:
+			if type(stmt) is ast.VarDecl:
 				if stmt.init and not stmt.init.is_const:
-					stmts.append(Assign(stmt.ident, stmt.init))
+					stmts.append(ast.Assign(stmt.ident, stmt.init))
 					stmt.init = None
-			else:
+			elif type(stmt) is not ast.FuncDecl:
 				stmts.append(stmt)
 		
-		return StmtList(stmts)
+		return ast.StmtList(stmts)
 
 	def parse_stmt(scope):
 		return (
-			parse_var_decl(scope) or parse_assign(scope) or parse_print(scope) or parse_if_stmt(scope)
-			or parse_while_stmt(scope)
+			parse_var_decl(scope) or parse_func_decl(scope) or
+			parse_assign(scope) or parse_call(scope) or
+			parse_return(scope) or
+			parse_print(scope) or parse_if_stmt(scope) or parse_while_stmt(scope)
 		)
+	
+	def parse_func_decl(scope):
+		if not parse_keyword("func"):
+			return
+		
+		ident = parse_ident(scope, True) or throw("expected identifier after func") or next_dummy_ident()
+		parse_special("(") or throw("expected ( after function name")
+		parse_special(")") or throw("expected ) after (")
+		return_type = None
+		
+		if parse_special(":"):
+			return_type = parse_data_type() or throw("expected type after :")
+		
+		body = expect_block_body(scope, "func", return_type)
+		
+		if return_type and not body.scope.has_toplevel_return:
+			throw("this function should return a value of type", return_type, "in its outermost scope")
+		
+		func_decl = ast.FuncDecl(ident, return_type, body)
+		scope.declare(func_decl)
+		ident.data_type = func_decl.data_type
+		return func_decl
 
 	def parse_var_decl(scope):
 		if not parse_keyword("var"):
@@ -269,11 +75,14 @@ def parse(tokens):
 		init = None
 		
 		if parse_special(":"):
-			data_type = parse_data_type() or throw("expected type after :") or UnknownType
+			data_type = parse_data_type() or throw("expected type after :") or ast.UnknownType
 		
 		if parse_special("="):
 			init = parse_expr(scope)
 			init_data_type = init.data_type
+			
+			if type(init_data_type) is ast.FuncType:
+				throw("can not initialize", ident, "with function", init)
 			
 			if not data_type:
 				data_type = init_data_type
@@ -283,88 +92,142 @@ def parse(tokens):
 		
 		if not data_type and not init:
 			throw("expected at least one of a type specification or an initializer")
-			data_type = UnknownType
+			data_type = ast.UnknownType
 		
 		parse_special(";") or throw("expected ; after type")
-		var_decl = VarDecl(ident, data_type, init)
+		var_decl = ast.VarDecl(ident, data_type, init)
 		scope.declare(var_decl)
 		ident.data_type = data_type
 		return var_decl
-
+	
 	def parse_assign(scope):
+		backup()
 		ident = parse_ident(scope)
 		
 		if not ident:
 			return
 		
+		if not parse_special("="):
+			restore()
+			return
+		
+		check_ident(ident, scope)
 		ident_data_type = ident.data_type
-		parse_special("=") or throw("expected = after identifier")
-		expr = parse_expr(scope) or throw("expected expression after =") or UnknownExpr
+		
+		if type(ident_data_type) is ast.FuncType:
+			throw("can not assign to function", ident)
+		
+		expr = parse_expr(scope) or throw("expected expression after =") or ast.UnknownExpr
 		expr_data_type = expr.data_type
 		
-		if ident_data_type and expr_data_type and expr_data_type != ident_data_type:
+		if type(expr_data_type) is ast.FuncType:
+			throw("can not assign function", expr, "to variable", ident)
+		
+		if (
+			ident_data_type and type(ident_data_type) is not ast.FuncType and
+			expr_data_type and type(expr_data_type) is not ast.FuncType and
+			expr_data_type != ident_data_type
+		):
 			throw("type mismatch, expected", ident_data_type, "got", expr_data_type)
 		
 		parse_special(";") or throw("expected ; after expression")
-		return Assign(ident, expr)
+		return ast.Assign(ident, expr)
+	
+	def parse_call(scope):
+		backup()
+		ident = parse_ident(scope)
+		
+		if not ident:
+			return
+		
+		if not parse_special("("):
+			restore()
+			return
+		
+		if check_ident(ident, scope) and type(ident.data_type) is not ast.FuncType:
+			throw(ident, "is not a function")
+		
+		parse_special(")") or throw("expected ) after (")
+		parse_special(";") or throw("expected ; after )")
+		return ast.Call(ident)
+	
+	def parse_return(scope):
+		if not parse_keyword("return"):
+			return
+		
+		expr = parse_expr(scope)
+		parse_special(";") or throw("expected ; after return statement")
+		func_scope = scope.last_func_ancestor or throw("can not return from outside a function")
+		
+		if expr and not scope.return_type:
+			throw("this function should not return a value")
+		elif not expr and scope.return_type:
+			throw("this function should return a value")
+		elif expr and expr.data_type != scope.return_type:
+			throw("must return value of type", scope.return_type, "got", expr.data_type, "instead")
+		
+		if scope.ctx == "func":
+			scope.has_toplevel_return = True
+		
+		return ast.Return(expr)
 	
 	def parse_print(scope):
 		if not parse_keyword("print"):
 			return
 		
-		expr = parse_expr(scope) or throw("expected expression after print") or UnknownExpr
+		expr = parse_expr(scope) or throw("expected expression after print") or ast.UnknownExpr
 		expr_list = [expr]
 		
 		while parse_special(","):
-			expr = parse_expr(scope) or throw("expected expression after ,") or UnknownExpr
+			expr = parse_expr(scope) or throw("expected expression after ,") or ast.UnknownExpr
 			expr_list.append(expr)
 		
 		parse_special(";") or throw("expected ; after expression")
-		return Print(expr_list)
+		return ast.Print(expr_list)
+	
+	def expect_block_body(scope, ctx = "block", return_type = None):
+		parse_special("{") or throw("expected { before body")
+		body = parse_body(scope, ctx, return_type)
+		parse_special("}") or throw("expected } after body")
+		return body
 	
 	def parse_if_stmt(scope):
 		if not parse_keyword("if"):
 			return
 		
-		cond = parse_expr(scope) or throw("expected condition after if") or UnknownExpr
+		cond = parse_expr(scope) or throw("expected condition after if") or ast.UnknownExpr
 		data_type = cond.data_type
 		
-		if data_type != BoolType:
+		if cond != ast.UnknownExpr and data_type != ast.BoolType:
 			throw("condition", cond, "must be of type bool,", data_type, "given")
 		
-		parse_special("{") or throw("expected { after condition")
-		body = parse_body(scope)
-		parse_special("}") or throw("expected } after if-body")
+		body = expect_block_body(scope)
 		else_body = None
 		
 		if parse_keyword("else"):
-			parse_special("{") or throw("expected { after else")
-			else_body = parse_body(scope)
-			parse_special("}") or throw("expected } after else-body")
+			else_body = expect_block_body(scope)
 		
-		return IfStmt(cond, body, else_body)
+		return ast.IfStmt(cond, body, else_body)
 	
 	def parse_while_stmt(scope):
 		if not parse_keyword("while"):
 			return
 		
-		cond = parse_expr(scope) or throw("expected condition after while") or UnknownExpr
+		cond = parse_expr(scope) or throw("expected condition after while") or ast.UnknownExpr
 		data_type = cond.data_type
 		
-		if data_type != BoolType:
+		if cond != ast.UnknownExpr and data_type != ast.BoolType:
 			throw("condition", cond, "must be of type bool,", data_type, "given")
 		
-		parse_special("{") or throw("expected { after condition")
-		body = parse_body(scope)
-		parse_special("}") or throw("expected } after if-body")
+		body = expect_block_body(scope)
 		
-		return WhileStmt(cond, body)
+		return ast.WhileStmt(cond, body)
 	
 	def parse_data_type():
 		keyword = parse_keyword("int") or parse_keyword("bool") or parse_keyword("string")
 		
 		if keyword:
-			return PrimType(keyword.value)
+			return ast.PrimType(keyword.value)
 
 	def parse_expr(scope):
 		return parse_chainop(
@@ -392,14 +255,14 @@ def parse(tokens):
 			if not op:
 				return left
 			
-			right = subparse() or throw("expected right side after", op) or UnknownExpr
+			right = subparse() or throw("expected right side after", op) or ast.UnknownExpr
 			right_type = right.data_type
 			binop_type = infer_binop_type(left_type, right_type, op.value)
 			
-			if left_type and right_type and binop_type == UnknownType:
+			if left_type and right_type and binop_type == ast.UnknownType:
 				throw("can not combine", left_type, "and", right_type, "with the operator", op)
 			
-			left = BinOp(left, right, op, binop_type)
+			left = ast.BinOp(left, right, op, binop_type)
 			left_type = binop_type
 	
 	def parse_op(ops):
@@ -411,45 +274,56 @@ def parse(tokens):
 	
 	def parse_negate(scope):
 		if parse_special("-"):
-			expr = parse_expr(scope)
+			expr = parse_negate(scope)
 			data_type = expr.data_type
 			
-			if data_type != IntType:
+			if data_type != ast.IntType:
 				throw("can not negate non-number", expr)
 			
-			return Negate(expr)
+			return ast.Negate(expr)
 		
 		return parse_atom(scope)
 	
 	def parse_atom(scope):
+		ident = parse_ident(scope)
+		
+		if ident:
+			check_ident(ident, scope)
+			return ident
+		
 		return parse_int() or parse_bool() or parse_string(scope) or parse_ident(scope)
 	
 	def parse_ident(scope, in_decl = False):
 		ident = parse_token(lexer.Ident)
 		
-		if not ident:
-			return
-		
-		if not in_decl:
-			var_decl = scope.lookup(ident)
-			ident.data_type = scope.lookup_type(ident)
+		if ident:
+			if not in_decl:
+				decl = scope.lookup(ident)
+				ident.data_type = scope.lookup_type(ident)
+				
+				if decl:
+					ident.internal = decl.ident.internal
 			
-			if not var_decl:
-				throw("could not find", ident)
-			elif ident.data_type == UnknownType:
-				throw(ident, "was not declared properly")
-			else:
-				ident.internal = var_decl.ident.internal
+			ident.is_const = False
+			return ident
 		
-		ident.is_const = False
+	def check_ident(ident, scope):
+		decl = scope.lookup(ident)
 		
-		return ident
+		if not decl:
+			throw("could not find", ident)
+			return False
+		elif ident.data_type == ast.UnknownType:
+			throw(ident, "was not declared properly")
+			return False
+		
+		return True
 
 	def parse_int():
 		token = parse_token(lexer.Int)
 		
 		if token:
-			token.data_type = IntType
+			token.data_type = ast.IntType
 			token.is_const = True
 			return token
 	
@@ -457,7 +331,7 @@ def parse(tokens):
 		token = parse_token(lexer.Bool)
 		
 		if token:
-			token.data_type = BoolType
+			token.data_type = ast.BoolType
 			token.is_const = True
 			return token
 	
@@ -465,7 +339,7 @@ def parse(tokens):
 		string = parse_token(lexer.String)
 		
 		if string:
-			string.data_type = StringType
+			string.data_type = ast.StringType
 			string.is_const = False
 			string.internal = scope.add_string(string)
 			return string
@@ -509,14 +383,14 @@ def parse(tokens):
 	return parse_unit()
 
 def infer_binop_type(left_type, right_type, op):
-	if op == "+" and left_type == StringType and right_type == StringType:
-		return StringType
+	if op == "+" and left_type == right_type == ast.StringType:
+		return ast.StringType
 	elif op == "+" or op == "-" or op == "*":
-		if left_type == IntType and right_type == IntType:
-			return IntType
+		if left_type == right_type == ast.IntType:
+			return ast.IntType
 	elif op in ["==", "!=", "<=", ">=", "<", ">"]:
-		if left_type == IntType and right_type == IntType:
-			return BoolType
+		if left_type == right_type == ast.IntType:
+			return ast.BoolType
 	
-	return UnknownType
+	return ast.UnknownType
 
