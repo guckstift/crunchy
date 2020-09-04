@@ -7,7 +7,7 @@
 #ifdef CRUNCHY_DEBUG
 	#define debug printf
 #else
-	#define debug
+	#define debug if(0)
 #endif
 
 typedef struct {
@@ -85,22 +85,10 @@ string* string_concat(string* left, string* right)
 }
 
 char empty_string[] = "\xFF\xFF\xFF\xFF\x00\x00\x00\x00" "";
-char s1[] = "\xFF\xFF\xFF\xFF\x05\x00\x00\x00" "Hello";
-char s2[] = "\xFF\xFF\xFF\xFF\x05\x00\x00\x00" "World";
-char s3[] = "\xFF\xFF\xFF\xFF\x01\x00\x00\x00" " ";
-char s4[] = "\xFF\xFF\xFF\xFF\x03\x00\x00\x00" "Foo";
-char s5[] = "\xFF\xFF\xFF\xFF\x03\x00\x00\x00" "Bar";
-string* v1() {
-	string* v0 = ((string*)empty_string);
-	v0 = string_assign(v0, string_concat(((string*)s1), ((string*)s2)));
-	v0 = string_assign(v0, string_concat(v0, ((string*)s3)));
-	{string* string_res = string_incref(string_concat(string_concat(v0, ((string*)s4)), ((string*)s5)));
-	string_decref(v0);
-	string_soft_decref(string_res);
-	return string_res;}
-	string_decref(v0);
-}
+int v0 = 0;
+unsigned char v1 = 0;
+int v2 = ((int)0);
 int main(int argc, char **argv) {
-	string_decref(v1());
+	v0 = ((int)1);
 	debug("num left allocs %i\n", num_mallocs);
 }

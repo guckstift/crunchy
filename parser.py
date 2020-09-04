@@ -92,7 +92,7 @@ def parse(tokens):
 				data_type = init_data_type
 			
 			if init_data_type and init_data_type != data_type:
-				throw("initializer data type must be", data_type, "got", init_data_type)
+				init = cast_value(init, data_type)
 		
 		if not data_type and not init:
 			throw("expected at least one of a type specification or an initializer")
@@ -134,7 +134,7 @@ def parse(tokens):
 			expr_data_type and type(expr_data_type) is not ast.FuncType and
 			expr_data_type != ident_data_type
 		):
-			throw("type mismatch, expected", ident_data_type, "got", expr_data_type)
+			expr = cast_value(expr, ident_data_type)
 		
 		parse_special(";") or throw("expected ; after expression")
 		return ast.Assign(ident, expr)
@@ -374,6 +374,13 @@ def parse(tokens):
 		if type(token) is kind and (value is None or token.value == value):
 			tokens = tokens[1:]
 			return token
+	
+	def cast_value(expr, target_type):
+		if expr.data_type == ast.BoolType and target_type == ast.IntType:
+			return ast.Cast(expr, target_type)
+		
+		throw("can not cast", expr.data_type, "to", target_type)
+		return expr
 	
 	def backup():
 		nonlocal begin

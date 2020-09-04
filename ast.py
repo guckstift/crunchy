@@ -279,6 +279,15 @@ class BinOp:
 	def __repr__(self):
 		return f"({self.left} {self.op.value} {self.right})"
 
+class Cast:
+	def __init__(self, expr, target_type):
+		self.expr = expr
+		self.target_type = target_type
+		self.is_const = expr.is_const
+	
+	def __repr__(self):
+		return f"cast({self.target_type} : {self.expr})"
+
 class PrimType:
 	def __init__(self, name):
 		self.name = name

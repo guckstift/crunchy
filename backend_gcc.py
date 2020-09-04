@@ -257,6 +257,8 @@ def gen_expr(expr):
 		return gen_bool(expr)
 	elif type(expr) is lexer.String:
 		return gen_str(expr)
+	elif type(expr) is ast.Cast:
+		return gen_cast(expr)
 	elif type(expr) is ast.Call:
 		return gen_call(expr)
 	elif type(expr) is ast.Negate:
@@ -275,6 +277,9 @@ def gen_bool(boolean):
 
 def gen_str(expr):
 	return "((string*)" + expr.internal + ")"
+
+def gen_cast(cast):
+	return "((" + gen_data_type(cast.target_type) + ")" + gen_expr(cast.expr) + ")"
 
 def compile_code(src_name, code):
 	target_name = src_name + ".c"

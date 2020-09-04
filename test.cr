@@ -1,10 +1,9 @@
-func foo() : string
-{
-	var x : string = "Hello" + "World";
-	x = x + " ";
-	return x + "Foo" + "Bar";
-}
+var x : int;
 
-foo();
+x = true;
 
+var y : bool;
 
+# y = 1;
+
+var z : int = false;

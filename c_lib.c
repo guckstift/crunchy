@@ -7,7 +7,7 @@
 #ifdef CRUNCHY_DEBUG
 	#define debug printf
 #else
-	#define debug
+	#define debug if(0)
 #endif
 
 typedef struct {
