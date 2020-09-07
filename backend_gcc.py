@@ -3,7 +3,6 @@ import parser
 import lexer
 import ast
 
-c_lib = open("c_lib.c", "r").read()
 INDENT = "\t"
 
 def int_to_esc_seq(val):
@@ -19,7 +18,7 @@ def int_to_esc_seq(val):
 def gen_code(tree):
 	scope = tree.scope
 	stmts = tree.stmts
-	code = ""
+	code = "#include \"c_lib.h\"\n"
 	code += gen_string_buffers(scope)
 	code += gen_scope(scope)
 	code += "int main(int argc, char **argv) {\n"
@@ -279,14 +278,22 @@ def gen_str(expr):
 	return "((string*)" + expr.internal + ")"
 
 def gen_cast(cast):
+	if cast.expr.data_type == ast.IntType:
+		if cast.target_type == ast.StringType:
+			return "int_to_string(" + gen_expr(cast.expr) + ")"
+	elif cast.expr.data_type == ast.BoolType:
+		if cast.target_type == ast.IntType:
+			return gen_expr(cast.expr)
+		elif cast.target_type == ast.StringType:
+			return "(" + gen_expr(cast.expr) + " ? ((string*)true_string) : ((string*)false_string))"
+	
 	return "((" + gen_data_type(cast.target_type) + ")" + gen_expr(cast.expr) + ")"
 
 def compile_code(src_name, code):
 	target_name = src_name + ".c"
 	fs = open(target_name, "w")
-	code = c_lib + "\n" + code
 	fs.write(code)
 	fs.close()
 	exe_name = src_name + ".exe"
-	subprocess.run(["gcc", "-ansi", "-pedantic", "-o", exe_name, target_name], check=True)
+	subprocess.run(["gcc", "-ansi", "-pedantic", "-o", exe_name, target_name, "c_lib.c"], check=True)
 

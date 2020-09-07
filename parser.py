@@ -6,6 +6,10 @@ import ast
 
 empty_string = lexer.String(0, 0, "")
 empty_string.internal = "empty_string"
+false_string = lexer.String(0, 0, "false")
+false_string.internal = "false_string"
+true_string = lexer.String(0, 0, "true")
+true_string.internal = "true_string"
 
 def parse(tokens):
 	begin = tokens
@@ -19,6 +23,8 @@ def parse(tokens):
 	def parse_body(parent_scope = None, ctx = "global", return_type = None):
 		body_scope = ast.Scope(parent_scope, ctx, return_type)
 		body_scope.add_string(empty_string)
+		body_scope.add_string(false_string)
+		body_scope.add_string(true_string)
 		stmts = parse_stmts(body_scope)
 		return ast.Body(body_scope, stmts)
 
@@ -178,7 +184,7 @@ def parse(tokens):
 		elif not expr and scope.return_type:
 			throw("this function should return a value")
 		elif expr and expr.data_type != scope.return_type:
-			throw("must return value of type", scope.return_type, "got", expr.data_type, "instead")
+			expr = cast_value(expr, scope.return_type)
 		
 		if scope.ctx == "func":
 			scope.has_toplevel_return = True
@@ -378,6 +384,10 @@ def parse(tokens):
 	def cast_value(expr, target_type):
 		if expr.data_type == ast.BoolType and target_type == ast.IntType:
 			return ast.Cast(expr, target_type)
+		if expr.data_type == ast.IntType and target_type == ast.StringType:
+			return ast.Cast(expr, target_type, False)
+		if expr.data_type == ast.BoolType and target_type == ast.StringType:
+			return ast.Cast(expr, target_type, False)
 		
 		throw("can not cast", expr.data_type, "to", target_type)
 		return expr

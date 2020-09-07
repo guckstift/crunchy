@@ -1,20 +1,6 @@
-#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-
-#define _CRUNCHY_DEBUG
-
-#ifdef CRUNCHY_DEBUG
-	#define debug printf
-#else
-	#define debug if(0)
-#endif
-
-typedef struct {
-	int refs;
-	int length;
-	char data[1];
-} string;
+#include "c_lib.h"
 
 int num_mallocs = 0;
 
@@ -30,6 +16,15 @@ void crunchy_free(void* ptr)
 	debug("free\n");
 	num_mallocs --;
 	free(ptr);
+}
+
+string* string_new(int length, char* source)
+{
+	string* str = crunchy_malloc(sizeof(string) - 1 + length);
+	str->refs = 0;
+	str->length = length;
+	memcpy(str->data, source, length);
+	return str;
 }
 
 string* string_incref(string* str)
@@ -82,4 +77,11 @@ string* string_concat(string* left, string* right)
 	string_decref(left);
 	string_decref(right);
 	return str;
+}
+
+string *int_to_string(int number)
+{
+	char buf[16];
+	int len = sprintf(buf, "%i", number);
+	return string_new(len, buf);
 }

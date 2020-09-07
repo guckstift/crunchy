@@ -280,10 +280,11 @@ class BinOp:
 		return f"({self.left} {self.op.value} {self.right})"
 
 class Cast:
-	def __init__(self, expr, target_type):
+	def __init__(self, expr, target_type, is_const = None):
 		self.expr = expr
 		self.target_type = target_type
-		self.is_const = expr.is_const
+		self.is_const = is_const if is_const is not None else expr.is_const
+		self.data_type = self.target_type
 	
 	def __repr__(self):
 		return f"cast({self.target_type} : {self.expr})"

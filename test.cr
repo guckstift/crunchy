@@ -1,9 +1,13 @@
-var x : int;
+func bar() : bool
+{
+	return true;
+}
 
-x = true;
+func foo() : int
+{
+	return bar();
+}
 
-var y : bool;
+var x : string = foo();
 
-# y = 1;
-
-var z : int = false;
+print x;
