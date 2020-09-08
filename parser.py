@@ -81,7 +81,8 @@ class Parser:
 		
 		ident = self.ident(True) or self.throw("expected identifier after func") or self.next_dummy_ident()
 		self.special("(") or self.throw("expected ( after function name")
-		self.special(")") or self.throw("expected ) after (")
+		params = self.params()
+		self.special(")") or self.throw("expected ) after parameter list")
 		return_type = ast.VoidType
 		
 		if self.special(":"):
@@ -92,10 +93,43 @@ class Parser:
 		if return_type and not body.scope.has_toplevel_return:
 			self.throw("this function should return a value of type", return_type, "in its outermost scope")
 		
-		func_decl = ast.FuncDecl(ident, return_type, body)
+		func_decl = ast.FuncDecl(ident, params, return_type, body)
 		self.cur_scope.declare(func_decl)
 		ident.data_type = func_decl.data_type
 		return func_decl
+	
+	def params(self):
+		params = []
+		param = self.param()
+		
+		if not param:
+			return []
+		
+		while True:
+			params.append(param)
+			
+			if not self.special(","):
+				break
+			
+			param = self.param()
+			
+			if not param:
+				self.throw("expected parameter declaration after ,")
+				break
+		
+		return params
+		
+	def param(self):
+		ident = self.ident(True)
+		
+		if not ident:
+			return
+		
+		self.special(":") or self.throw("expected : after parameter name")
+		data_type = self.data_type() or self.throw("expected type after :") or ast.UnknownType
+		param = ast.Param(ident, data_type)
+		self.cur_scope.declare(param)
+		return param
 	
 	def var_decl(self):
 		if not self.keyword("var"):
@@ -189,8 +223,46 @@ class Parser:
 		if self.check_ident(ident) and type(ident.data_type) is not ast.FuncType:
 			self.throw(ident, "is not a function")
 		
+		func_decl = self.cur_scope.lookup(ident)
+		args = self.args(func_decl)
+		
 		self.special(")") or self.throw("expected ) after (")
-		return ast.Call(ident)
+		return ast.Call(ident, args)
+	
+	def args(self, func_decl):
+		args = []
+		arg = self.expr()
+		params = func_decl.params
+		param_count = len(params)
+		i = 0
+		
+		if not arg:
+			return []
+		
+		while True:
+			if i < param_count:
+				param = params[i]
+				
+				if param.data_type != arg.data_type:
+					self.throw("type of parameter", i + 1, "is", param.data_type, ", got", arg.data_type)
+				
+			args.append(arg)
+			
+			if not self.special(","):
+				break
+			
+			arg = self.expr()
+			
+			if not arg:
+				self.throw("expected argument after ,")
+				break
+			
+			i += 1
+		
+		if len(args) != param_count:
+			self.throw("expected", param_count, "arguments, got", len(args))
+		
+		return args
 	
 	def return_stmt(self):
 		if not self.keyword("return"):

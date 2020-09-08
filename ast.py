@@ -73,7 +73,7 @@ class Scope:
 		ident = decl.ident
 		name = ident.value
 		
-		if type(decl) is VarDecl:
+		if type(decl) is VarDecl or type(decl) is Param:
 			decls = self.var_decls
 		else:
 			decls = self.func_decls
@@ -121,8 +121,9 @@ class VarDecl:
 		return " " * level + f"var {self.ident!r} : {self.data_type!r}" + (" = " + repr(self.init) if self.init else "")
 
 class FuncDecl:
-	def __init__(self, ident, return_type, body):
+	def __init__(self, ident, params, return_type, body):
 		self.ident = ident
+		self.params = params
 		self.return_type = return_type
 		self.body = body
 		self.data_type = FuncType(return_type)
@@ -132,10 +133,24 @@ class FuncDecl:
 	
 	def to_str(self, level = 0):
 		return (
-			" " * level + f"func {self.ident!r}()" +
+			" " * level + f"func {self.ident!r}(" +
+			", ".join(repr(p) for p in self.params) +
+			")" +
 			(" : " + repr(self.return_type) if self.return_type else "") +
 			" {\n" + self.body.to_str(level + 1) + "\n" + " " * level + "}"
 		)
+
+class Param:
+	def __init__(self, ident, data_type):
+		self.ident = ident
+		self.data_type = data_type
+		self.init = None
+	
+	def __repr__(self):
+		return self.to_str()
+	
+	def to_str(self, level = 0):
+		return f"{self.ident} : {self.data_type}"
 
 class StmtList:
 	def __init__(self, stmts = None):
@@ -164,8 +179,9 @@ class Assign:
 		return f"{self.ident!r} = {self.expr!r}"
 
 class Call:
-	def __init__(self, ident):
+	def __init__(self, ident, args):
 		self.ident = ident
+		self.args = args
 		self.data_type = ident.data_type.return_type
 		self.is_const = False
 	

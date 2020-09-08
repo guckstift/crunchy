@@ -69,10 +69,19 @@ def gen_string_buffer_decl(string):
 def gen_func_decl(func_decl, level = 0):
 	ident = func_decl.ident
 	body = func_decl.body
-	code = (gen_data_type(func_decl.return_type) if func_decl.return_type else "void") + " " + gen_ident(ident) + "() {\n"
+	code = (gen_data_type(func_decl.return_type) if func_decl.return_type else "void") + " " + gen_ident(ident) + "("
+	code += gen_params(func_decl.params)
+	code += ") {\n"
 	code += gen_body(body, level + 1)
 	code += INDENT * level + "}"
 	return code
+
+def gen_params(params):
+	generated_params = [gen_param(p) for p in params]
+	return ", ".join(generated_params)
+
+def gen_param(param):
+	return gen_data_type(param.data_type) + " " + gen_ident(param.ident)
 
 def gen_var_decl(var_decl):
 	res = gen_data_type(var_decl.data_type) + " " + gen_ident(var_decl.ident) + " = "
@@ -158,7 +167,11 @@ def gen_call_stmt(call):
 		return generated_call + ";"
 	
 def gen_call(call):
-	return gen_ident(call.ident) + "()"
+	return (
+		gen_ident(call.ident) + "(" +
+		", ".join(gen_expr(arg) for arg in call.args) + 
+		")"
+	)
 
 def gen_return(return_stmt, scope, level = 0):
 	res = ""
