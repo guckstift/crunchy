@@ -23,6 +23,9 @@ class Keyword(Token):
 class Int(Token):
 	pass
 
+class Float(Token):
+	pass
+
 class String(Token):
 	def __repr__(self):
 		return f'"{self.value}"'
@@ -70,6 +73,7 @@ keywords = [
 	"bool",
 	"else",
 	"false",
+	"float",
 	"func",
 	"if",
 	"int",
@@ -115,8 +119,21 @@ def lex(src):
 				src = src[1:]
 				char = src[:1]
 			
-			val = parse_int(text, line)
-			record(Int, val)
+			if char == "." and isDec(src[1:2]):
+				text += char
+				src = src[1:]
+				char = src[:1]
+				
+				while len(src) > 0 and isDec(char):
+					text += char
+					src = src[1:]
+					char = src[:1]
+				
+				val = parse_float(text, line)
+				record(Float, val)
+			else:
+				val = parse_int(text, line)
+				record(Int, val)
 		
 		elif isWhite(char):
 			src = src[1:]
@@ -208,4 +225,8 @@ def parse_int(text, line):
 		return 0
 	
 	return val
+
+
+def parse_float(text, line):
+	return float(text)
 

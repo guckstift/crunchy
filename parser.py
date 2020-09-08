@@ -244,7 +244,7 @@ def parse(tokens):
 		return ast.WhileStmt(cond, body)
 	
 	def parse_data_type():
-		keyword = parse_keyword("int") or parse_keyword("bool") or parse_keyword("string")
+		keyword = parse_keyword("int") or parse_keyword("bool") or parse_keyword("string") or parse_keyword("float")
 		
 		if keyword:
 			return ast.PrimType(keyword.value)
@@ -311,7 +311,7 @@ def parse(tokens):
 			check_ident(ident, scope)
 			return ident
 		
-		return parse_int() or parse_bool() or parse_string(scope) or parse_ident(scope)
+		return parse_int() or parse_float() or parse_bool() or parse_string(scope) or parse_ident(scope)
 	
 	def parse_ident(scope, in_decl = False):
 		ident = parse_token(lexer.Ident)
@@ -344,6 +344,14 @@ def parse(tokens):
 		
 		if token:
 			token.data_type = ast.IntType
+			token.is_const = True
+			return token
+
+	def parse_float():
+		token = parse_token(lexer.Float)
+		
+		if token:
+			token.data_type = ast.FloatType
 			token.is_const = True
 			return token
 	
@@ -382,14 +390,29 @@ def parse(tokens):
 			return token
 	
 	def cast_value(expr, target_type):
-		if expr.data_type == ast.BoolType and target_type == ast.IntType:
-			return ast.Cast(expr, target_type)
-		if expr.data_type == ast.IntType and target_type == ast.StringType:
-			return ast.Cast(expr, target_type, False)
-		if expr.data_type == ast.BoolType and target_type == ast.StringType:
+		expr_type = expr.data_type
+		
+		if (
+			target_type == ast.StringType and (
+				expr_type == ast.FloatType or
+				expr_type == ast.IntType or
+				expr_type == ast.BoolType
+			)
+		):
 			return ast.Cast(expr, target_type, False)
 		
-		throw("can not cast", expr.data_type, "to", target_type)
+		if (
+			target_type == ast.FloatType and (
+				expr_type == ast.IntType or
+				expr_type == ast.BoolType
+			) or
+			target_type == ast.IntType and (
+				expr_type == ast.BoolType
+			)
+		):
+			return ast.Cast(expr, target_type)
+		
+		throw("can not cast", expr_type, "to", target_type)
 		return expr
 	
 	def backup():

@@ -22,6 +22,8 @@ void string_soft_decref(string* str);
 void string_decref(string* str);
 string* string_assign(string* dest, string* src);
 string* string_concat(string* left, string* right);
-string *int_to_string(int number);
+string* int_to_string(int number);
+string* float_to_string(double number);
+char *d2s(double f, int* len_out);
 
 extern int num_mallocs;

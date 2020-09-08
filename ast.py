@@ -302,6 +302,7 @@ class PrimType:
 IntType = PrimType("int")
 BoolType = PrimType("bool")
 StringType = PrimType("string")
+FloatType = PrimType("float")
 
 class VoidType:
 	def __repr__(self):

@@ -79,9 +79,16 @@ string* string_concat(string* left, string* right)
 	return str;
 }
 
-string *int_to_string(int number)
+string* int_to_string(int number)
 {
 	char buf[16];
 	int len = sprintf(buf, "%i", number);
+	return string_new(len, buf);
+}
+
+string* float_to_string(double number)
+{
+	int len;
+	char* buf = d2s(number, &len);
 	return string_new(len, buf);
 }

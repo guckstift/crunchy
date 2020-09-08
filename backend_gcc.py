@@ -1,4 +1,5 @@
 import subprocess
+import error
 import parser
 import lexer
 import ast
@@ -80,8 +81,10 @@ def gen_var_decl(var_decl):
 		res += gen_expr(var_decl.init);
 	elif var_decl.data_type == ast.StringType:
 		res += "((string*)empty_string)";
+	elif var_decl.data_type == ast.FloatType:
+		res += "0.0"
 	else:
-		res += "0";
+		res += "0"
 	
 	res += ";"
 	return res
@@ -107,6 +110,8 @@ def gen_cleanup_recursive(scope, level = 0):
 def gen_data_type(data_type):
 	if data_type == ast.IntType:
 		return "int"
+	if data_type == ast.FloatType:
+		return "double"
 	if data_type == ast.BoolType:
 		return "unsigned char"
 	if data_type == ast.StringType:
@@ -194,6 +199,12 @@ def gen_print(print_stmt, scope, level = 0):
 			else:
 				printf_format.append("%i")
 				printf_args.append(gen_expr(expr))
+		elif data_type == ast.FloatType:
+			if type(expr) is lexer.Float:
+				printf_format.append(repr(expr))
+			else:
+				printf_format.append("%s")
+				printf_args.append("d2s(" + gen_expr(expr) + ", 0)")
 		elif data_type == ast.BoolType:
 			if type(expr) is lexer.Bool:
 				printf_format.append(repr(expr))
@@ -222,7 +233,7 @@ def gen_print(print_stmt, scope, level = 0):
 		("{" + pre_statement if pre_statement else "")
 		+ "printf(\"" + " ".join(printf_format) + "\\n\""
 		+ (", " + ", ".join(printf_args) if len(printf_args) > 0 else "")
-		+ "); "
+		+ ");"
 		+ (post_statement + "}" if post_statement else "")
 	)
 
@@ -252,6 +263,8 @@ def gen_expr(expr):
 		return gen_ident(expr)
 	elif type(expr) is lexer.Int:
 		return gen_int(expr)
+	elif type(expr) is lexer.Float:
+		return gen_float(expr)
 	elif type(expr) is lexer.Bool:
 		return gen_bool(expr)
 	elif type(expr) is lexer.String:
@@ -270,6 +283,9 @@ def gen_expr(expr):
 
 def gen_int(integer):
 	return str(integer.value)
+	
+def gen_float(number):
+	return str(number.value)
 
 def gen_bool(boolean):
 	return "1" if boolean.value else "0"
@@ -281,12 +297,20 @@ def gen_cast(cast):
 	if cast.expr.data_type == ast.IntType:
 		if cast.target_type == ast.StringType:
 			return "int_to_string(" + gen_expr(cast.expr) + ")"
+		elif cast.target_type == ast.FloatType:
+			return "((double)" + gen_expr(cast.expr) + ")";
+	elif cast.expr.data_type == ast.FloatType:
+		if cast.target_type == ast.StringType:
+			return "float_to_string(" + gen_expr(cast.expr) + ")"
 	elif cast.expr.data_type == ast.BoolType:
 		if cast.target_type == ast.IntType:
 			return gen_expr(cast.expr)
+		elif cast.target_type == ast.FloatType:
+			return "((double)" + gen_expr(cast.expr) + ")";
 		elif cast.target_type == ast.StringType:
 			return "(" + gen_expr(cast.expr) + " ? ((string*)true_string) : ((string*)false_string))"
 	
+	error.error(0, "can not generate cast", cast)
 	return "((" + gen_data_type(cast.target_type) + ")" + gen_expr(cast.expr) + ")"
 
 def compile_code(src_name, code):
@@ -295,5 +319,5 @@ def compile_code(src_name, code):
 	fs.write(code)
 	fs.close()
 	exe_name = src_name + ".exe"
-	subprocess.run(["gcc", "-ansi", "-pedantic", "-o", exe_name, target_name, "c_lib.c"], check=True)
+	subprocess.run(["gcc", "-ansi", "-pedantic", "-o", exe_name, target_name, "c_lib.c", "d2s.c"], check=True)
 
