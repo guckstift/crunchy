@@ -12,27 +12,48 @@ true_string = lexer.String(0, 0, "true")
 true_string.internal = "true_string"
 
 def parse(tokens):
-	begin = tokens
-	dummy_ident_count = 0
+	parser = Parser(tokens)
+	return parser.unit()
 
-	def parse_unit():
-		unit = parse_body()
-		parse_end() or throw("unexpected end of source")
+class Parser:
+	def __init__(self, tokens):
+		self.cur_scope = None
+		self.scope_stack = []
+		self.tokens = tokens
+		self.begin = tokens
+		self.dummy_ident_count = 0
+	
+	def enter_scope(self, env = "global", return_type = None):
+		self.scope_stack.append(self.cur_scope)
+		self.cur_scope = ast.Scope(self.cur_scope, env, return_type)
+		return self.cur_scope
+	
+	def leave_scope(self):
+		self.cur_scope = self.scope_stack.pop()
+	
+	def next_dummy_ident(self):
+		self.dummy_ident_count += 1
+		return lexer.Ident(0, 0, "@" + str(self.dummy_ident_count - 1))
+	
+	def unit(self):
+		unit = self.body()
+		self.end() or self.throw("unexpected end of source")
 		return unit
-
-	def parse_body(parent_scope = None, ctx = "global", return_type = None):
-		body_scope = ast.Scope(parent_scope, ctx, return_type)
+	
+	def body(self, env = "global", return_type = None):
+		body_scope = self.enter_scope(env, return_type)
 		body_scope.add_string(empty_string)
 		body_scope.add_string(false_string)
 		body_scope.add_string(true_string)
-		stmts = parse_stmts(body_scope)
+		stmts = self.stmts()
+		self.leave_scope()
 		return ast.Body(body_scope, stmts)
-
-	def parse_stmts(scope):
+	
+	def stmts(self):
 		stmts = []
 		
 		while True:
-			stmt = parse_stmt(scope)
+			stmt = self.stmt()
 			
 			if stmt is None:
 				break
@@ -45,223 +66,224 @@ def parse(tokens):
 				stmts.append(stmt)
 		
 		return ast.StmtList(stmts)
-
-	def parse_stmt(scope):
+	
+	def stmt(self):
 		return (
-			parse_var_decl(scope) or parse_func_decl(scope) or
-			parse_assign(scope) or parse_call_stmt(scope) or
-			parse_return(scope) or
-			parse_print(scope) or parse_if_stmt(scope) or parse_while_stmt(scope)
+			self.var_decl() or self.func_decl() or
+			self.assign() or self.call_stmt() or
+			self.return_stmt() or
+			self.print() or self.if_stmt() or self.while_stmt()
 		)
 	
-	def parse_func_decl(scope):
-		if not parse_keyword("func"):
+	def func_decl(self):
+		if not self.keyword("func"):
 			return
 		
-		ident = parse_ident(scope, True) or throw("expected identifier after func") or next_dummy_ident()
-		parse_special("(") or throw("expected ( after function name")
-		parse_special(")") or throw("expected ) after (")
+		ident = self.ident(True) or self.throw("expected identifier after func") or self.next_dummy_ident()
+		self.special("(") or self.throw("expected ( after function name")
+		self.special(")") or self.throw("expected ) after (")
 		return_type = ast.VoidType
 		
-		if parse_special(":"):
-			return_type = parse_data_type() or throw("expected type after :")
+		if self.special(":"):
+			return_type = self.data_type() or self.throw("expected type after :")
 		
-		body = expect_block_body(scope, "func", return_type)
+		body = self.expect_block_body("func", return_type)
 		
 		if return_type and not body.scope.has_toplevel_return:
-			throw("this function should return a value of type", return_type, "in its outermost scope")
+			self.throw("this function should return a value of type", return_type, "in its outermost scope")
 		
 		func_decl = ast.FuncDecl(ident, return_type, body)
-		scope.declare(func_decl)
+		self.cur_scope.declare(func_decl)
 		ident.data_type = func_decl.data_type
 		return func_decl
-
-	def parse_var_decl(scope):
-		if not parse_keyword("var"):
+	
+	def var_decl(self):
+		if not self.keyword("var"):
 			return
 		
-		ident = parse_ident(scope, True) or throw("expected identifier after var") or next_dummy_ident()
+		ident = self.ident(True) or self.throw("expected identifier after var") or self.next_dummy_ident()
 		data_type = None
 		init = None
 		
-		if parse_special(":"):
-			data_type = parse_data_type() or throw("expected type after :") or ast.UnknownType
+		if self.special(":"):
+			data_type = self.data_type() or self.throw("expected type after :") or ast.UnknownType
 		
-		if parse_special("="):
-			init = parse_expr(scope)
+		if self.special("="):
+			init = self.expr()
 			init_data_type = init.data_type
 			
 			if type(init_data_type) is ast.FuncType:
-				throw("can not initialize", ident, "with function", init)
+				self.throw("can not initialize", ident, "with function", init)
 			
 			if not data_type:
 				data_type = init_data_type
 			
 			if init_data_type and init_data_type != data_type:
-				init = cast_value(init, data_type)
+				init = self.cast_value(init, data_type)
 		
 		if not data_type and not init:
-			throw("expected at least one of a type specification or an initializer")
+			self.throw("expected at least one of a type specification or an initializer")
 			data_type = ast.UnknownType
 		
-		parse_special(";") or throw("expected ; after type")
+		self.special(";") or self.throw("expected ; after type")
 		var_decl = ast.VarDecl(ident, data_type, init)
-		scope.declare(var_decl)
+		self.cur_scope.declare(var_decl)
 		ident.data_type = data_type
 		return var_decl
 	
-	def parse_assign(scope):
-		backup()
-		ident = parse_ident(scope)
+	def assign(self):
+		self.backup()
+		ident = self.ident()
 		
 		if not ident:
 			return
 		
-		if not parse_special("="):
-			restore()
+		if not self.special("="):
+			self.restore()
 			return
 		
-		check_ident(ident, scope)
+		self.check_ident(ident)
 		ident_data_type = ident.data_type
 		
 		if type(ident_data_type) is ast.FuncType:
-			throw("can not assign to function", ident)
+			self.throw("can not assign to function", ident)
 		
-		expr = parse_expr(scope) or throw("expected expression after =") or ast.UnknownExpr
+		expr = self.expr() or self.throw("expected expression after =") or ast.UnknownExpr
 		expr_data_type = expr.data_type
 		
 		if type(expr_data_type) is ast.FuncType:
-			throw("can not assign function", expr, "to variable", ident)
+			self.throw("can not assign function", expr, "to variable", ident)
 		elif expr_data_type == ast.VoidType:
-			throw("right-hand side expression is of type void")
+			self.throw("right-hand side expression is of type void")
 		
 		if (
 			ident_data_type and type(ident_data_type) is not ast.FuncType and
 			expr_data_type and type(expr_data_type) is not ast.FuncType and
 			expr_data_type != ident_data_type
 		):
-			expr = cast_value(expr, ident_data_type)
+			expr = self.cast_value(expr, ident_data_type)
 		
-		parse_special(";") or throw("expected ; after expression")
+		self.special(";") or self.throw("expected ; after expression")
 		return ast.Assign(ident, expr)
 	
-	def parse_call_stmt(scope):
-		call = parse_call(scope)
+	def call_stmt(self):
+		call = self.call()
 		
 		if not call:
 			return
 		
-		parse_special(";") or throw("expected ; after )")
+		self.special(";") or self.throw("expected ; after )")
 		return call
 	
-	def parse_call(scope):
-		backup()
-		ident = parse_ident(scope)
+	def call(self):
+		self.backup()
+		ident = self.ident()
 		
 		if not ident:
 			return
 		
-		if not parse_special("("):
-			restore()
+		if not self.special("("):
+			self.restore()
 			return
 		
-		if check_ident(ident, scope) and type(ident.data_type) is not ast.FuncType:
-			throw(ident, "is not a function")
+		if self.check_ident(ident) and type(ident.data_type) is not ast.FuncType:
+			self.throw(ident, "is not a function")
 		
-		parse_special(")") or throw("expected ) after (")
+		self.special(")") or self.throw("expected ) after (")
 		return ast.Call(ident)
 	
-	def parse_return(scope):
-		if not parse_keyword("return"):
+	def return_stmt(self):
+		if not self.keyword("return"):
 			return
 		
-		expr = parse_expr(scope)
-		parse_special(";") or throw("expected ; after return statement")
-		func_scope = scope.last_func_ancestor or throw("can not return from outside a function")
+		expr = self.expr()
+		self.special(";") or self.throw("expected ; after return statement")
+		scope = self.cur_scope
+		func_scope = scope.last_func_ancestor or self.throw("can not return from outside a function")
 		
 		if expr and not scope.return_type:
-			throw("this function should not return a value")
+			self.throw("this function should not return a value")
 		elif not expr and scope.return_type:
-			throw("this function should return a value")
+			self.throw("this function should return a value")
 		elif expr and expr.data_type != scope.return_type:
-			expr = cast_value(expr, scope.return_type)
+			expr = self.cast_value(expr, scope.return_type)
 		
-		if scope.ctx == "func":
+		if scope.env == "func":
 			scope.has_toplevel_return = True
 		
 		return ast.Return(expr)
 	
-	def parse_print(scope):
-		if not parse_keyword("print"):
+	def print(self):
+		if not self.keyword("print"):
 			return
 		
-		expr = parse_expr(scope) or throw("expected expression after print") or ast.UnknownExpr
+		expr = self.expr() or self.throw("expected expression after print") or ast.UnknownExpr
 		expr_list = [expr]
 		
-		while parse_special(","):
-			expr = parse_expr(scope) or throw("expected expression after ,") or ast.UnknownExpr
+		while self.special(","):
+			expr = self.expr() or self.throw("expected expression after ,") or ast.UnknownExpr
 			expr_list.append(expr)
 		
-		parse_special(";") or throw("expected ; after expression")
+		self.special(";") or self.throw("expected ; after expression")
 		return ast.Print(expr_list)
 	
-	def expect_block_body(scope, ctx = "block", return_type = None):
-		parse_special("{") or throw("expected { before body")
-		body = parse_body(scope, ctx, return_type)
-		parse_special("}") or throw("expected } after body")
+	def expect_block_body(self, env = "block", return_type = None):
+		self.special("{") or self.throw("expected { before body")
+		body = self.body(env, return_type)
+		self.special("}") or self.throw("expected } after body")
 		return body
 	
-	def parse_if_stmt(scope):
-		if not parse_keyword("if"):
+	def if_stmt(self):
+		if not self.keyword("if"):
 			return
 		
-		cond = parse_expr(scope) or throw("expected condition after if") or ast.UnknownExpr
+		cond = self.expr() or self.throw("expected condition after if") or ast.UnknownExpr
 		data_type = cond.data_type
 		
 		if cond != ast.UnknownExpr and data_type != ast.BoolType:
-			throw("condition", cond, "must be of type bool,", data_type, "given")
+			self.throw("condition", cond, "must be of type bool,", data_type, "given")
 		
-		body = expect_block_body(scope)
+		body = self.expect_block_body()
 		else_body = None
 		
-		if parse_keyword("else"):
-			else_body = expect_block_body(scope)
+		if self.keyword("else"):
+			else_body = self.expect_block_body()
 		
 		return ast.IfStmt(cond, body, else_body)
 	
-	def parse_while_stmt(scope):
-		if not parse_keyword("while"):
+	def while_stmt(self):
+		if not self.keyword("while"):
 			return
 		
-		cond = parse_expr(scope) or throw("expected condition after while") or ast.UnknownExpr
+		cond = self.expr() or self.throw("expected condition after while") or ast.UnknownExpr
 		data_type = cond.data_type
 		
 		if cond != ast.UnknownExpr and data_type != ast.BoolType:
-			throw("condition", cond, "must be of type bool,", data_type, "given")
+			self.throw("condition", cond, "must be of type bool,", data_type, "given")
 		
-		body = expect_block_body(scope)
+		body = self.expect_block_body()
 		
 		return ast.WhileStmt(cond, body)
 	
-	def parse_data_type():
-		keyword = parse_keyword("int") or parse_keyword("bool") or parse_keyword("string") or parse_keyword("float")
+	def data_type(self):
+		keyword = self.keyword("int") or self.keyword("bool") or self.keyword("string") or self.keyword("float")
 		
 		if keyword:
 			return ast.PrimType(keyword.value)
-
-	def parse_expr(scope):
-		return parse_chainop(
-			scope, ["==", "!=", "<=", ">=", "<", ">"],
-			lambda: parse_chainop(
-				scope, ["+", "-"],
-				lambda: parse_chainop(
-					scope, ["*"],
-					lambda: parse_negate(scope),
+	
+	def expr(self):
+		return self.chainop(
+			["==", "!=", "<=", ">=", "<", ">"],
+			lambda: self.chainop(
+				["+", "-"],
+				lambda: self.chainop(
+					["*"],
+					lambda: self.negate(),
 				),
 			),
 		)
 	
-	def parse_chainop(scope, ops, subparse):
+	def chainop(self, ops, subparse):
 		left = subparse()
 		
 		if not left:
@@ -270,126 +292,125 @@ def parse(tokens):
 		left_type = left.data_type
 		
 		while True:
-			op = parse_op(ops)
+			op = self.op(ops)
 			
 			if not op:
 				return left
 			
-			right = subparse() or throw("expected right side after", op) or ast.UnknownExpr
+			right = subparse() or self.throw("expected right side after", op) or ast.UnknownExpr
 			right_type = right.data_type
-			binop_type = infer_binop_type(left_type, right_type, op.value)
+			binop_type = self.infer_binop_type(left_type, right_type, op.value)
 			
 			if left_type and right_type and binop_type == ast.UnknownType:
-				throw("can not combine", left_type, "and", right_type, "with the operator", op)
+				self.throw("can not combine", left_type, "and", right_type, "with the operator", op)
 			
 			left = ast.BinOp(left, right, op, binop_type)
 			left_type = binop_type
 	
-	def parse_op(ops):
+	def op(self, ops):
 		for op_name in ops:
-			op = parse_special(op_name)
+			op = self.special(op_name)
 			
 			if op:
 				return op
 	
-	def parse_negate(scope):
-		if parse_special("-"):
-			expr = parse_negate(scope)
+	def negate(self):
+		if self.special("-"):
+			expr = self.negate()
 			data_type = expr.data_type
 			
 			if data_type != ast.IntType:
-				throw("can not negate non-number", expr)
+				self.throw("can not negate non-number", expr)
 			
 			return ast.Negate(expr)
 		
-		return parse_call(scope) or parse_atom(scope)
+		return self.call() or self.atom()
 	
-	def parse_atom(scope):
-		ident = parse_ident(scope)
+	def atom(self):
+		ident = self.ident()
 		
 		if ident:
-			check_ident(ident, scope)
+			self.check_ident(ident)
 			return ident
 		
-		return parse_int() or parse_float() or parse_bool() or parse_string(scope) or parse_ident(scope)
+		return self.int() or self.float() or self.bool() or self.string() or self.ident()
 	
-	def parse_ident(scope, in_decl = False):
-		ident = parse_token(lexer.Ident)
+	def ident(self, in_decl = False):
+		ident = self.token(lexer.Ident)
 		
 		if ident:
 			if not in_decl:
-				decl = scope.lookup(ident)
-				ident.data_type = scope.lookup_type(ident)
+				decl = self.cur_scope.lookup(ident)
+				ident.data_type = self.cur_scope.lookup_type(ident)
 				
 				if decl:
 					ident.internal = decl.ident.internal
 			
 			ident.is_const = False
 			return ident
-		
-	def check_ident(ident, scope):
-		decl = scope.lookup(ident)
+	
+	def check_ident(self, ident):
+		decl = self.cur_scope.lookup(ident)
 		
 		if not decl:
-			throw("could not find", ident)
+			self.throw("could not find", ident)
 			return False
 		elif ident.data_type == ast.UnknownType:
-			throw(ident, "was not declared properly")
+			self.throw(ident, "was not declared properly")
 			return False
 		
 		return True
-
-	def parse_int():
-		token = parse_token(lexer.Int)
+	
+	def int(self):
+		token = self.token(lexer.Int)
 		
 		if token:
 			token.data_type = ast.IntType
 			token.is_const = True
 			return token
-
-	def parse_float():
-		token = parse_token(lexer.Float)
+	
+	def float(self):
+		token = self.token(lexer.Float)
 		
 		if token:
 			token.data_type = ast.FloatType
 			token.is_const = True
 			return token
 	
-	def parse_bool():
-		token = parse_token(lexer.Bool)
+	def bool(self):
+		token = self.token(lexer.Bool)
 		
 		if token:
 			token.data_type = ast.BoolType
 			token.is_const = True
 			return token
 	
-	def parse_string(scope):
-		string = parse_token(lexer.String)
+	def string(self):
+		string = self.token(lexer.String)
 		
 		if string:
 			string.data_type = ast.StringType
 			string.is_const = False
-			string.internal = scope.add_string(string)
+			string.internal = self.cur_scope.add_string(string)
 			return string
-
-	def parse_keyword(name):
-		return parse_token(lexer.Keyword, name)
-
-	def parse_special(name):
-		return parse_token(lexer.Special, name)
 	
-	def parse_end():
-		return parse_token(lexer.End)
+	def keyword(self, name):
+		return self.token(lexer.Keyword, name)
 	
-	def parse_token(kind, value = None):
-		nonlocal tokens
-		token = tokens[0]
+	def special(self, name):
+		return self.token(lexer.Special, name)
+	
+	def end(self):
+		return self.token(lexer.End)
+	
+	def token(self, kind, value = None):
+		token = self.tokens[0]
 		
 		if type(token) is kind and (value is None or token.value == value):
-			tokens = tokens[1:]
+			self.tokens = self.tokens[1:]
 			return token
 	
-	def cast_value(expr, target_type):
+	def cast_value(self, expr, target_type):
 		expr_type = expr.data_type
 		
 		if (
@@ -412,39 +433,30 @@ def parse(tokens):
 		):
 			return ast.Cast(expr, target_type)
 		
-		throw("can not cast", expr_type, "to", target_type)
+		self.throw("can not cast", expr_type, "to", target_type)
 		return expr
 	
-	def backup():
-		nonlocal begin
-		begin = tokens
+	def backup(self):
+		self.begin = self.tokens
 	
-	def restore():
-		nonlocal tokens
-		tokens = begin
+	def restore(self):
+		self.tokens = self.begin
 	
-	def throw(*args):
-		return error.error(tokens[0].line, *args)
+	def throw(self, *args):
+		return error.error(self.tokens[0].line, *args)
 	
-	def fatal(*args):
-		return error.fatal(tokens[0].line, *args)
+	def fatal(self, *args):
+		return error.fatal(self.tokens[0].line, *args)
 	
-	def next_dummy_ident():
-		nonlocal dummy_ident_count
-		dummy_ident_count += 1
-		return lexer.Ident(0, 0, "@" + str(dummy_ident_count - 1))
-
-	return parse_unit()
-
-def infer_binop_type(left_type, right_type, op):
-	if op == "+" and left_type == right_type == ast.StringType:
-		return ast.StringType
-	elif op == "+" or op == "-" or op == "*":
-		if left_type == right_type == ast.IntType:
-			return ast.IntType
-	elif op in ["==", "!=", "<=", ">=", "<", ">"]:
-		if left_type == right_type == ast.IntType:
-			return ast.BoolType
-	
-	return ast.UnknownType
+	def infer_binop_type(self, left_type, right_type, op):
+		if op == "+" and left_type == right_type == ast.StringType:
+			return ast.StringType
+		elif op == "+" or op == "-" or op == "*":
+			if left_type == right_type == ast.IntType:
+				return ast.IntType
+		elif op in ["==", "!=", "<=", ">=", "<", ">"]:
+			if left_type == right_type == ast.IntType:
+				return ast.BoolType
+		
+		return ast.UnknownType
 

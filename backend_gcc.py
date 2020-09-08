@@ -103,7 +103,7 @@ def gen_cleanup(scope, level = 0):
 def gen_cleanup_recursive(scope, level = 0):
 	return gen_cleanup(scope, level) + (
 		gen_cleanup_recursive(scope.parent, level)
-		if scope.ctx == "block" and scope.parent
+		if scope.env == "block" and scope.parent
 		else ""
 	)
 
@@ -163,21 +163,23 @@ def gen_call(call):
 def gen_return(return_stmt, scope, level = 0):
 	res = ""
 	return_value = return_stmt.expr
-	return_type = return_value.data_type
-	generated_value = gen_expr(return_value)
 	
-	if return_type == ast.StringType:
-		res += "{string* string_res = string_incref(" + generated_value + ");"
-		generated_value = "string_res"
+	if return_value:
+		return_type = return_value.data_type
+		generated_value = gen_expr(return_value)
+		
+		if return_type == ast.StringType:
+			res += "{string* string_res = string_incref(" + generated_value + ");"
+			generated_value = "string_res"
 	
 	res += "\n" + gen_cleanup_recursive(scope, level)
 	
-	if return_type == ast.StringType:
+	if return_value and return_type == ast.StringType:
 		res += INDENT * level + "string_soft_decref(string_res);\n"
 	
 	res += INDENT * level + "return" + (" " + generated_value if return_value else "") + ";"
 	
-	if return_type == ast.StringType:
+	if return_value and return_type == ast.StringType:
 		res += "}"
 	
 	return res

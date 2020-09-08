@@ -12,9 +12,9 @@ class Body:
 		return self.scope.to_str(level) + self.stmts.to_str(level)
 
 class Scope:
-	def __init__(self, parent = None, ctx = "global", return_type = None):
+	def __init__(self, parent = None, env = "global", return_type = None):
 		self.parent = parent
-		self.ctx = ctx
+		self.env = env
 		self.var_decls = {}
 		self.func_decls = {}
 		self.root = self.parent.root if self.parent else self
@@ -23,7 +23,7 @@ class Scope:
 		self.return_type = None
 		self.has_toplevel_return = False
 		
-		if ctx == "func":
+		if env == "func":
 			self.last_func_ancestor = self
 		elif self.parent:
 			self.last_func_ancestor = self.parent.last_func_ancestor
@@ -59,7 +59,7 @@ class Scope:
 		return self.root.strings[value].internal
 	
 	def to_str(self, level = 0):
-		res = " " * level + f"Scope({self.ctx})\n"
+		res = " " * level + f"Scope({self.env})\n"
 		
 		for name in self.var_decls:
 			res += self.var_decls[name].to_str(level) + "\n"
