@@ -334,5 +334,5 @@ def compile_code(src_name, code):
 	fs.write(code)
 	fs.close()
 	exe_name = src_name + ".exe"
-	subprocess.run(["gcc", "-ansi", "-pedantic", "-o", exe_name, target_name, "c_lib.c", "d2s.c"], check=True)
+	subprocess.run(["gcc", "-I.", "-ansi", "-pedantic", "-o", exe_name, target_name, "c_lib.c", "d2s.c"], check=True)
 
