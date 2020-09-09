@@ -344,18 +344,18 @@ class Parser:
 			return ast.PrimType(keyword.value)
 	
 	def expr(self):
-		return self.chainop(
-			["==", "!=", "<=", ">=", "<", ">"],
-			lambda: self.chainop(
-				["+", "-"],
-				lambda: self.chainop(
-					["*"],
+		return self.binop_cascade(
+			False, ["==", "!=", "<=", ">=", "<", ">"],
+			lambda: self.binop_cascade(
+				True, ["+", "-"],
+				lambda: self.binop_cascade(
+					False, ["*"],
 					lambda: self.negate(),
 				),
 			),
 		)
 	
-	def chainop(self, ops, subparse):
+	def binop_cascade(self, flat, ops, subparse):
 		left = subparse()
 		
 		if not left:
@@ -367,7 +367,7 @@ class Parser:
 			op = self.op(ops)
 			
 			if not op:
-				return left
+				break
 			
 			right = subparse() or self.throw("expected right side after", op) or ast.UnknownExpr
 			right_type = right.data_type
@@ -379,6 +379,30 @@ class Parser:
 			left = ast.BinOp(left, right, op, binop_type)
 			left_type = binop_type
 			self.unify_binop(left)
+		
+		if flat and type(left) is ast.BinOp and left_type != ast.StringType:
+			flat_operands, flat_ops = self.flatten_binop(left, ops)
+			
+			if len(flat_operands) > 2:
+				return ast.ChainOp(flat_operands[0], flat_operands[1:], flat_ops, left_type)
+		
+		return left
+	
+	def flatten_binop(self, binop, op_whitelist):
+		left = binop.left
+		right = binop.right
+		
+		if type(left) is ast.BinOp and left.op.value in op_whitelist:
+			inner_operands, inner_ops = self.flatten_binop(left, op_whitelist)
+			operands = inner_operands
+			ops = inner_ops
+		else:
+			operands = [left]
+			ops = []
+		
+		ops.append(binop.op)
+		operands.append(right)
+		return operands, ops
 	
 	def op(self, ops):
 		for op_name in ops:
@@ -562,26 +586,29 @@ class Parser:
 		return ast.UnknownType
 	
 	def unify_binop(self, binop):
-		left_type = binop.left.data_type
-		right_type = binop.right.data_type
+		num_types = [ast.BoolType, ast.IntType, ast.FloatType]
+		left = binop.left
+		right = binop.right
+		left_type = left.data_type
+		right_type = right.data_type
 		op = binop.op.value
 		
 		if op in ["+", "-", "*", "==", "!=", "<=", ">=", "<", ">"]:
 			if left_type == ast.FloatType and right_type == ast.IntType:
-				binop.right = ast.Cast(binop.right, ast.FloatType)
+				binop.right = ast.Cast(right, ast.FloatType)
 			elif left_type == ast.IntType and right_type == ast.FloatType:
-				binop.left = ast.Cast(binop.left, ast.FloatType)
+				binop.left = ast.Cast(left, ast.FloatType)
 			elif left_type == ast.FloatType and right_type == ast.BoolType:
-				binop.right = ast.Cast(binop.right, ast.FloatType)
+				binop.right = ast.Cast(right, ast.FloatType)
 			elif left_type == ast.BoolType and right_type == ast.FloatType:
-				binop.left = ast.Cast(binop.left, ast.FloatType)
+				binop.left = ast.Cast(left, ast.FloatType)
 			elif left_type == ast.IntType and right_type == ast.BoolType:
-				binop.right = ast.Cast(binop.right, ast.IntType)
+				binop.right = ast.Cast(right, ast.IntType)
 			elif left_type == ast.BoolType and right_type == ast.IntType:
-				binop.left = ast.Cast(binop.left, ast.IntType)
-			elif left_type == ast.StringType:
-				binop.right = ast.Cast(binop.right, ast.StringType)
-			elif right_type == ast.StringType:
-				binop.left = ast.Cast(binop.left, ast.StringType)
+				binop.left = ast.Cast(left, ast.IntType)
+			elif left_type == ast.StringType and right_type in num_types:
+				binop.right = ast.Cast(right, ast.StringType)
+			elif right_type == ast.StringType and left_type in num_types:
+				binop.left = ast.Cast(left, ast.StringType)
 
 

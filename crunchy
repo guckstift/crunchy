@@ -28,6 +28,9 @@ def main():
 	
 	print(code)
 	
+	if error.count > 0:
+		error.fatal(0, "found", error.count, "error(s), can not send code to compiler")
+	
 	backend_gcc.compile_code(src_name, code)
 
 main()

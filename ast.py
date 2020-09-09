@@ -295,6 +295,27 @@ class BinOp:
 	def __repr__(self):
 		return f"({self.left} {self.op.value} {self.right})"
 
+class ChainOp:
+	def __init__(self, start, operands, ops, data_type):
+		self.start = start
+		self.operands = operands
+		self.ops = ops
+		self.data_type = data_type
+		self.is_const = self.all_const()
+	
+	def all_const(self):
+		for operand in self.operands:
+			if not operand.is_const:
+				return False
+		
+		return self.start.is_const
+	
+	def __repr__(self):
+		return "(" + repr(self.start) + "".join(
+			" " + op.value + " " + repr(operand)
+			for op, operand in zip(self.ops, self.operands)
+		) + ")"
+
 class Cast:
 	def __init__(self, expr, target_type, is_const = None):
 		self.expr = expr

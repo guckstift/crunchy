@@ -122,7 +122,7 @@ def gen_data_type(data_type):
 	if data_type == ast.FloatType:
 		return "double"
 	if data_type == ast.BoolType:
-		return "unsigned char"
+		return "cr_bool"
 	if data_type == ast.StringType:
 		return "string*"
 
@@ -299,6 +299,14 @@ def gen_expr(expr):
 			return "string_concat(" + gen_expr(expr.left) + ", " + gen_expr(expr.right) + ")"
 		else:
 			return "(" + gen_expr(expr.left) + expr.op.value + gen_expr(expr.right) + ")"
+	elif type(expr) is ast.ChainOp:
+		if expr.data_type != ast.StringType:
+			return "(" + gen_expr(expr.start) + "".join(
+				op.value + gen_expr(operand) for op, operand in zip(expr.ops, expr.operands)
+			) + ")"
+	
+	error.error(0, "can not generate expression", expr)
+	return "0"
 
 def gen_int(integer):
 	return str(integer.value)
