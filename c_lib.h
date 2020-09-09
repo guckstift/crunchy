@@ -8,6 +8,8 @@
 	#define debug if(0)
 #endif
 
+typedef unsigned char cr_bool;
+
 typedef struct {
 	int refs;
 	int length;
@@ -24,6 +26,7 @@ string* string_assign(string* dest, string* src);
 string* string_concat(string* left, string* right);
 string* int_to_string(int number);
 string* float_to_string(double number);
+cr_bool string_equ(string* left, string* right);
 char *d2s(double f, int* len_out);
 
 extern int num_mallocs;

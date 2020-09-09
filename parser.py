@@ -551,6 +551,8 @@ class Parser:
 		elif op in ["==", "!=", "<=", ">=", "<", ">"]:
 			if left_type in num_types and right_type in num_types:
 				return ast.BoolType
+			elif op in ["==", "!="] and left_type == ast.StringType and right_type == ast.StringType:
+				return ast.BoolType
 		
 		return ast.UnknownType
 	

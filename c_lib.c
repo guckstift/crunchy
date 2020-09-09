@@ -92,3 +92,8 @@ string* float_to_string(double number)
 	char* buf = d2s(number, &len);
 	return string_new(len, buf);
 }
+
+cr_bool string_equ(string* left, string* right)
+{
+	return left->length == right->length && memcmp(left->data, right->data, left->length) == 0;
+}

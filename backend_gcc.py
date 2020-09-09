@@ -291,7 +291,11 @@ def gen_expr(expr):
 	elif type(expr) is ast.Negate:
 		return "- " + gen_expr(expr.expr)
 	elif type(expr) is ast.BinOp:
-		if expr.data_type == ast.StringType:
+		if expr.op.value == "==" and expr.left.data_type == ast.StringType:
+			return "string_equ(" + gen_expr(expr.left) + ", " + gen_expr(expr.right) + ")"
+		if expr.op.value == "!=" and expr.left.data_type == ast.StringType:
+			return "(string_equ(" + gen_expr(expr.left) + ", " + gen_expr(expr.right) + ") == 0)"
+		elif expr.data_type == ast.StringType:
 			return "string_concat(" + gen_expr(expr.left) + ", " + gen_expr(expr.right) + ")"
 		else:
 			return "(" + gen_expr(expr.left) + expr.op.value + gen_expr(expr.right) + ")"
