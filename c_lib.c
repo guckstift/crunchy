@@ -66,7 +66,7 @@ string* string_assign(string* dest, string* src)
 
 string* string_concat(string* left, string* right)
 {
-	string* str = 0;
+	string* str;
 	string_incref(left);
 	string_incref(right);
 	str = crunchy_malloc(sizeof(string) - 1 + left->length + right->length);
@@ -76,6 +76,38 @@ string* string_concat(string* left, string* right)
 	memcpy(str->data + left->length, right->data, right->length);
 	string_decref(left);
 	string_decref(right);
+	return str;
+}
+
+string* string_concats(int opcount, ...)
+{
+	va_list args;
+	int total_len = 0;
+	string* str;
+	int i, offs;
+	
+	va_start(args, opcount);
+	
+	for(i=0; i<opcount; i++) {
+		string* part = va_arg(args, string*);
+		string_incref(part);
+		total_len += part->length;
+	}
+	
+	va_end(args);
+	str = crunchy_malloc(sizeof(string) - 1 + total_len);
+	str->refs = 0;
+	str->length = total_len;
+	va_start(args, opcount);
+	
+	for(i=0, offs=0; i<opcount; i++) {
+		string* part = va_arg(args, string*);
+		memcpy(str->data + offs, part->data, part->length);
+		offs += part->length;
+		string_decref(part);
+	}
+	
+	va_end(args);
 	return str;
 }
 

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdarg.h>
 
 #define _CRUNCHY_DEBUG
 
@@ -24,6 +25,7 @@ void string_soft_decref(string* str);
 void string_decref(string* str);
 string* string_assign(string* dest, string* src);
 string* string_concat(string* left, string* right);
+string* string_concats(int opcount, ...);
 string* int_to_string(int number);
 string* float_to_string(double number);
 cr_bool string_equ(string* left, string* right);

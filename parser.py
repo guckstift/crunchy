@@ -380,7 +380,7 @@ class Parser:
 			left_type = binop_type
 			self.unify_binop(left)
 		
-		if flat and type(left) is ast.BinOp and left_type != ast.StringType:
+		if flat and type(left) is ast.BinOp: # and left_type != ast.StringType:
 			flat_operands, flat_ops = self.flatten_binop(left, ops)
 			
 			if len(flat_operands) > 2:

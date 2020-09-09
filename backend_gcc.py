@@ -300,7 +300,14 @@ def gen_expr(expr):
 		else:
 			return "(" + gen_expr(expr.left) + expr.op.value + gen_expr(expr.right) + ")"
 	elif type(expr) is ast.ChainOp:
-		if expr.data_type != ast.StringType:
+		if expr.data_type == ast.StringType:
+			count = len(expr.operands) + 1
+			return (
+				"string_concats(" + str(count) + ", " +
+				gen_expr(expr.start) + ", " +
+				", ".join(gen_expr(operand) for operand in expr.operands) + ")"
+			)
+		else:
 			return "(" + gen_expr(expr.start) + "".join(
 				op.value + gen_expr(operand) for op, operand in zip(expr.ops, expr.operands)
 			) + ")"
