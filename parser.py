@@ -524,7 +524,11 @@ class Parser:
 	def infer_binop_type(self, left_type, right_type, op):
 		num_types = [ast.BoolType, ast.IntType, ast.FloatType]
 		
-		if op == "+" and left_type == right_type == ast.StringType:
+		if op == "+" and (
+			left_type == right_type == ast.StringType or
+			left_type == ast.StringType and right_type in num_types or
+			right_type == ast.StringType and left_type in num_types
+		):
 			return ast.StringType
 		elif op == "+" or op == "-" or op == "*":
 			if (
@@ -548,6 +552,7 @@ class Parser:
 				return ast.IntType
 			elif left_type == right_type == ast.FloatType:
 				return ast.FloatType
+				
 		elif op in ["==", "!=", "<=", ">=", "<", ">"]:
 			if left_type in num_types and right_type in num_types:
 				return ast.BoolType
@@ -574,5 +579,9 @@ class Parser:
 				binop.right = ast.Cast(binop.right, ast.IntType)
 			elif left_type == ast.BoolType and right_type == ast.IntType:
 				binop.left = ast.Cast(binop.left, ast.IntType)
+			elif left_type == ast.StringType:
+				binop.right = ast.Cast(binop.right, ast.StringType)
+			elif right_type == ast.StringType:
+				binop.left = ast.Cast(binop.left, ast.StringType)
 
 
