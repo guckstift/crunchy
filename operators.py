@@ -2,6 +2,7 @@ import pprint
 import ast
 
 operator_tiers = [
+	[False, ["&&", "||"]],
 	[False, ["==", "!=", "<=", ">=", "<", ">"]],
 	[True,  ["+", "-"]],
 	[False, ["*", "/"]],
@@ -29,6 +30,9 @@ binop_type_inferences = {
 	],
 	("==", "!="): [
 		[ast.StringType, ast.StringType, ast.BoolType],
+	],
+	("&&", "||"): [
+		[ast.BoolType, ast.BoolType, ast.BoolType],
 	],
 }
 

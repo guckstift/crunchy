@@ -2,10 +2,12 @@
 char empty_string[] = "\xFF\xFF\xFF\xFF\x00\x00\x00\x00" "";
 char false_string[] = "\xFF\xFF\xFF\xFF\x05\x00\x00\x00" "false";
 char true_string[] = "\xFF\xFF\xFF\xFF\x04\x00\x00\x00" "true";
+char s3[] = "\xFF\xFF\xFF\xFF\x02\x00\x00\x00" "Jo";
+int v0 = 0;
+int v1 = 1;
 int main(int argc, char **argv) {
-	printf("%s\n", d2s((((double)1)/((double)2)), 0));
-	printf("%s\n", d2s((((double)1)/1.5), 0));
-	printf("%s\n", d2s((0.5/((double)1)), 0));
-	printf("%s\n", d2s((3.141/0.5), 0));
+	if(((v0==0)&&(v1==1))) {
+		printf("Jo\n");
+	}
 	debug("num left allocs %i\n", num_mallocs);
 }

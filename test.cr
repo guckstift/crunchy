@@ -1,4 +1,6 @@
-print 1 / 2;
-print 1 / 1.5;
-print 0.5 / 1;
-print 3.141 / 0.5;
+var i = 0;
+var j = 1;
+
+if i == 0 && j == 1 {
+	print "Jo";
+}
