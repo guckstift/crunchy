@@ -3,6 +3,7 @@
 import error
 import lexer
 import ast
+import operators
 
 empty_string = lexer.String(0, 0, "")
 empty_string.internal = "empty_string"
@@ -344,19 +345,16 @@ class Parser:
 			return ast.PrimType(keyword.value)
 	
 	def expr(self):
-		return self.binop_cascade(
-			False, ["==", "!=", "<=", ">=", "<", ">"],
-			lambda: self.binop_cascade(
-				True, ["+", "-"],
-				lambda: self.binop_cascade(
-					False, ["*"],
-					lambda: self.negate(),
-				),
-			),
-		)
+		return self.binop_cascade()
 	
-	def binop_cascade(self, flat, ops, subparse):
-		left = subparse()
+	def binop_cascade(self, tier = 0):
+		flat, ops = operators.operator_tiers[tier]
+		last_tier = tier + 1 == len(operators.operator_tiers)
+		
+		if not last_tier:
+			left = self.binop_cascade(tier + 1)
+		else:
+			left = self.negate()
 		
 		if not left:
 			return
@@ -369,9 +367,16 @@ class Parser:
 			if not op:
 				break
 			
-			right = subparse() or self.throw("expected right side after", op) or ast.UnknownExpr
+			if not last_tier:
+				right = self.binop_cascade(tier + 1)
+			else:
+				right = self.negate()
+			
+			if not right:
+				right = self.throw("expected right side after", op) or ast.UnknownExpr
+			
 			right_type = right.data_type
-			binop_type = self.infer_binop_type(left_type, right_type, op.value)
+			binop_type = operators.infer_binop_type(left_type, right_type, op.value)
 			
 			if left_type and right_type and binop_type == ast.UnknownType:
 				self.throw("can not combine", left_type, "and", right_type, "with the operator", op)
@@ -380,7 +385,7 @@ class Parser:
 			left_type = binop_type
 			self.unify_binop(left)
 		
-		if flat and type(left) is ast.BinOp: # and left_type != ast.StringType:
+		if flat and type(left) is ast.BinOp:
 			flat_operands, flat_ops = self.flatten_binop(left, ops)
 			
 			if len(flat_operands) > 2:
@@ -416,7 +421,7 @@ class Parser:
 			expr = self.negate()
 			data_type = expr.data_type
 			
-			if data_type != ast.IntType:
+			if data_type != ast.IntType and data_type != ast.FloatType:
 				self.throw("can not negate non-number", expr)
 			
 			return ast.Negate(expr)
@@ -545,70 +550,15 @@ class Parser:
 	def fatal(self, *args):
 		return error.fatal(self.tokens[0].line, *args)
 	
-	def infer_binop_type(self, left_type, right_type, op):
-		num_types = [ast.BoolType, ast.IntType, ast.FloatType]
-		
-		if op == "+" and (
-			left_type == right_type == ast.StringType or
-			left_type == ast.StringType and right_type in num_types or
-			right_type == ast.StringType and left_type in num_types
-		):
-			return ast.StringType
-		elif op == "+" or op == "-" or op == "*":
-			if (
-				left_type == ast.FloatType and right_type == ast.IntType or
-				left_type == ast.IntType and right_type == ast.FloatType
-			):
-				return ast.FloatType
-			if (
-				left_type == ast.FloatType and right_type == ast.BoolType or
-				left_type == ast.BoolType and right_type == ast.FloatType
-			):
-				return ast.FloatType
-			if (
-				left_type == ast.IntType and right_type == ast.BoolType or
-				left_type == ast.BoolType and right_type == ast.IntType
-			):
-				return ast.IntType
-			elif left_type == right_type == ast.BoolType:
-				return ast.IntType
-			elif left_type == right_type == ast.IntType:
-				return ast.IntType
-			elif left_type == right_type == ast.FloatType:
-				return ast.FloatType
-				
-		elif op in ["==", "!=", "<=", ">=", "<", ">"]:
-			if left_type in num_types and right_type in num_types:
-				return ast.BoolType
-			elif op in ["==", "!="] and left_type == ast.StringType and right_type == ast.StringType:
-				return ast.BoolType
-		
-		return ast.UnknownType
-	
 	def unify_binop(self, binop):
-		num_types = [ast.BoolType, ast.IntType, ast.FloatType]
 		left = binop.left
 		right = binop.right
-		left_type = left.data_type
-		right_type = right.data_type
-		op = binop.op.value
+		cast_left, cast_right = operators.unify_binop(left, right)
 		
-		if op in ["+", "-", "*", "==", "!=", "<=", ">=", "<", ">"]:
-			if left_type == ast.FloatType and right_type == ast.IntType:
-				binop.right = ast.Cast(right, ast.FloatType)
-			elif left_type == ast.IntType and right_type == ast.FloatType:
-				binop.left = ast.Cast(left, ast.FloatType)
-			elif left_type == ast.FloatType and right_type == ast.BoolType:
-				binop.right = ast.Cast(right, ast.FloatType)
-			elif left_type == ast.BoolType and right_type == ast.FloatType:
-				binop.left = ast.Cast(left, ast.FloatType)
-			elif left_type == ast.IntType and right_type == ast.BoolType:
-				binop.right = ast.Cast(right, ast.IntType)
-			elif left_type == ast.BoolType and right_type == ast.IntType:
-				binop.left = ast.Cast(left, ast.IntType)
-			elif left_type == ast.StringType and right_type in num_types:
-				binop.right = ast.Cast(right, ast.StringType)
-			elif right_type == ast.StringType and left_type in num_types:
-				binop.left = ast.Cast(left, ast.StringType)
+		if cast_left:
+			binop.left = cast_left
+		
+		if cast_right:
+			binop.right = cast_right
 
 
