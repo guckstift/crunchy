@@ -4,7 +4,7 @@ import ast
 operator_tiers = [
 	[False, ["==", "!=", "<=", ">=", "<", ">"]],
 	[True,  ["+", "-"]],
-	[False, ["*"]],
+	[False, ["*", "/"]],
 ]
 
 prim_types = [ast.BoolType, ast.IntType, ast.FloatType, ast.StringType]
@@ -21,6 +21,9 @@ binop_type_inferences = {
 		[num_types,     ast.FloatType, ast.FloatType],
 		[int_types,     int_types,     ast.IntType],
 	],
+	"/": [
+		[num_types, num_types,     ast.FloatType],
+	],
 	("==", "!=", "<=", ">=", "<", ">"): [
 		[num_types, num_types, ast.BoolType],
 	],
@@ -29,14 +32,21 @@ binop_type_inferences = {
 	],
 }
 
-binop_cast_table = [
-	[ast.FloatType,  int_types,      None,           ast.FloatType],
-	[int_types,      ast.FloatType,  ast.FloatType,  None],
-	[ast.IntType,    ast.BoolType,   None,           ast.IntType],
-	[ast.BoolType,   ast.IntType,    ast.IntType,    None],
-	[ast.StringType, num_types,      None,           ast.StringType],
-	[num_types,      ast.StringType, ast.StringType, None],
-]
+binop_cast_table = {
+	("==", "!=", "<=", ">=", "<", ">", "+", "-", "*"): [
+		[ast.FloatType,  int_types,      None,           ast.FloatType],
+		[int_types,      ast.FloatType,  ast.FloatType,  None],
+		[ast.IntType,    ast.BoolType,   None,           ast.IntType],
+		[ast.BoolType,   ast.IntType,    ast.IntType,    None],
+		[ast.StringType, num_types,      None,           ast.StringType],
+		[num_types,      ast.StringType, ast.StringType, None],
+	],
+	"/": [
+		[ast.FloatType,  int_types,      None,           ast.FloatType],
+		[int_types,      ast.FloatType,  ast.FloatType,  None],
+		[int_types,      int_types,      ast.FloatType,  ast.FloatType],
+	]
+}
 
 for key in binop_type_inferences.copy():
 	if type(key) is tuple:
@@ -50,6 +60,21 @@ for key in binop_type_inferences.copy():
 			dest_table.extend(src_table)
 		
 		del binop_type_inferences[key]
+
+for key in binop_cast_table.copy():
+	if type(key) is tuple:
+		src_table = binop_cast_table[key]
+		
+		for part in key:
+			if part not in binop_cast_table:
+				binop_cast_table[part] = []
+			
+			dest_table = binop_cast_table[part]
+			dest_table.extend(src_table)
+		
+		del binop_cast_table[key]
+
+#pprint.pprint(binop_cast_table)
 
 def infer_binop_type(left_type, right_type, op):
 	table = binop_type_inferences[op]
@@ -65,11 +90,15 @@ def infer_binop_type(left_type, right_type, op):
 	
 	return ast.UnknownType
 
-def unify_binop(left, right):
+def unify_binop(left, right, op):
+	if op not in binop_cast_table:
+		return None, None
+	
+	table = binop_cast_table[op]
 	left_type = left.data_type
 	right_type = right.data_type
 	
-	for entry in binop_cast_table:
+	for entry in table:
 		left_t, right_t, left_cast, right_cast = entry
 		
 		if (

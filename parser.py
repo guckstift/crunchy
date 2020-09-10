@@ -553,7 +553,8 @@ class Parser:
 	def unify_binop(self, binop):
 		left = binop.left
 		right = binop.right
-		cast_left, cast_right = operators.unify_binop(left, right)
+		op = binop.op.value
+		cast_left, cast_right = operators.unify_binop(left, right, op)
 		
 		if cast_left:
 			binop.left = cast_left
