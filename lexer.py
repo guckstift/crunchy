@@ -28,7 +28,7 @@ class Float(Token):
 
 class String(Token):
 	def __repr__(self):
-		return f'"{self.value}"'
+		return repr(self.value)
 
 class Bool(Token):
 	def __repr__(self):
@@ -152,9 +152,21 @@ def lex(src):
 			text = ""
 			
 			while len(src) > 0 and char >= " " and char != '"':
-				text += char
-				src = src[1:]
-				char = src[:1]
+				if char == "\\":
+					src = src[1:]
+					char = src[:1]
+					
+					if char in ["n", "t", "r", "0"]:
+						text += "\\" + char
+					else:
+						error.error(line, "unrecognized escape sequence", char)
+					
+					src = src[1:]
+					char = src[:1]
+				else:
+					text += char
+					src = src[1:]
+					char = src[:1]
 			
 			if char != '"':
 				error.error(line, "string must be terminated with \"")
