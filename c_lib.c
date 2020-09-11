@@ -18,64 +18,70 @@ void crunchy_free(void* ptr)
 	free(ptr);
 }
 
+void* ref_incref(void* _r)
+{
+	ref* r = _r;
+	
+	if(r && r->refs != -1) {
+		r->refs++;
+		debug("incref %lu to %i\n", (unsigned long)r, r->refs);
+	}
+	
+	return r;
+}
+
+void ref_soft_decref(void* _r)
+{
+	ref* r = _r;
+	
+	if(r && r->refs != -1) {
+		if(r->refs > 0) {
+			r->refs--;
+			debug("decref %lu to %i\n", (unsigned long)r, r->refs);
+		}
+	}
+}
+
+void ref_decref(void* _r)
+{
+	ref* r = _r;
+	
+	if(r && r->refs != -1) {
+		ref_soft_decref(r);
+		
+		if(r->refs == 0) {
+			crunchy_free(r);
+		}
+	}
+}
+
+void* ref_assign(void* dest, void* src)
+{
+	ref_decref(dest);
+	return ref_incref(src);
+}
+
 string* string_new(int length, char* source)
 {
 	string* str = crunchy_malloc(sizeof(string) - 1 + length);
-	str->refs = 0;
+	str->r.refs = 0;
 	str->length = length;
 	memcpy(str->data, source, length);
 	return str;
 }
 
-string* string_incref(string* str)
-{
-	if(str && str->refs != -1) {
-		str->refs++;
-		debug("incref %lu to %i\n", (unsigned long)str, str->refs);
-	}
-	
-	return str;
-}
-
-void string_soft_decref(string* str)
-{
-	if(str && str->refs != 0x7fFFffFF) {
-		if(str->refs > 0) {
-			str->refs--;
-			debug("decref %lu to %i\n", (unsigned long)str, str->refs);
-		}
-	}
-}
-
-void string_decref(string* str)
-{
-	if(str && str->refs != -1) {
-		string_soft_decref(str);
-		
-		if(str->refs <= 0) {
-			crunchy_free(str);
-		}
-	}
-}
-
-string* string_assign(string* dest, string* src)
-{
-	string_decref(dest);
-	return string_incref(src);
-}
-
 string* string_concat(string* left, string* right)
 {
 	string* str;
-	string_incref(left);
-	string_incref(right);
+	ref_incref(left);
+	ref_incref(right);
 	str = crunchy_malloc(sizeof(string) - 1 + left->length + right->length);
-	str->refs = 0;
+	str->r.refs = 0;
 	str->length = left->length + right->length;
 	memcpy(str->data, left->data, left->length);
 	memcpy(str->data + left->length, right->data, right->length);
-	string_decref(left);
-	string_decref(right);
+	ref_decref(left);
+	ref_decref(right);
 	return str;
 }
 
@@ -90,13 +96,13 @@ string* string_concats(int opcount, ...)
 	
 	for(i=0; i<opcount; i++) {
 		string* part = va_arg(args, string*);
-		string_incref(part);
+		ref_incref(part);
 		total_len += part->length;
 	}
 	
 	va_end(args);
 	str = crunchy_malloc(sizeof(string) - 1 + total_len);
-	str->refs = 0;
+	str->r.refs = 0;
 	str->length = total_len;
 	va_start(args, opcount);
 	
@@ -104,7 +110,7 @@ string* string_concats(int opcount, ...)
 		string* part = va_arg(args, string*);
 		memcpy(str->data + offs, part->data, part->length);
 		offs += part->length;
-		string_decref(part);
+		ref_decref(part);
 	}
 	
 	va_end(args);

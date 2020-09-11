@@ -105,7 +105,7 @@ def gen_cleanup(scope, level = 0):
 		decl = scope.var_decls[name]
 		
 		if decl.data_type == ast.StringType:
-			res += INDENT * level + "string_decref(" + gen_ident(decl.ident) + ");\n"
+			res += INDENT * level + "ref_decref(" + gen_ident(decl.ident) + ");\n"
 	
 	return res
 
@@ -154,7 +154,7 @@ def gen_stmt(stmt, scope, level = 0):
 def gen_assign(assign):
 	if assign.ident.data_type == ast.StringType:
 		generated_ident = gen_ident(assign.ident)
-		return generated_ident + " = string_assign(" + generated_ident + ", " + gen_expr(assign.expr) + ");"
+		return generated_ident + " = ref_assign(" + generated_ident + ", " + gen_expr(assign.expr) + ");"
 	else:
 		return gen_ident(assign.ident) + " = " + gen_expr(assign.expr) + ";"
 
@@ -162,7 +162,7 @@ def gen_call_stmt(call):
 	generated_call = gen_call(call)
 	
 	if call.data_type == ast.StringType:
-		return "string_decref(" + generated_call + ");"
+		return "ref_decref(" + generated_call + ");"
 	else:
 		return generated_call + ";"
 	
@@ -182,13 +182,13 @@ def gen_return(return_stmt, scope, level = 0):
 		generated_value = gen_expr(return_value)
 		
 		if return_type == ast.StringType:
-			res += "{string* string_res = string_incref(" + generated_value + ");"
+			res += "{string* string_res = ref_incref(" + generated_value + ");"
 			generated_value = "string_res"
 	
 	res += "\n" + gen_cleanup_recursive(scope, level)
 	
 	if return_value and return_type == ast.StringType:
-		res += INDENT * level + "string_soft_decref(string_res);\n"
+		res += INDENT * level + "ref_soft_decref(string_res);\n"
 	
 	res += INDENT * level + "return" + (" " + generated_value if return_value else "") + ";"
 	
@@ -237,12 +237,12 @@ def gen_print(print_stmt, scope, level = 0):
 				generated_expr = gen_expr(expr)
 				string_cache = "c" + str(string_cache_count)
 				string_cache_count += 1
-				pre_statement += "string* " + string_cache + " = string_incref(" + generated_expr + ");\n"
+				pre_statement += "string* " + string_cache + " = ref_incref(" + generated_expr + ");\n"
 				pre_statement += INDENT * level
 				printf_format.append("%.*s")
 				printf_args.append(string_cache + "->length")
 				printf_args.append(string_cache + "->data")
-				post_statement += "\n" + INDENT * level + "string_decref(" + string_cache + ");"
+				post_statement += "\n" + INDENT * level + "ref_decref(" + string_cache + ");"
 	
 	return (
 		("{" + pre_statement if pre_statement else "")

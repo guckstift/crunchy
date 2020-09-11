@@ -20,31 +20,31 @@ string* v2 = ((string*)empty_string);
 string* v3 = ((string*)empty_string);
 int v4 = 9;
 string* v5 = ((string*)empty_string);
-unsigned char v6 = 1;
+cr_bool v6 = 1;
 int main(int argc, char **argv) {
-	v0 = string_assign(v0, ((string*)s3));
-	v1 = string_assign(v1, ((string*)s4));
-	v2 = string_assign(v2, ((string*)s5));
-	v3 = string_assign(v3, string_concat(string_concat(v0, v1), v2));
-	{string* c0 = string_incref(string_concat(string_concat(((string*)s6), ((string*)s7)), ((string*)s8)));
-	string* c1 = string_incref(string_concat(((string*)s9), ((string*)s10)));
+	v0 = ref_assign(v0, ((string*)s3));
+	v1 = ref_assign(v1, ((string*)s4));
+	v2 = ref_assign(v2, ((string*)s5));
+	v3 = ref_assign(v3, string_concats(3, v0, v1, v2));
+	{string* c0 = ref_incref(string_concats(3, ((string*)s6), ((string*)s7), ((string*)s8)));
+	string* c1 = ref_incref(string_concat(((string*)s9), ((string*)s10)));
 	printf("%.*s %i %.*s\n", c0->length, c0->data, v4, c1->length, c1->data);
-	string_decref(c0);
-	string_decref(c1);}
-	v5 = string_assign(v5, ((string*)s11));
+	ref_decref(c0);
+	ref_decref(c1);}
+	v5 = ref_assign(v5, ((string*)s11));
 	if(v6) {
-		{string* c0 = string_incref(string_concat(string_concat(((string*)s12), v5), ((string*)s8)));
+		{string* c0 = ref_incref(string_concats(3, ((string*)s12), v5, ((string*)s8)));
 		printf("%.*s\n", c0->length, c0->data);
-		string_decref(c0);}
+		ref_decref(c0);}
 	} else {
-		{string* c0 = string_incref(string_concat(string_concat(((string*)s13), v5), ((string*)s14)));
+		{string* c0 = ref_incref(string_concats(3, ((string*)s13), v5, ((string*)s14)));
 		printf("%.*s\n", c0->length, c0->data);
-		string_decref(c0);}
+		ref_decref(c0);}
 	}
-	string_decref(v0);
-	string_decref(v1);
-	string_decref(v2);
-	string_decref(v3);
-	string_decref(v5);
+	ref_decref(v0);
+	ref_decref(v1);
+	ref_decref(v2);
+	ref_decref(v3);
+	ref_decref(v5);
 	debug("num left allocs %i\n", num_mallocs);
 }
