@@ -343,6 +343,18 @@ class Parser:
 		
 		if keyword:
 			return ast.PrimType(keyword.value)
+		
+		return self.array_type()
+	
+	def array_type(self):
+		if not self.special("["):
+			return
+		
+		self.special("..") or self.throw("expected .. after [")
+		self.special("]") or self.throw("expected ] after ..")
+		
+		base_type = self.data_type() or self.throw("expected base type for array") or ast.UnknownType
+		return ast.ArrayType(base_type)
 	
 	def expr(self):
 		return self.binop_cascade()

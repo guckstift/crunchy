@@ -55,12 +55,6 @@ void ref_decref(void* _r)
 	}
 }
 
-void* ref_assign(void* dest, void* src)
-{
-	ref_decref(dest);
-	return ref_incref(src);
-}
-
 string* string_new(int length, char* source)
 {
 	string* str = crunchy_malloc(sizeof(string) - 1 + length);
@@ -134,4 +128,13 @@ string* float_to_string(double number)
 cr_bool string_equ(string* left, string* right)
 {
 	return left->length == right->length && memcmp(left->data, right->data, left->length) == 0;
+}
+
+array* array_new()
+{
+	array* arr = crunchy_malloc(sizeof(array));
+	arr->r.refs = 0;
+	arr->length = 0;
+	arr->items = 0;
+	return arr;
 }

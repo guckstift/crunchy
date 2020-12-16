@@ -92,6 +92,8 @@ def gen_var_decl(var_decl):
 		res += "((string*)empty_string)";
 	elif var_decl.data_type == ast.FloatType:
 		res += "0.0"
+	elif type(var_decl.data_type) is ast.ArrayType:
+		res += "0"
 	else:
 		res += "0"
 	
@@ -125,6 +127,8 @@ def gen_data_type(data_type):
 		return "cr_bool"
 	if data_type == ast.StringType:
 		return "string*"
+	if type(data_type) is ast.ArrayType:
+		return "array*"
 
 def gen_ident(ident):
 	return ident.internal

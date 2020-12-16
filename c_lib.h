@@ -21,13 +21,20 @@ typedef struct {
 	char data[1];
 } string;
 
+typedef struct {
+	ref r;
+	int length;
+	void *items;
+} array;
+
 void* crunchy_malloc(int size);
 void crunchy_free(void* ptr);
 
 void* ref_incref(void* r);
 void ref_soft_decref(void* r);
 void ref_decref(void* r);
-void* ref_assign(void* dest, void* src);
+
+#define ref_assign(dest, src) (ref_decref(dest), ref_incref(src))
 
 string* string_new(int length, char* source);
 string* string_concat(string* left, string* right);
@@ -36,5 +43,7 @@ string* int_to_string(int number);
 string* float_to_string(double number);
 cr_bool string_equ(string* left, string* right);
 char *d2s(double f, int* len_out);
+
+array* array_new();
 
 extern int num_mallocs;

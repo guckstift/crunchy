@@ -1,0 +1,7 @@
+else
+f32 f64 float func
+i16 i32 i64 i8 if int
+print
+return
+u16 u32 u64 u8 uint
+while

@@ -253,6 +253,16 @@ class WhileStmt:
 			+ " " * level + "}"
 		)
 
+class ArrayType:
+	def __init__(self, base_type):
+		self.base_type = base_type
+	
+	def __repr__(self):
+		return "[..]" + repr(self.base_type)
+	
+	def __eq__(self, other):
+		return type(other) is ArrayType and self.base_type == other.base_type
+
 class UnknownType:
 	def __repr__(self):
 		return "<unknown-type>"
