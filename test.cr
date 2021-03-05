@@ -1,8 +1,9 @@
-var i = 0;
-var j = 1;
 
-if i == 0 && j == 1 {
-	print "Jo";
+
+a := 9 + 1
+b := 1
+c := a
+
+func foo()
+{
 }
-
-print "Hello\nWorld";
