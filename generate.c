@@ -1,107 +1,160 @@
-#include "crunchy.h"
+int level = 0;
 
-static void gen_block(Node *node);
-static void gen_expr(Node *node);
+void gen_block(Block *block);
 
-static void gen_type(Node *node)
+void gen_indent()
 {
-	if(node->kind == ND_PRIMTYPE) {
-		printf("%s", node->name);
-	}
+	for(int i=0; i<level; i++)
+		printf("  ");
 }
 
-static void gen_ident(Token *token)
+void gen_token(Token *token)
 {
-	printf("%s", token->text);
-}
-
-static void gen_prim(Node *node)
-{
-	Token *token = node->token;
-	
-	if(token->kind == TK_IDENT) {
+	if(token->kind == INTEGER)
+		printf("%lu", token->val);
+	else if(token->kind == IDENT)
 		printf("%s", token->text);
-	}
-	else if(token->kind == TK_INT) {
-		printf("%s", token->text);
+}
+
+void gen_expr(Expr *expr)
+{
+	if(expr == 0)
+		printf("0");
+	else if(expr->kind == PRIM)
+		gen_token(expr->prim);
+	else if(expr->kind == CHAIN) {
+		printf("(");
+		gen_expr(expr->left);
+		printf(" %s ", expr->op->text);
+		gen_expr(expr->right);
+		printf(")");
 	}
 }
 
-static void gen_chain(Node *node)
+void gen_type(Type *type)
 {
-	printf("(");
-	
-	for(Node *cur = node; cur; cur = cur->next) {
-		if(cur->kind == ND_CHAIN && cur->tier == node->tier) {
-			gen_expr(cur->expr);
-			printf(" %s ", cur->token->text);
-		}
-		else {
-			gen_expr(cur);
-		}
-	}
-	
-	printf(")");
+	if(type == 0)
+		printf("int");
+	else if(type->kind == PRIMTYPE)
+		printf("%s", type->primtype);
 }
 
-static void gen_expr(Node *node)
+void gen_proto(Stmt *stmt)
 {
-	if(node->kind == ND_PRIM) {
-		gen_prim(node);
-	}
-	else if(node->kind == ND_CHAIN) {
-		gen_chain(node);
-	}
-}
-
-static void gen_vardecl(Node *node)
-{
-	gen_type(node->type);
-	printf(" ");
-	gen_ident(node->token);
-	
-	if(node->expr->isconst) {
-		printf(" = ");
-		gen_expr(node->expr);
-	}
-	
-	printf(";\n");
-}
-
-static void gen_funcdecl(Node *node)
-{
+	gen_indent();
 	printf("void ");
-	gen_ident(node->token);
-	printf("(){\n");
-	gen_block(node->body);
+	gen_token(stmt->ident);
+	printf("();\n");
+}
+
+void gen_decl(Stmt *stmt)
+{
+	gen_indent();
+	
+	if(stmt->kind == VARDECL) {
+		gen_type(stmt->type);
+		printf(" ");
+		gen_token(stmt->ident);
+		
+		if(stmt->expr && stmt->expr->isconst) {
+			printf(" = ");
+			gen_expr(stmt->expr);
+		}
+		
+		printf(";");
+	}
+	else if(stmt->kind == FUNCDECL) {
+		printf("void ");
+		gen_token(stmt->ident);
+		printf("() {\n");
+		gen_block(stmt->body);
+		gen_indent();
+		printf("}");
+	}
+	
+	printf("\n");
+}
+
+void gen_stmt(Stmt *stmt)
+{
+	if(stmt->kind == ASSIGN) {
+		gen_indent();
+		gen_token(stmt->ident);
+		printf(" = ");
+		gen_expr(stmt->expr);
+		printf(";\n");
+	}
+	else if(stmt->kind == VARDECL) {
+		if(stmt->expr && !stmt->expr->isconst) {
+			gen_indent();
+			gen_token(stmt->ident);
+			printf(" = ");
+			gen_expr(stmt->expr);
+			printf(";\n");
+		}
+	}
+	else if(stmt->kind == CALL) {
+		gen_indent();
+		gen_token(stmt->ident);
+		printf("();\n");
+	}
+	else if(stmt->kind == PRINT) {
+		gen_indent();
+		printf("printf(\"%%lu\\n\", ");
+		gen_expr(stmt->expr);
+		printf(");\n");
+	}
+}
+
+void gen_scope(Scope *scope)
+{
+	for(Symbol *symbol = scope->first; symbol; symbol = symbol->next) {
+		Stmt *decl = symbol->decl;
+		
+		if(decl->kind == VARDECL)
+			gen_decl(decl);
+	}
+	
+	for(Symbol *symbol = scope->first; symbol; symbol = symbol->next) {
+		Stmt *decl = symbol->decl;
+		
+		if(decl->kind == FUNCDECL)
+			gen_proto(decl);
+	}
+	
+	for(Symbol *symbol = scope->first; symbol; symbol = symbol->next) {
+		Stmt *decl = symbol->decl;
+		
+		if(decl->kind == FUNCDECL)
+			gen_decl(decl);
+	}
+}
+
+void gen_block(Block *block)
+{
+	level ++;
+	gen_scope(block->scope);
+	
+	for(Stmt *stmt = block->first; stmt; stmt = stmt->next)
+		gen_stmt(stmt);
+	
+	level --;
+}
+
+void gen_unit(Block *block)
+{
+	gen_scope(block->scope);
+	printf("int main(int argc, char *argv[]) {\n");
+	level ++;
+	
+	for(Stmt *stmt = block->first; stmt; stmt = stmt->next)
+		gen_stmt(stmt);
+	
+	level --;
 	printf("}\n");
 }
 
-static void gen_scope(Scope *scope)
+void generate_code()
 {
-	for(Node *symbol = scope->symbols; symbol; symbol = symbol->next) {
-		if(symbol->kind == ND_VARDECL) {
-			gen_vardecl(symbol);
-		}
-	}
-	
-	for(Node *symbol = scope->symbols; symbol; symbol = symbol->next) {
-		if(symbol->kind == ND_FUNCDECL) {
-			gen_funcdecl(symbol);
-		}
-	}
-}
-
-static void gen_block(Node *node)
-{
-	if(node == 0) {
-		return;
-	}
-	
-	gen_scope(node->scope);
-}
-
-void generate(Node *ast)
-{
-	gen_block(ast);
+	gen_unit(unit->ast);
 }

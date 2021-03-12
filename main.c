@@ -1,28 +1,18 @@
-#include "crunchy.h"
-
-Unit *build_unit(char *filename)
-{
-	Unit *unit = malloc(sizeof(Unit));
-	unit->filename = filename;
-	unit->source = read_file(unit->filename);
-	unit->tokens = lex(unit->source);
-	dump_tokens(unit->tokens);
-	unit->ast = parse(unit->tokens);
-	dump_ast(unit->ast);
-	resolve(unit->ast);
-	dump_ast(unit->ast);
-	generate(unit->ast);
-	return unit;
-}
+#include "common.c"
+#include "data.c"
+#include "build.c"
+#include "lex.c"
+#include "parse.c"
+#include "analyze.c"
+#include "generate.c"
+#include "dump.c"
 
 int main(int argc, char *argv[])
 {
-	if(argc < 2) {
-		return 0;
-	}
+	if(argc < 2)
+		error("no input file given");
 	
-	char *main_filename = argv[1];
-	Unit *main_unit = build_unit(main_filename);
-	//run(main_unit);
+	char *main_filepath = argv[1];
+	build_project(main_filepath);
 	return 0;
 }

@@ -1,106 +1,128 @@
-#include "crunchy.h"
+char *puncts[] = {
+	":=",
+	"+", "-", "*", "/",
+	":", "=",
+	"(", ")", "{", "}",
+	0
+};
 
-static Tokens *tokens;
-static size_t line;
+char *src = 0;
+TokenList *tokens = 0;
+Token *token = 0;
 
-static Token *create_token(TokenKind kind, char *name, char *start, char *end)
+char *clone_strpart(char *start, size_t length)
 {
-	size_t length = end - start;
-	Token *token = malloc(sizeof(Token));
-	token->kind = kind;
-	token->name = name;
-	token->line = line;
-	token->length = length;
-	token->text = clone_substring(start, length);
-	token->next = 0;
-	return token;
+	char *cloned = malloc(length + 1);
+	memcpy(cloned, start, length);
+	cloned[length] = 0;
+	return cloned;
 }
 
-static void emit_token(TokenKind kind, char *name, char *start, char *end)
+size_t match_strpart(char *start, char *needle)
 {
-	Token *token = create_token(kind, name, start, end);
+	size_t i = 0;
 	
-	if(tokens->first) {
-		tokens->last->next = token;
-	}
-	else {
-		tokens->first = token;
-	}
+	while(start[i] && needle[i] && start[i] == needle[i])
+		i ++;
 	
-	tokens->last = token;
+	if(needle[i] == 0)
+		return i;
+	
+	return 0;
 }
 
-static size_t match_punct(char *src)
+size_t match_punct()
 {
-	static char *puncts[] = {
-		":=",
-		"+", "-", "*", "/",
-		"=", ":",
-		"(", ")", "{", "}",
-		0
-	};
-	
 	for(int i=0; puncts[i]; i++) {
 		char *punct = puncts[i];
-		size_t length = match_substring(src, punct);
+		size_t length = match_strpart(src, punct);
 		
-		if(length) {
+		if(length)
 			return length;
-		}
 	}
 	
 	return 0;
 }
 
-Tokens *lex(char *src)
+void emit_token(Kind kind)
 {
-	tokens = calloc(1, sizeof(Tokens));
-	line = 0;
+	token = create(Token);
+	token->kind = kind;
+	token->line = line;
+	token->pos = pos;
+	
+	if(tokens->count) {
+		tokens->last->next = token;
+		tokens->last = token;
+	}
+	else {
+		tokens->first = token;
+		tokens->last = token;
+	}
+	
+	tokens->count ++;
+}
+
+void lex_unit()
+{
+	unit->tokens = create(TokenList);
+	filename = unit->filename;
+	line = 1;
+	pos = 1;
+	src = unit->source;
+	tokens = unit->tokens;
 	
 	while(*src) {
+		char *start = src;
+		
 		if(*src == '\n') {
 			src ++;
 			line ++;
-			continue;
+			pos = 1;
 		}
-		
-		if(*src == '#') {
-			src += strcspn(src, "\n");
-			continue;
+		else if(*src == '#') {
+			size_t len = strcspn(src, "\n");
+			src += len;
+			pos += len;
 		}
-		
-		char *start = src;
-		
-		while(isdigit(*src)) {
+		else if(isspace(*src)) {
 			src ++;
+			pos ++;
 		}
-		
-		if(src > start) {
-			emit_token(TK_INT, "INT", start, src);
-			continue;
+		else if(isdigit(*src)) {
+			size_t val = 0;
+			
+			while(isdigit(*src)) {
+				val *= 10;
+				val += *src - '0';
+				src ++;
+			}
+			
+			emit_token(INTEGER);
+			token->val = val;
+			pos += src - start;
 		}
-		
-		while(isalnum(*src) || *src == '_') {
-			src ++;
+		else if(isalpha(*src) || *src == '_') {
+			while(isalnum(*src))
+				src ++;
+			
+			emit_token(IDENT);
+			token->text = clone_strpart(start, src - start);
+			pos += src - start;
 		}
-		
-		if(src > start) {
-			emit_token(TK_IDENT, "IDENT", start, src);
-			continue;
+		else {
+			size_t punctlen = match_punct(src);
+			
+			if(punctlen) {
+				emit_token(PUNCT);
+				token->text = clone_strpart(src, punctlen);
+				src += punctlen;
+				pos += src - start;
+			}
+			else
+				error("unrecognized token 0x%x", *src);
 		}
-		
-		int length = match_punct(src);
-		
-		if(length) {
-			src += length;
-			emit_token(TK_PUNCT, "PUNCT", start, src);
-			continue;
-		}
-		
-		src ++;
 	}
 	
-	emit_token(TK_END, "END", src, src);
-	
-	return tokens;
+	emit_token(END);
 }

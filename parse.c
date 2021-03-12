@@ -1,94 +1,142 @@
-#include "crunchy.h"
+char *optable[] = {
+	"+ - ",
+	"* / ",
+	0,
+};
 
-typedef struct {
-	Token *token;
-	size_t line;
-	Scope *scope;
-} ParseState;
+Scope *scope = 0;
 
-typedef Node *(*ParseNodeFunc)();
+Block *parse_block();
 
-static ParseState *state;
-
-static Node *parse_funcdecl();
-
-static void error(char *msg, ...)
+Symbol *lookup(Token *ident)
 {
-	va_list args;
-	va_start(args, msg);
-	fprintf(stderr, "error at line %lu: ", state->line + 1);
-	vfprintf(stderr, msg, args);
-	fprintf(stderr, "\n");
-	exit(1);
-}
-
-static Token *consume()
-{
-	Token *token = state->token;
-	state->token = token->next;
-	state->line = state->token->line;
-	return token;
-}
-
-static void reset(Token *token)
-{
-	state->token = token;
-	state->line = token->line;
-}
-
-static Token *parse_kind(TokenKind kind)
-{
-	Token *token = state->token;
-	
-	if(token && token->kind == kind) {
-		return consume();
+	for(Symbol *symbol = scope->first; symbol; symbol = symbol->next) {
+		if(strcmp(symbol->ident->text, ident->text) == 0) {
+			return symbol;
+		}
 	}
 	
 	return 0;
 }
 
-static Token *parse_text(char *text)
+Symbol *lookup_rec(Token *ident)
 {
-	Token *token = state->token;
+	Symbol *symbol = lookup(ident);
 	
-	if(token && strcmp(token->text, text) == 0) {
-		return consume();
+	if(symbol) {
+		return symbol;
+	}
+	
+	if(scope->parent) {
+		Scope *backup = scope;
+		scope = scope->parent;
+		symbol = lookup_rec(ident);
+		scope = backup;
+	}
+	
+	return symbol;
+}
+
+void declare(Stmt *decl)
+{
+	Symbol *symbol = create(Symbol);
+	symbol->decl = decl;
+	symbol->ident = decl->ident;
+	
+	if(scope->count) {
+		scope->last->next = symbol;
+		scope->last = symbol;
+	}
+	else {
+		scope->first = symbol;
+		scope->last = symbol;
+	}
+	
+	scope->count ++;
+}
+
+Token *next_token()
+{
+	Token *temp = token;
+	token = token->next;
+	line = token->line;
+	pos = token->pos;
+	return temp;
+}
+
+void seek_token(Token *tok)
+{
+	token = tok;
+	line = token->line;
+	pos = token->pos;
+}
+
+int is_kind(Kind kind)
+{
+	return token->kind == kind;
+}
+
+int is_keyword(char *key)
+{
+	return is_kind(IDENT) && strcmp(token->text, key) == 0;
+}
+
+int is_punct(char *punct)
+{
+	return is_kind(PUNCT) && strcmp(token->text, punct) == 0;
+}
+
+Token *parse_kind(Kind kind)
+{
+	if(is_kind(kind)) {
+		return next_token();
 	}
 	
 	return 0;
 }
 
-static Node *parse_prim()
+Token *parse_keyword(char *key)
 {
-	Token *token = parse_kind(TK_INT);
-	
-	if(token) {
-		return create_prim(token);
-	}
-	
-	token = parse_kind(TK_IDENT);
-	
-	if(token) {
-		return create_prim(token);
+	if(is_keyword(key)) {
+		return next_token();
 	}
 	
 	return 0;
 }
 
-static Token *parse_op(char *ops)
+Token *parse_punct(char *punct)
 {
-	if(state->token == 0) {
+	if(is_punct(punct)) {
+		return next_token();
+	}
+	
+	return 0;
+}
+
+Expr *parse_prim()
+{
+	if(is_kind(INTEGER) || is_kind(IDENT)) {
+		Expr *prim = create(Expr);
+		prim->kind = PRIM;
+		prim->prim = next_token();
+		prim->isconst = prim->prim->kind != IDENT;
+		return prim;
+	}
+	
+	return 0;
+}
+
+Token *parse_op(char *ops)
+{
+	if(!is_kind(PUNCT))
 		return 0;
-	}
 	
 	while(*ops) {
-		if(match_substring(ops, state->token->text)) {
-			return parse_kind(TK_PUNCT);
-		}
+		if(match_strpart(ops, token->text))
+			return next_token();
 		
-		while(*ops != ' ') {
+		while(*ops != ' ')
 			ops ++;
-		}
 		
 		ops ++;
 	}
@@ -96,287 +144,271 @@ static Token *parse_op(char *ops)
 	return 0;
 }
 
-static Node *parse_chain(int tier)
+Expr *parse_chain(int tier)
 {
-	static char *optable[] = {
-		"+ - ",
-		"* / ",
-		0
-	};
-	
 	char *ops = optable[tier];
 	
-	if(ops == 0) {
+	if(ops == 0)
 		return parse_prim();
-	}
 	
-	Node *head = parse_chain(tier + 1);
-	Node *last = head;
-	Node *prev = 0;
+	Expr *left = parse_chain(tier + 1);
+	
+	if(left == 0)
+		return 0;
 	
 	while(1) {
 		Token *op = parse_op(ops);
 		
-		if(op == 0) {
-			break;
-		}
+		if(op == 0)
+			return left;
 		
-		Node *next = parse_chain(tier + 1);
+		Expr *right = parse_chain(tier + 1);
 		
-		if(next == 0) {
-			error("expected expression after '%s'", op->text);
-		}
+		if(right == 0)
+			error("right side expected after binary operator '%s'", op->text);
 		
-		Node *wrapped = create_chain(last, op, tier, next);
-		
-		if(head == last) {
-			head = wrapped;
-		}
-		
-		if(prev) {
-			prev->next = wrapped;
-		}
-		
-		prev = wrapped;
-		last = next;
+		Expr *chain = create(Expr);
+		chain->kind = CHAIN;
+		chain->left = left;
+		chain->right = right;
+		chain->op = op;
+		chain->isconst = left->isconst && right->isconst;
+		left = chain;
 	}
-	
-	return head;
 }
 
-static Node *parse_expr()
+Expr *parse_expr()
 {
 	return parse_chain(0);
 }
 
-static Node *parse_assign()
+Type *parse_primtype()
 {
-	Token *start = state->token;
-	Token *ident = parse_kind(TK_IDENT);
-	
-	if(ident == 0) {
-		return 0;
-	}
-	
-	if(parse_text("=") == 0) {
-		reset(start);
-		return 0;
-	}
-	
-	Node *expr = parse_expr();
-	
-	if(expr == 0) {
-		error("expected expression after '='");
-	}
-	
-	return create_assign(ident, expr);
-}
-
-static Node *parse_primtype()
-{
-	Token *token = parse_text("int");
-	
-	if(token) {
-		return create_primtype(token->text);
+	if(is_keyword("int")) {
+		Type *type = create(Type);
+		type->kind = PRIMTYPE;
+		type->primtype = next_token()->text;
+		return type;
 	}
 	
 	return 0;
 }
 
-static Node *parse_type()
+Type *parse_type()
 {
 	return parse_primtype();
 }
 
-static Node *parse_vardecl()
+Stmt *parse_funcdecl()
 {
-	Token *start = state->token;
-	Token *ident = parse_kind(TK_IDENT);
+	if(parse_keyword("func") == 0)
+		return 0;
 	
-	if(ident == 0) {
+	if(scope->parent)
+		error("functions can only be declared in global scope");
+	
+	Token *ident = parse_kind(IDENT);
+	
+	if(ident == 0)
+		error("expected function name after 'func'");
+	
+	if(lookup(ident))
+		error("'%s' is already declared", ident->text);
+	
+	if(parse_punct("(") == 0)
+		error("expected '(' after function name");
+	
+	if(parse_punct(")") == 0)
+		error("expected ')' after '('");
+	
+	if(parse_punct("{") == 0)
+		error("expected '{' after ')'");
+	
+	Block *body = parse_block();
+	
+	if(parse_punct("}") == 0)
+		error("expected '}' after function statements");
+	
+	Stmt *funcdecl = create(Stmt);
+	funcdecl->kind = FUNCDECL;
+	funcdecl->ident = ident;
+	funcdecl->body = body;
+	declare(funcdecl);
+	return funcdecl;
+}
+
+Stmt *parse_assign()
+{
+	Token *start = token;
+	Token *ident = parse_kind(IDENT);
+	
+	if(ident == 0)
+		return 0;
+	
+	if(parse_punct("=") == 0) {
+		seek_token(start);
 		return 0;
 	}
 	
-	Node *type = 0;
-	Node *init = 0;
+	Expr *expr = parse_expr();
 	
-	if(parse_text(":")) {
-		if(lookup_symbol(state->scope, ident)) {
+	if(expr == 0)
+		error("expected expression after '='");
+	
+	Stmt *assign = create(Stmt);
+	assign->kind = ASSIGN;
+	assign->ident = ident;
+	assign->expr = expr;
+	return assign;
+}
+
+Stmt *parse_vardecl()
+{
+	Token *start = token;
+	Token *ident = parse_kind(IDENT);
+	Type *type = 0;
+	Expr *expr = 0;
+	
+	if(ident == 0)
+		return 0;
+	
+	if(parse_punct(":")) {
+		if(lookup(ident))
 			error("'%s' is already declared", ident->text);
-		}
 		
 		type = parse_type();
 		
-		if(type == 0) {
+		if(type == 0)
 			error("expected type after ':'");
-		}
 		
-		if(parse_text("=")) {
-			init = parse_expr();
+		if(parse_punct("=")) {
+			expr = parse_expr();
 			
-			if(init == 0) {
+			if(expr == 0)
 				error("expected initializer after '='");
-			}
 		}
 	}
-	else if(parse_text(":=")) {
-		if(lookup_symbol(state->scope, ident)) {
+	else if(parse_punct(":=")) {
+		if(lookup(ident))
 			error("'%s' is already declared", ident->text);
-		}
 		
-		init = parse_expr();
+		expr = parse_expr();
 		
-		if(init == 0) {
+		if(expr == 0)
 			error("expected initializer after ':='");
-		}
 	}
 	else {
-		reset(start);
+		seek_token(start);
 		return 0;
 	}
 	
-	Node *vardecl = create_vardecl(ident, type, init);
-	declare_symbol(state->scope, vardecl);
+	Stmt *vardecl = create(Stmt);
+	vardecl->kind = VARDECL;
+	vardecl->ident = ident;
+	vardecl->type = type;
+	vardecl->expr = expr;
+	declare(vardecl);
 	return vardecl;
 }
 
-static Node *parse_print()
+Stmt *parse_call()
 {
-	if(parse_text("print") == 0) {
+	Token *start = token;
+	Token *ident = parse_kind(IDENT);
+	
+	if(ident == 0)
+		return 0;
+	
+	if(parse_punct("(") == 0) {
+		seek_token(start);
 		return 0;
 	}
 	
-	Node *expr = parse_expr();
-	
-	if(expr == 0) {
-		error("expected expression after 'print'");
-	}
-	
-	return create_print(expr);
-}
-
-static Node *parse_call()
-{
-	Token *start = state->token;
-	Token *ident = parse_kind(TK_IDENT);
-	
-	if(ident == 0) {
-		return 0;
-	}
-	
-	if(parse_text("(") == 0) {
-		reset(start);
-		return 0;
-	}
-	
-	if(parse_text(")") == 0) {
+	if(parse_punct(")") == 0)
 		error("expected ')' after '('");
-	}
 	
-	return create_call(ident);
+	Stmt *call = create(Stmt);
+	call->kind = CALL;
+	call->ident = ident;
+	return call;
 }
 
-static Node *parse_stmt()
+Stmt *parse_print()
 {
-	ParseNodeFunc funcs[] = {
-		parse_funcdecl, parse_vardecl, parse_print, parse_call, parse_assign,
-		0
-	};
+	if(parse_keyword("print") == 0)
+		return 0;
 	
-	for(int i=0; funcs[i]; i++) {
-		ParseNodeFunc func = funcs[i];
-		Node *node = func();
-		
-		if(node) {
-			return node;
-		}
-	}
+	Expr *expr = parse_expr();
+	
+	if(expr == 0)
+		error("expected expression after 'print'");
+	
+	Stmt *print = create(Stmt);
+	print->kind = PRINT;
+	print->expr = expr;
+	return print;
 }
 
-static Node *parse_block()
+Stmt *parse_stmt()
 {
-	Node *head = 0;
-	Node *last = 0;
-	state->scope = create_scope(state->scope);
+	Stmt *stmt;
+	
+	(stmt = parse_funcdecl()) ||
+	(stmt = parse_print()) ||
+	(stmt = parse_assign()) ||
+	(stmt = parse_vardecl()) ||
+	(stmt = parse_call()) ||
+	0;
+	
+	return stmt;
+}
+
+Block *parse_block()
+{
+	Stmt *first = 0;
+	Stmt *last = 0;
+	size_t count = 0;
+	Scope *blockscope = create(Scope);
+	blockscope->parent = scope;
+	scope = blockscope;
 	
 	while(1) {
-		Node *stmt = parse_stmt();
+		Stmt *stmt = parse_stmt();
 		
 		if(stmt == 0) {
 			break;
 		}
 		
-		Node *block = create_block(stmt, state->scope);
-		
-		if(head == 0) {
-			head = block;
+		if(count) {
+			last->next = stmt;
+			last = stmt;
+		}
+		else {
+			first = stmt;
+			last = stmt;
 		}
 		
-		if(last) {
-			last->next = block;
-		}
-		
-		last = block;
+		count ++;
 	}
 	
-	state->scope = state->scope->parent;
-	return head;
+	Block *block = create(Block);
+	block->first = first;
+	block->last = last;
+	block->count = count;
+	block->scope = scope;
+	scope = scope->parent;
+	return block;
 }
 
-static Node *parse_funcdecl()
+void parse_unit()
 {
-	if(parse_text("func") == 0) {
-		return 0;
+	filename = unit->filename;
+	token = unit->tokens->first;
+	line = token->line;
+	pos = token->pos;
+	unit->ast = parse_block();
+	
+	if(!is_kind(END)) {
+		error("unexpected end of file");
 	}
-	
-	if(state->scope->parent) {
-		error("functions can only be declared globally");
-	}
-	
-	Token *ident = parse_kind(TK_IDENT);
-	
-	if(ident == 0) {
-		error("expected function name after 'func'");
-	}
-	
-	if(lookup_symbol(state->scope, ident)) {
-		error("'%s' is already declared", ident->text);
-	}
-	
-	if(parse_text("(") == 0) {
-		error("expected '(' after function name");
-	}
-	
-	if(parse_text(")") == 0) {
-		error("expected ')' after '('");
-	}
-	
-	if(parse_text("{") == 0) {
-		error("expected '{' after ')'");
-	}
-	
-	Node *body = parse_block();
-	
-	if(parse_text("}") == 0) {
-		error("expected '}' after function statements");
-	}
-	
-	Node *funcdecl = create_funcdecl(ident, body);
-	declare_symbol(state->scope, funcdecl);
-	return funcdecl;
-}
-
-Node *parse(Tokens *tokens)
-{
-	state = calloc(1, sizeof(ParseState));
-	state->token = tokens->first;
-	state->line = 0;
-	Node *ast = parse_block();
-	
-	if(state->token->kind != TK_END) {
-		error("unexpected end of input");
-	}
-	
-	free(state);
-	return ast;
 }

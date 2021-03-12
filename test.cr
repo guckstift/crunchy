@@ -1,9 +1,19 @@
 
+b := 0 * 81 + 1
 
-a := 9 + 1
-b := 1
-c := a
+print b
 
-func foo()
-{
+a := 1 * b
+
+func foo(){
+	bar()
+	f := a
+	z := a + 90
+	z = 42
+	
+	print z
 }
+
+func bar(){}
+
+foo()

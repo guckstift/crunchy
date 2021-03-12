@@ -1,96 +1,117 @@
-#include <stdio.h>
-#include "crunchy.h"
+void dump_block(Block *block);
 
-static void indent(int level)
+void dump_indent()
 {
-	for(int i=0; i<level; i++) {
+	for(int i=0; i<level; i++)
 		printf("  ");
+}
+
+void dump_token(Token *token)
+{
+	if(token->kind == INTEGER)
+		printf("%lu", token->val);
+	else if(token->kind == IDENT)
+		printf("%s", token->text);
+	else if(token->kind == PUNCT)
+		printf("%s", token->text);
+}
+
+void dump_expr(Expr *expr)
+{
+	if(expr == 0)
+		printf("<null>");
+	else if(expr->kind == PRIM)
+		dump_token(expr->prim);
+	else if(expr->kind == CHAIN) {
+		printf("(");
+		dump_expr(expr->left);
+		printf(" %s ", expr->op->text);
+		dump_expr(expr->right);
+		printf(")");
 	}
 }
 
-static void dump_token(Token *token, int level, char *prepend)
+void dump_type(Type *type)
 {
-	indent(level);
-	printf("%s%s '%s'\n", prepend, token->name, token->text);
+	if(type == 0)
+		printf("<null>");
+	else if(type->kind == PRIMTYPE)
+		printf("%s", type->primtype);
 }
 
-void dump_tokens(Tokens *tokens)
+void dump_stmt(Stmt *stmt)
 {
-	for(Token *token = tokens->first; token; token = token->next) {
-		dump_token(token, 0, "");
-	}
-}
-
-static void dump_scope(Scope *scope, int level, char *prepend)
-{
-	indent(level);
-	printf("%s", prepend);
+	dump_indent();
 	
-	for(Node *symbol = scope->symbols; symbol; symbol = symbol->next) {
-		printf("%s ", symbol->token->text);
+	if(stmt->kind == ASSIGN) {
+		dump_token(stmt->ident);
+		printf(" = ");
+		dump_expr(stmt->expr);
+	}
+	else if(stmt->kind == VARDECL) {
+		dump_token(stmt->ident);
+		printf(" : ");
+		dump_type(stmt->type);
+		printf(" = ");
+		dump_expr(stmt->expr);
+	}
+	else if(stmt->kind == FUNCDECL) {
+		printf("func ");
+		dump_token(stmt->ident);
+		printf("() {\n");
+		level ++;
+		dump_block(stmt->body);
+		level --;
+		dump_indent();
+		printf("}");
+	}
+	else if(stmt->kind == CALL) {
+		dump_token(stmt->ident);
+		printf("()");
+	}
+	else if(stmt->kind == PRINT) {
+		printf("print ");
+		dump_expr(stmt->expr);
 	}
 	
 	printf("\n");
 }
 
-static void dump_node(Node *node, int level, char *prepend)
+void dump_scope(Scope *scope)
 {
-	if(node == 0) {
-		indent(level);
-		printf("%s<null>\n", prepend);
-		return;
+	dump_indent();
+	printf("scope: ");
+	
+	for(Symbol *symbol = scope->first; symbol; symbol = symbol->next) {
+		dump_token(symbol->decl->ident);
+		printf(" ");
 	}
 	
-	if(node->kind == ND_PRIM) {
-		dump_token(node->token, level, prepend);
-		return;
-	}
+	printf("\n");
+}
+
+void dump_block(Block *block)
+{
+	dump_scope(block->scope);
 	
-	indent(level);
-	printf("%s%s\n", prepend, node->name);
+	for(Stmt *stmt = block->first; stmt; stmt = stmt->next)
+		dump_stmt(stmt);
+}
+
+void dump_tokens()
+{
+	printf("\ntoken dump of '%s':\n\n", filename);
 	
-	if(node->kind == ND_CHAIN) {
-		dump_node(node->expr, level + 1, "operand: ");
-		dump_token(node->token, level + 1, "op: ");
-		Node *next = node->next;
-		
-		while(next->kind == ND_CHAIN && next->tier == node->tier) {
-			dump_node(next->expr, level + 1, "operand: ");
-			dump_token(next->token, level + 1, "op: ");
-			next = next->next;
-		}
-		
-		dump_node(next, level + 1, "operand: ");
-	}
-	else if(node->kind == ND_ASSIGN) {
-		dump_token(node->token, level + 1, "ident: ");
-		dump_node(node->expr, level + 1, "expr: ");
-	}
-	else if(node->kind == ND_VARDECL) {
-		dump_token(node->token, level + 1, "ident: ");
-		dump_node(node->type, level + 1, "type: ");
-		dump_node(node->expr, level + 1, "init: ");
-	}
-	else if(node->kind == ND_BLOCK) {
-		dump_scope(node->scope, level + 1, "scope: ");
-		
-		for(Node *block = node; block; block = block->next) {
-			dump_node(block->stmt, level + 1, "");
-		}
-	}
-	else if(node->kind == ND_PRINT) {
-		dump_node(node->expr, level + 1, "expr: ");
-	}
-	else if(node->kind == ND_FUNCDECL) {
-		dump_token(node->token, level + 1, "ident: ");
-		dump_node(node->body, level + 1, "body: ");
-	}
-	else if(node->kind == ND_CALL) {
-		dump_token(node->token, level + 1, "ident: ");
+	for(Token *token = unit->tokens->first; token; token = token->next) {
+		printf("%lu:%lu ", token->line, token->pos);
+		dump_token(token);
+		printf("\n");
 	}
 }
 
-void dump_ast(Node *ast)
+void dump_ast()
 {
-	dump_node(ast, 0, "ast: ");
+	printf("\nast dump of '%s':\n\n", filename);
+	
+	dump_block(unit->ast);
 }
