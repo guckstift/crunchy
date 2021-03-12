@@ -1,50 +1,52 @@
 int level = 0;
+FILE *cfile = 0;
 
 void gen_block(Block *block);
 
 void gen_indent()
 {
 	for(int i=0; i<level; i++)
-		printf("  ");
+		fprintf(cfile, "  ");
 }
 
 void gen_token(Token *token)
 {
 	if(token->kind == INTEGER)
-		printf("%lu", token->val);
+		fprintf(cfile, "%lu", token->val);
 	else if(token->kind == IDENT)
-		printf("%s", token->text);
+		fprintf(cfile, "id_%s", token->text);
 }
 
 void gen_expr(Expr *expr)
 {
 	if(expr == 0)
-		printf("0");
+		fprintf(cfile, "0");
 	else if(expr->kind == PRIM)
 		gen_token(expr->prim);
 	else if(expr->kind == CHAIN) {
-		printf("(");
+		fprintf(cfile, "(");
 		gen_expr(expr->left);
-		printf(" %s ", expr->op->text);
+		fprintf(cfile, " %s ", expr->op->text);
 		gen_expr(expr->right);
-		printf(")");
+		fprintf(cfile, ")");
 	}
 }
 
 void gen_type(Type *type)
 {
-	if(type == 0)
-		printf("int");
-	else if(type->kind == PRIMTYPE)
-		printf("%s", type->primtype);
+	if(type->kind == PRIMTYPE) {
+		if(strcmp(type->primtype, "int") == 0) {
+			fprintf(cfile, "long unsigned");
+		}
+	}
 }
 
 void gen_proto(Stmt *stmt)
 {
 	gen_indent();
-	printf("void ");
+	fprintf(cfile, "void ");
 	gen_token(stmt->ident);
-	printf("();\n");
+	fprintf(cfile, "();\n");
 }
 
 void gen_decl(Stmt *stmt)
@@ -53,26 +55,26 @@ void gen_decl(Stmt *stmt)
 	
 	if(stmt->kind == VARDECL) {
 		gen_type(stmt->type);
-		printf(" ");
+		fprintf(cfile, " ");
 		gen_token(stmt->ident);
 		
 		if(stmt->expr && stmt->expr->isconst) {
-			printf(" = ");
+			fprintf(cfile, " = ");
 			gen_expr(stmt->expr);
 		}
 		
-		printf(";");
+		fprintf(cfile, ";");
 	}
 	else if(stmt->kind == FUNCDECL) {
-		printf("void ");
+		fprintf(cfile, "void ");
 		gen_token(stmt->ident);
-		printf("() {\n");
+		fprintf(cfile, "() {\n");
 		gen_block(stmt->body);
 		gen_indent();
-		printf("}");
+		fprintf(cfile, "}");
 	}
 	
-	printf("\n");
+	fprintf(cfile, "\n");
 }
 
 void gen_stmt(Stmt *stmt)
@@ -80,29 +82,29 @@ void gen_stmt(Stmt *stmt)
 	if(stmt->kind == ASSIGN) {
 		gen_indent();
 		gen_token(stmt->ident);
-		printf(" = ");
+		fprintf(cfile, " = ");
 		gen_expr(stmt->expr);
-		printf(";\n");
+		fprintf(cfile, ";\n");
 	}
 	else if(stmt->kind == VARDECL) {
 		if(stmt->expr && !stmt->expr->isconst) {
 			gen_indent();
 			gen_token(stmt->ident);
-			printf(" = ");
+			fprintf(cfile, " = ");
 			gen_expr(stmt->expr);
-			printf(";\n");
+			fprintf(cfile, ";\n");
 		}
 	}
 	else if(stmt->kind == CALL) {
 		gen_indent();
 		gen_token(stmt->ident);
-		printf("();\n");
+		fprintf(cfile, "();\n");
 	}
 	else if(stmt->kind == PRINT) {
 		gen_indent();
-		printf("printf(\"%%lu\\n\", ");
+		fprintf(cfile, "printf(\"%%lu\\n\", ");
 		gen_expr(stmt->expr);
-		printf(");\n");
+		fprintf(cfile, ");\n");
 	}
 }
 
@@ -143,18 +145,21 @@ void gen_block(Block *block)
 
 void gen_unit(Block *block)
 {
+	fprintf(cfile, "#include <stdio.h>\n");
 	gen_scope(block->scope);
-	printf("int main(int argc, char *argv[]) {\n");
+	fprintf(cfile, "int main(int argc, char *argv[]) {\n");
 	level ++;
 	
 	for(Stmt *stmt = block->first; stmt; stmt = stmt->next)
 		gen_stmt(stmt);
 	
 	level --;
-	printf("}\n");
+	fprintf(cfile, "}\n");
 }
 
 void generate_code()
 {
+	cfile = fopen(unit->cpath, "wb");
 	gen_unit(unit->ast);
+	fclose(cfile);
 }

@@ -14,6 +14,8 @@ void dump_token(Token *token)
 		printf("%s", token->text);
 	else if(token->kind == PUNCT)
 		printf("%s", token->text);
+	else if(token->kind == END)
+		printf("END");
 }
 
 void dump_expr(Expr *expr)

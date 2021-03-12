@@ -17,3 +17,4 @@ func foo(){
 func bar(){}
 
 foo()
+

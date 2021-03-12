@@ -6,6 +6,7 @@
 #include <libgen.h>
 #include <ctype.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #define create(type) \
 	calloc(1, sizeof(type))

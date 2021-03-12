@@ -87,6 +87,8 @@ typedef struct Unit {
 	char *filepath;
 	char *abspath;
 	char *filename;
+	char *cpath;
+	char *opath;
 	struct Unit *next;
 	char *source;
 	size_t length;
@@ -103,4 +105,5 @@ typedef struct {
 typedef struct Project {
 	UnitList *units;
 	Unit *main;
+	char *exepath;
 } Project;

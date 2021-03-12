@@ -7,6 +7,11 @@
 #include "generate.c"
 #include "dump.c"
 
+void run_project()
+{
+	system(project->exepath);
+}
+
 int main(int argc, char *argv[])
 {
 	if(argc < 2)
@@ -14,5 +19,6 @@ int main(int argc, char *argv[])
 	
 	char *main_filepath = argv[1];
 	build_project(main_filepath);
+	run_project();
 	return 0;
 }

@@ -89,6 +89,25 @@ void lex_unit()
 			src ++;
 			pos ++;
 		}
+		else if(*src == '/' && src[1] == '*') {
+			src += 2;
+			
+			while(*src && !(*src == '*' && src[1] == '/')) {
+				if(*src == '\n') {
+					line ++;
+					pos = 1;
+				}
+				else
+					pos ++;
+				
+				src ++;
+			}
+			
+			if(*src == 0)
+				error("multi-line comments must end with */");
+			
+			src += 2;
+		}
 		else if(isdigit(*src)) {
 			size_t val = 0;
 			
