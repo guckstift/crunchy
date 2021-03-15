@@ -1,3 +1,8 @@
+char *primtype_names[] = {
+	"u8", "u16", "u32", "u64",
+	"i8", "i16", "i32", "i64",
+};
+
 void dump_block(Block *block);
 
 void dump_indent()
@@ -38,7 +43,7 @@ void dump_type(Type *type)
 	if(type == 0)
 		printf("<null>");
 	else if(type->kind == PRIMTYPE)
-		printf("%s", type->primtype);
+		printf("%s", primtype_names[type->primtype]);
 }
 
 void dump_stmt(Stmt *stmt)

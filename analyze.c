@@ -27,7 +27,7 @@ void analyze_expr(Expr *expr)
 		if(prim->kind == INTEGER) {
 			expr->type = create(Type);
 			expr->type->kind = PRIMTYPE;
-			expr->type->primtype = "int";
+			expr->type->primtype = I64;
 		}
 		else if(prim->kind == IDENT) {
 			Type *type = analyze_var_ident(prim);
@@ -56,7 +56,9 @@ void analyze_stmt(Stmt *stmt)
 	else if(stmt->kind == VARDECL) {
 		if(stmt->expr) {
 			analyze_expr(stmt->expr);
-			stmt->type = stmt->expr->type;
+			
+			if(stmt->type == 0)
+				stmt->type = stmt->expr->type;
 		}
 	}
 	else if(stmt->kind == FUNCDECL)

@@ -184,14 +184,32 @@ Expr *parse_expr()
 
 Type *parse_primtype()
 {
-	if(is_keyword("int")) {
-		Type *type = create(Type);
-		type->kind = PRIMTYPE;
-		type->primtype = next_token()->text;
-		return type;
-	}
+	PrimType primtype;
 	
-	return 0;
+	if(is_keyword("int") || is_keyword("i64"))
+		primtype = I64;
+	else if(is_keyword("i32"))
+		primtype = I32;
+	else if(is_keyword("i16"))
+		primtype = I16;
+	else if(is_keyword("i8"))
+		primtype = I8;
+	else if(is_keyword("u64"))
+		primtype = U64;
+	else if(is_keyword("u32"))
+		primtype = U32;
+	else if(is_keyword("u16"))
+		primtype = U16;
+	else if(is_keyword("u8"))
+		primtype = U8;
+	else
+		return 0;
+	
+	Type *type = create(Type);
+	type->kind = PRIMTYPE;
+	type->primtype = primtype;
+	next_token();
+	return type;
 }
 
 Type *parse_type()

@@ -17,6 +17,11 @@ typedef enum {
 	PRINT,
 } Kind;
 
+typedef enum {
+	U8, U16, U32, U64,
+	I8, I16, I32, I64,
+} PrimType;
+
 typedef struct Token {
 	struct Token *next;
 	Kind kind;
@@ -34,7 +39,7 @@ typedef struct {
 
 typedef struct {
 	Kind kind;
-	char *primtype;
+	PrimType primtype;
 } Type;
 
 typedef struct Expr {

@@ -12,7 +12,7 @@ void gen_indent()
 void gen_token(Token *token)
 {
 	if(token->kind == INTEGER)
-		fprintf(cfile, "%lu", token->val);
+		fprintf(cfile, "%luL", token->val);
 	else if(token->kind == IDENT)
 		fprintf(cfile, "id_%s", token->text);
 }
@@ -35,9 +35,22 @@ void gen_expr(Expr *expr)
 void gen_type(Type *type)
 {
 	if(type->kind == PRIMTYPE) {
-		if(strcmp(type->primtype, "int") == 0) {
-			fprintf(cfile, "long unsigned");
-		}
+		if(type->primtype == U8)
+			fprintf(cfile, "unsigned char");
+		else if(type->primtype == U16)
+			fprintf(cfile, "unsigned short");
+		else if(type->primtype == U32)
+			fprintf(cfile, "unsigned int");
+		else if(type->primtype == U64)
+			fprintf(cfile, "unsigned long");
+		else if(type->primtype == I8)
+			fprintf(cfile, "char");
+		else if(type->primtype == I16)
+			fprintf(cfile, "short");
+		else if(type->primtype == I32)
+			fprintf(cfile, "int");
+		else if(type->primtype == I64)
+			fprintf(cfile, "long");
 	}
 }
 
@@ -77,6 +90,28 @@ void gen_decl(Stmt *stmt)
 	fprintf(cfile, "\n");
 }
 
+void gen_printf_format_spec(Type *type)
+{
+	if(type->kind == PRIMTYPE) {
+		if(type->primtype == U8)
+			fprintf(cfile, "u");
+		else if(type->primtype == U16)
+			fprintf(cfile, "u");
+		else if(type->primtype == U32)
+			fprintf(cfile, "u");
+		else if(type->primtype == U64)
+			fprintf(cfile, "lu");
+		else if(type->primtype == I8)
+			fprintf(cfile, "i");
+		else if(type->primtype == I16)
+			fprintf(cfile, "i");
+		else if(type->primtype == I32)
+			fprintf(cfile, "i");
+		else if(type->primtype == I64)
+			fprintf(cfile, "li");
+	}
+}
+
 void gen_stmt(Stmt *stmt)
 {
 	if(stmt->kind == ASSIGN) {
@@ -102,7 +137,9 @@ void gen_stmt(Stmt *stmt)
 	}
 	else if(stmt->kind == PRINT) {
 		gen_indent();
-		fprintf(cfile, "printf(\"%%lu\\n\", ");
+		fprintf(cfile, "printf(\"%%");
+		gen_printf_format_spec(stmt->expr->type);
+		fprintf(cfile, "\\n\", ");
 		gen_expr(stmt->expr);
 		fprintf(cfile, ");\n");
 	}

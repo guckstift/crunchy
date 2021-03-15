@@ -1,5 +1,5 @@
 #include "common.c"
-#include "data.c"
+#include "data.h"
 #include "build.c"
 #include "lex.c"
 #include "parse.c"

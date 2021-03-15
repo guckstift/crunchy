@@ -1,20 +1,7 @@
 
-b := 0 * 81 + 1
+a := 9
 
-print b
+b : i8 = a
 
-a := 1 * b
-
-func foo(){
-	bar()
-	f := a
-	z := a + 90
-	z = 42
-	
-	print z
-}
-
-func bar(){}
-
-foo()
-
+c : u8 = 0 - 1
+print c
