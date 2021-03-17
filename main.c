@@ -1,16 +1,11 @@
-#include "common.c"
 #include "data.h"
+#include "common.c"
 #include "build.c"
 #include "lex.c"
 #include "parse.c"
 #include "analyze.c"
 #include "generate.c"
 #include "dump.c"
-
-void run_project()
-{
-	system(project->exepath);
-}
 
 int main(int argc, char *argv[])
 {
@@ -19,6 +14,6 @@ int main(int argc, char *argv[])
 	
 	char *main_filepath = argv[1];
 	build_project(main_filepath);
-	run_project();
+	system(project->exepath);
 	return 0;
 }

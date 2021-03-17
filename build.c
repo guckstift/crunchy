@@ -1,12 +1,11 @@
-Project *project = 0;
-Unit *unit = 0;
-
 void lex_unit();
 void parse_unit();
 void analyze_unit();
 void generate_code();
 void dump_tokens();
 void dump_ast();
+Symbol *lookup(Token *ident);
+void declare_import(Stmt *decl);
 
 void mkdir_p(char *path)
 {
@@ -22,6 +21,23 @@ void mkdir_p(char *path)
 			
 			*x = '/';
 		}
+	}
+}
+
+void chdir_in(char *path)
+{
+	char *last_slash = 0;
+	
+	for(char *x = path; *x; x ++) {
+		if(*x == '/') {
+			last_slash = x;
+		}
+	}
+	
+	if(last_slash) {
+		*last_slash = 0;
+		chdir(path);
+		*last_slash = '/';
 	}
 }
 
@@ -57,6 +73,24 @@ char *get_cache_path(char *abspath, char *ext)
 	cpath = append_str(cpath, abspath);
 	cpath = append_str(cpath, ext);
 	return cpath;
+}
+
+size_t unit_hash(char *str)
+{
+	size_t h = 0x2b992ddfa23249d6;
+	
+	while(*str) {
+		h ^= *str;
+		h ^= h << 2;
+		h ^= h >> 5;
+		h ^= h << 11;
+		h ^= h >> 17;
+		h ^= h << 23;
+		h ^= h >> 31;
+		str ++;
+	}
+	
+	return h;
 }
 
 void add_unit()
@@ -95,6 +129,10 @@ void compile_unit()
 	char *cc_cmd = 0;
 	cc_cmd = append_str(cc_cmd, "gcc -c -ansi -pedantic-errors -o ");
 	cc_cmd = append_str(cc_cmd, unit->opath);
+	
+	if(unit == project->main)
+		cc_cmd = append_str(cc_cmd, " -DCRUNCHY_MAIN");
+	
 	cc_cmd = append_str(cc_cmd, " ");
 	cc_cmd = append_str(cc_cmd, unit->cpath);
 	
@@ -110,17 +148,74 @@ void build_unit(char *filepath)
 	unit->filename = get_filename(filepath);
 	unit->cpath = get_cache_path(unit->abspath, ".c");
 	unit->opath = get_cache_path(unit->abspath, ".o");
+	unit->hash = unit_hash(unit->abspath);
+	chdir_in(unit->abspath);
 	add_unit();
 	load_unit();
 	lex_unit();
 	dump_tokens();
 	parse_unit();
-	dump_ast();
 	analyze_unit();
 	dump_ast();
 	mkdir_p(unit->cpath);
 	generate_code();
 	compile_unit();
+}
+
+Unit *find_unit(char *abspath)
+{
+	for(Unit *u = project->units->first; u; u = u->next) {
+		if(strcmp(u->abspath, abspath) == 0)
+			return u;
+	}
+	
+	return 0;
+}
+
+Unit *do_import(char *path)
+{
+	char *abspath = get_abspath(path);
+	Unit *import_unit = find_unit(abspath);
+	
+	if(import_unit == 0) {
+		Unit *unit_bak = unit;
+		Token *token_bak = token;
+		char *filename_bak = filename;
+		size_t line_bak = line;
+		size_t pos_bak = pos;
+		Scope *scope_bak = scope;
+		
+		build_unit(abspath);
+		
+		import_unit = unit;
+		
+		unit = unit_bak;
+		token = token_bak;
+		filename = filename_bak;
+		line = line_bak;
+		pos = pos_bak;
+		scope = scope_bak;
+		
+		chdir_in(unit->abspath);
+	}
+	
+	Scope *import_scope = import_unit->ast->scope;
+	
+	for(Symbol *sym = import_scope->first; sym; sym = sym->next) {
+		Stmt *decl = sym->decl;
+		
+		if(decl->exported) {
+			if(lookup(sym->ident))
+				error(
+					"imported symbol '%s' is already declared\n",
+					sym->ident->text
+				);
+			
+			declare_import(decl);
+		}
+	}
+	
+	return import_unit;
 }
 
 void link_project()
@@ -129,9 +224,11 @@ void link_project()
 	char *cc_cmd = 0;
 	cc_cmd = append_str(cc_cmd, "gcc -o ");
 	cc_cmd = append_str(cc_cmd, project->exepath);
-	cc_cmd = append_str(cc_cmd, " ");
-	cc_cmd = append_str(cc_cmd, project->main->opath);
-	system(cc_cmd);
+	
+	for(Unit *u = project->units->first; u; u = u->next) {
+		cc_cmd = append_str(cc_cmd, " ");
+		cc_cmd = append_str(cc_cmd, u->opath);
+	}
 	
 	if(system(cc_cmd) != 0)
 		error("linking of objects failed");

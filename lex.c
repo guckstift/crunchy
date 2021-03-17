@@ -6,10 +6,6 @@ char *puncts[] = {
 	0
 };
 
-char *src = 0;
-TokenList *tokens = 0;
-Token *token = 0;
-
 char *clone_strpart(char *start, size_t length)
 {
 	char *cloned = malloc(length + 1);
@@ -127,6 +123,21 @@ void lex_unit()
 			
 			emit_token(IDENT);
 			token->text = clone_strpart(start, src - start);
+			pos += src - start;
+		}
+		else if(*src == '"') {
+			src ++;
+			start = src;
+			
+			while(*src && *src != '"' && *src >= 0x20 && *src <= 0x7f)
+				src ++;
+			
+			if(*src != '"')
+				error("string literals must end with \"");
+			
+			emit_token(STRING);
+			token->text = clone_strpart(start, src - start);
+			src ++;
 			pos += src - start;
 		}
 		else {

@@ -17,6 +17,8 @@ void dump_token(Token *token)
 		printf("%lu", token->val);
 	else if(token->kind == IDENT)
 		printf("%s", token->text);
+	else if(token->kind == STRING)
+		printf("\"%s\"", token->text);
 	else if(token->kind == PUNCT)
 		printf("%s", token->text);
 	else if(token->kind == END)
@@ -56,6 +58,9 @@ void dump_stmt(Stmt *stmt)
 		dump_expr(stmt->expr);
 	}
 	else if(stmt->kind == VARDECL) {
+		if(stmt->exported)
+			printf("export ");
+		
 		dump_token(stmt->ident);
 		printf(" : ");
 		dump_type(stmt->type);
@@ -63,6 +68,9 @@ void dump_stmt(Stmt *stmt)
 		dump_expr(stmt->expr);
 	}
 	else if(stmt->kind == FUNCDECL) {
+		if(stmt->exported)
+			printf("export ");
+		
 		printf("func ");
 		dump_token(stmt->ident);
 		printf("() {\n");
@@ -80,21 +88,45 @@ void dump_stmt(Stmt *stmt)
 		printf("print ");
 		dump_expr(stmt->expr);
 	}
+	else if(stmt->kind == RETURN) {
+		printf("return ");
+		dump_expr(stmt->expr);
+	}
+	else if(stmt->kind == IMPORT) {
+		printf("import ");
+		dump_token(stmt->string);
+	}
 	
 	printf("\n");
 }
 
 void dump_scope(Scope *scope)
 {
-	dump_indent();
-	printf("scope: ");
-	
-	for(Symbol *symbol = scope->first; symbol; symbol = symbol->next) {
-		dump_token(symbol->decl->ident);
-		printf(" ");
+	if(scope->import_count) {
+		dump_indent();
+		printf("imported: ");
+		
+		for(
+			Symbol *symbol = scope->first_import; symbol; symbol = symbol->next
+		) {
+			dump_token(symbol->decl->ident);
+			printf(" ");
+		}
+		
+		printf("\n");
 	}
 	
-	printf("\n");
+	if(scope->count) {
+		dump_indent();
+		printf("scope: ");
+		
+		for(Symbol *symbol = scope->first; symbol; symbol = symbol->next) {
+			dump_token(symbol->decl->ident);
+			printf(" ");
+		}
+		
+		printf("\n");
+	}
 }
 
 void dump_block(Block *block)

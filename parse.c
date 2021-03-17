@@ -4,56 +4,7 @@ char *optable[] = {
 	0,
 };
 
-Scope *scope = 0;
-
-Block *parse_block();
-
-Symbol *lookup(Token *ident)
-{
-	for(Symbol *symbol = scope->first; symbol; symbol = symbol->next) {
-		if(strcmp(symbol->ident->text, ident->text) == 0) {
-			return symbol;
-		}
-	}
-	
-	return 0;
-}
-
-Symbol *lookup_rec(Token *ident)
-{
-	Symbol *symbol = lookup(ident);
-	
-	if(symbol) {
-		return symbol;
-	}
-	
-	if(scope->parent) {
-		Scope *backup = scope;
-		scope = scope->parent;
-		symbol = lookup_rec(ident);
-		scope = backup;
-	}
-	
-	return symbol;
-}
-
-void declare(Stmt *decl)
-{
-	Symbol *symbol = create(Symbol);
-	symbol->decl = decl;
-	symbol->ident = decl->ident;
-	
-	if(scope->count) {
-		scope->last->next = symbol;
-		scope->last = symbol;
-	}
-	else {
-		scope->first = symbol;
-		scope->last = symbol;
-	}
-	
-	scope->count ++;
-}
+Block *parse_block(Stmt *funchost);
 
 Token *next_token()
 {
@@ -217,6 +168,25 @@ Type *parse_type()
 	return parse_primtype();
 }
 
+Stmt *parse_import()
+{
+	if(parse_keyword("import") == 0)
+		return 0;
+	
+	if(scope->parent)
+		error("imports can only be used in global scope");
+	
+	Token *name = parse_kind(STRING);
+	
+	if(name == 0)
+		error("expected string after 'import'");
+	
+	Stmt *import = create(Stmt);
+	import->kind = IMPORT;
+	import->string = name;
+	return import;
+}
+
 Stmt *parse_funcdecl()
 {
 	if(parse_keyword("func") == 0)
@@ -230,28 +200,34 @@ Stmt *parse_funcdecl()
 	if(ident == 0)
 		error("expected function name after 'func'");
 	
-	if(lookup(ident))
-		error("'%s' is already declared", ident->text);
-	
 	if(parse_punct("(") == 0)
 		error("expected '(' after function name");
 	
 	if(parse_punct(")") == 0)
 		error("expected ')' after '('");
 	
+	Type *type = 0;
+	
+	if(parse_punct(":")) {
+		type = parse_type();
+		
+		if(type == 0)
+			error("expected type after ':'");
+	}
+	
 	if(parse_punct("{") == 0)
 		error("expected '{' after ')'");
 	
-	Block *body = parse_block();
+	Stmt *funcdecl = create(Stmt);
+	Block *body = parse_block(funcdecl);
 	
 	if(parse_punct("}") == 0)
 		error("expected '}' after function statements");
 	
-	Stmt *funcdecl = create(Stmt);
 	funcdecl->kind = FUNCDECL;
 	funcdecl->ident = ident;
+	funcdecl->type = type;
 	funcdecl->body = body;
-	declare(funcdecl);
 	return funcdecl;
 }
 
@@ -291,9 +267,6 @@ Stmt *parse_vardecl()
 		return 0;
 	
 	if(parse_punct(":")) {
-		if(lookup(ident))
-			error("'%s' is already declared", ident->text);
-		
 		type = parse_type();
 		
 		if(type == 0)
@@ -307,9 +280,6 @@ Stmt *parse_vardecl()
 		}
 	}
 	else if(parse_punct(":=")) {
-		if(lookup(ident))
-			error("'%s' is already declared", ident->text);
-		
 		expr = parse_expr();
 		
 		if(expr == 0)
@@ -325,7 +295,6 @@ Stmt *parse_vardecl()
 	vardecl->ident = ident;
 	vardecl->type = type;
 	vardecl->expr = expr;
-	declare(vardecl);
 	return vardecl;
 }
 
@@ -367,12 +336,56 @@ Stmt *parse_print()
 	return print;
 }
 
+Stmt *parse_return()
+{
+	if(parse_keyword("return") == 0)
+		return 0;
+	
+	if(scope->funchost == 0)
+		error("return statement can only be used inside a function");
+	
+	Stmt *stmt = create(Stmt);
+	stmt->kind = RETURN;
+	Expr *expr = parse_expr();
+	
+	if(expr == 0)
+		return stmt;
+	
+	stmt->expr = expr;
+	return stmt;
+}
+
+Stmt *parse_export()
+{
+	if(parse_keyword("export") == 0)
+		return 0;
+	
+	if(scope->parent)
+		error("exports can only be declared in global scope");
+	
+	Stmt *stmt;
+	
+	(stmt = parse_funcdecl()) ||
+	(stmt = parse_vardecl()) ||
+	0;
+	
+	if(stmt == 0)
+		error("expected declaration after 'export'");
+	
+	stmt->exported = 1;
+	stmt->exporthash = unit->hash;
+	return stmt;
+}
+
 Stmt *parse_stmt()
 {
 	Stmt *stmt;
 	
+	(stmt = parse_export()) ||
+	(stmt = parse_import()) ||
 	(stmt = parse_funcdecl()) ||
 	(stmt = parse_print()) ||
+	(stmt = parse_return()) ||
 	(stmt = parse_assign()) ||
 	(stmt = parse_vardecl()) ||
 	(stmt = parse_call()) ||
@@ -381,7 +394,7 @@ Stmt *parse_stmt()
 	return stmt;
 }
 
-Block *parse_block()
+Block *parse_block(Stmt *funchost)
 {
 	Stmt *first = 0;
 	Stmt *last = 0;
@@ -389,6 +402,12 @@ Block *parse_block()
 	Scope *blockscope = create(Scope);
 	blockscope->parent = scope;
 	scope = blockscope;
+	
+	scope->funchost = funchost
+		? funchost
+		: scope->parent
+			? scope->parent->funchost
+			: 0;
 	
 	while(1) {
 		Stmt *stmt = parse_stmt();
@@ -424,7 +443,8 @@ void parse_unit()
 	token = unit->tokens->first;
 	line = token->line;
 	pos = token->pos;
-	unit->ast = parse_block();
+	scope = 0;
+	unit->ast = parse_block(0);
 	
 	if(!is_kind(END)) {
 		error("unexpected end of file");

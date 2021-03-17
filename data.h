@@ -1,7 +1,10 @@
+#include <stddef.h>
+
 typedef enum {
 	// tokens
 	INTEGER,
 	IDENT,
+	STRING,
 	PUNCT,
 	END,
 	// expressions
@@ -15,6 +18,8 @@ typedef enum {
 	FUNCDECL,
 	CALL,
 	PRINT,
+	RETURN,
+	IMPORT,
 } Kind;
 
 typedef enum {
@@ -62,10 +67,14 @@ typedef struct Stmt {
 	Kind kind;
 	struct Stmt *next;
 	Token *ident;
+	Token *string;
 	Expr *expr;
 	Type *type;
 	struct Block *body;
 	State state;
+	int exported;
+	size_t exporthash;
+	struct Unit *unit;
 } Stmt;
 
 typedef struct Symbol {
@@ -76,9 +85,13 @@ typedef struct Symbol {
 
 typedef struct Scope {
 	struct Scope *parent;
+	Stmt *funchost;
 	Symbol *first;
 	Symbol *last;
 	size_t count;
+	Symbol *first_import;
+	Symbol *last_import;
+	size_t import_count;
 } Scope;
 
 typedef struct Block {
@@ -94,6 +107,7 @@ typedef struct Unit {
 	char *filename;
 	char *cpath;
 	char *opath;
+	size_t hash;
 	struct Unit *next;
 	char *source;
 	size_t length;
@@ -101,7 +115,7 @@ typedef struct Unit {
 	Block *ast;
 } Unit;
 
-typedef struct {
+typedef struct UnitList {
 	Unit *first;
 	Unit *last;
 	size_t count;

@@ -1,5 +1,3 @@
-int level = 0;
-FILE *cfile = 0;
 
 void gen_block(Block *block);
 
@@ -34,7 +32,9 @@ void gen_expr(Expr *expr)
 
 void gen_type(Type *type)
 {
-	if(type->kind == PRIMTYPE) {
+	if(type == 0)
+		fprintf(cfile, "void");
+	else if(type->kind == PRIMTYPE) {
 		if(type->primtype == U8)
 			fprintf(cfile, "unsigned char");
 		else if(type->primtype == U16)
@@ -57,9 +57,23 @@ void gen_type(Type *type)
 void gen_proto(Stmt *stmt)
 {
 	gen_indent();
-	fprintf(cfile, "void ");
+	
+	if(!stmt->exported)
+		fprintf(cfile, "static ");
+	
+	gen_type(stmt->type);
+	fprintf(cfile, " ");
 	gen_token(stmt->ident);
 	fprintf(cfile, "();\n");
+}
+
+void gen_extern_var(Stmt *decl)
+{
+	fprintf(cfile, "extern ");
+	gen_type(decl->type);
+	fprintf(cfile, " ");
+	gen_token(decl->ident);
+	fprintf(cfile, ";\n");
 }
 
 void gen_decl(Stmt *stmt)
@@ -67,6 +81,9 @@ void gen_decl(Stmt *stmt)
 	gen_indent();
 	
 	if(stmt->kind == VARDECL) {
+		if(!stmt->exported && scope->parent == 0)
+			fprintf(cfile, "static ");
+		
 		gen_type(stmt->type);
 		fprintf(cfile, " ");
 		gen_token(stmt->ident);
@@ -79,7 +96,11 @@ void gen_decl(Stmt *stmt)
 		fprintf(cfile, ";");
 	}
 	else if(stmt->kind == FUNCDECL) {
-		fprintf(cfile, "void ");
+		if(!stmt->exported)
+			fprintf(cfile, "static ");
+		
+		gen_type(stmt->type);
+		fprintf(cfile, " ");
 		gen_token(stmt->ident);
 		fprintf(cfile, "() {\n");
 		gen_block(stmt->body);
@@ -143,10 +164,62 @@ void gen_stmt(Stmt *stmt)
 		gen_expr(stmt->expr);
 		fprintf(cfile, ");\n");
 	}
+	else if(stmt->kind == RETURN) {
+		gen_indent();
+		fprintf(cfile, "return ");
+		
+		if(stmt->expr)
+			gen_expr(stmt->expr);
+		
+		fprintf(cfile, ";\n");
+	}
+	else if(stmt->kind == IMPORT) {
+		gen_indent();
+		fprintf(cfile, "main_%lx(argc, argv);\n", stmt->unit->hash);
+	}
+}
+
+void gen_export_define(Stmt *decl)
+{
+	gen_indent();
+	fprintf(cfile, "#define ");
+	gen_token(decl->ident);
+	fprintf(cfile, " ex_");
+	fprintf(cfile, "%lx_", decl->exporthash);
+	gen_token(decl->ident);
+	fprintf(cfile, "\n");
 }
 
 void gen_scope(Scope *scope)
 {
+	for(Symbol *symbol = scope->first_import; symbol; symbol = symbol->next) {
+		Stmt *decl = symbol->decl;
+		
+		if(decl->exported)
+			gen_export_define(decl);
+	}
+	
+	for(Symbol *symbol = scope->first_import; symbol; symbol = symbol->next) {
+		Stmt *decl = symbol->decl;
+		
+		if(decl->kind == FUNCDECL)
+			gen_proto(decl);
+	}
+	
+	for(Symbol *symbol = scope->first_import; symbol; symbol = symbol->next) {
+		Stmt *decl = symbol->decl;
+		
+		if(decl->kind == VARDECL)
+			gen_extern_var(decl);
+	}
+	
+	for(Symbol *symbol = scope->first; symbol; symbol = symbol->next) {
+		Stmt *decl = symbol->decl;
+		
+		if(decl->exported)
+			gen_export_define(decl);
+	}
+	
 	for(Symbol *symbol = scope->first; symbol; symbol = symbol->next) {
 		Stmt *decl = symbol->decl;
 		
@@ -172,31 +245,47 @@ void gen_scope(Scope *scope)
 void gen_block(Block *block)
 {
 	level ++;
+	scope = block->scope;
 	gen_scope(block->scope);
 	
 	for(Stmt *stmt = block->first; stmt; stmt = stmt->next)
 		gen_stmt(stmt);
 	
+	scope = scope->parent;
 	level --;
 }
 
-void gen_unit(Block *block)
+void gen_unit(Unit *unit)
 {
+	Block *block = unit->ast;
+	scope = block->scope;
 	fprintf(cfile, "#include <stdio.h>\n");
+	
 	gen_scope(block->scope);
-	fprintf(cfile, "int main(int argc, char *argv[]) {\n");
+	fprintf(cfile, "int main_%lx(int argc, char *argv[]) {\n", unit->hash);
+	fprintf(cfile, "  static int initialized = 0;\n");
+	fprintf(cfile, "  if(initialized) return 0;\n");
+	fprintf(cfile, "  initialized = 1;\n");
 	level ++;
 	
 	for(Stmt *stmt = block->first; stmt; stmt = stmt->next)
 		gen_stmt(stmt);
 	
+	scope = scope->parent;
+	fprintf(cfile, "  return 0;\n");
 	level --;
 	fprintf(cfile, "}\n");
+	fprintf(cfile, "#ifdef CRUNCHY_MAIN\n");
+	fprintf(cfile, "int main(int argc, char *argv[]) {\n");
+	fprintf(cfile, "  return main_%lx(argc, argv);\n", unit->hash);
+	fprintf(cfile, "}\n");
+	fprintf(cfile, "#endif\n");
 }
 
 void generate_code()
 {
+	scope = 0;
 	cfile = fopen(unit->cpath, "wb");
-	gen_unit(unit->ast);
+	gen_unit(unit);
 	fclose(cfile);
 }
