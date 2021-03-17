@@ -21,6 +21,10 @@ void gen_expr(Expr *expr)
 		fprintf(cfile, "0");
 	else if(expr->kind == PRIM)
 		gen_token(expr->prim);
+	else if(expr->kind == CALL) {
+		gen_token(expr->ident);
+		fprintf(cfile, "()");
+	}
 	else if(expr->kind == PTR) {
 		fprintf(cfile, "&");
 		gen_expr(expr->child);
@@ -163,10 +167,10 @@ void gen_stmt(Stmt *stmt)
 			fprintf(cfile, ";\n");
 		}
 	}
-	else if(stmt->kind == CALL) {
+	else if(stmt->kind == CALLSTMT) {
 		gen_indent();
-		gen_token(stmt->ident);
-		fprintf(cfile, "();\n");
+		gen_expr(stmt->expr);
+		fprintf(cfile, ";\n");
 	}
 	else if(stmt->kind == PRINT) {
 		gen_indent();

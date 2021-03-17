@@ -7,6 +7,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <assert.h>
 
 #define create(type) \
 	calloc(1, sizeof(type))

@@ -31,6 +31,10 @@ void dump_expr(Expr *expr)
 		printf("<null>");
 	else if(expr->kind == PRIM)
 		dump_token(expr->prim);
+	else if(expr->kind == CALL) {
+		dump_token(expr->ident);
+		printf("()");
+	}
 	else if(expr->kind == PTR) {
 		printf(">");
 		dump_expr(expr->child);
@@ -85,16 +89,22 @@ void dump_stmt(Stmt *stmt)
 		
 		printf("func ");
 		dump_token(stmt->ident);
-		printf("() {\n");
+		printf("()");
+		
+		if(stmt->type) {
+			printf(" : ");
+			dump_type(stmt->type);
+		}
+		
+		printf(" {\n");
 		level ++;
 		dump_block(stmt->body);
 		level --;
 		dump_indent();
 		printf("}");
 	}
-	else if(stmt->kind == CALL) {
-		dump_token(stmt->ident);
-		printf("()");
+	else if(stmt->kind == CALLSTMT) {
+		dump_expr(stmt->expr);
 	}
 	else if(stmt->kind == PRINT) {
 		printf("print ");

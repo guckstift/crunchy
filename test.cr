@@ -1,8 +1,19 @@
-a := 10
-b := >a
-c : >>int = >b
-x := c
 
-print <<x
+a := 4
 
-#b = 90
+func foo() : >int
+{
+	return >a
+}
+
+b := <foo() - 2 * 9
+
+#foo()
+
+print b
+
+func bar()
+{
+}
+
+#asas := bar()

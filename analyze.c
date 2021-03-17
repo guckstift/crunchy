@@ -1,7 +1,10 @@
 void analyze_block(Block *block);
+void analyze_stmt(Stmt *stmt);
 
 Symbol *lookup(Token *ident)
 {
+	assert(ident);
+	
 	for(Symbol *symbol = scope->first; symbol; symbol = symbol->next) {
 		if(strcmp(symbol->ident->text, ident->text) == 0) {
 			return symbol;
@@ -19,6 +22,7 @@ Symbol *lookup(Token *ident)
 
 Symbol *lookup_rec(Token *ident)
 {
+	assert(ident);
 	Symbol *symbol = lookup(ident);
 	
 	if(symbol) {
@@ -37,6 +41,7 @@ Symbol *lookup_rec(Token *ident)
 
 void declare(Stmt *decl)
 {
+	assert(decl);
 	Symbol *symbol = create(Symbol);
 	symbol->decl = decl;
 	symbol->ident = decl->ident;
@@ -55,6 +60,7 @@ void declare(Stmt *decl)
 
 void declare_import(Stmt *decl)
 {
+	assert(decl);
 	Symbol *symbol = create(Symbol);
 	symbol->decl = decl;
 	symbol->ident = decl->ident;
@@ -73,6 +79,7 @@ void declare_import(Stmt *decl)
 
 void scan_block_decls(Block *block)
 {
+	assert(block);
 	Scope *oldscope = scope;
 	scope = block->scope;
 	
@@ -112,6 +119,9 @@ void scan_decls()
 
 int types_equal(Type *t1, Type *t2)
 {
+	assert(t1);
+	assert(t2);
+	
 	if(t1->kind == PRIMTYPE && t2->kind == PRIMTYPE)
 		return t1->primtype == t2->primtype;
 	
@@ -123,6 +133,7 @@ int types_equal(Type *t1, Type *t2)
 
 Type *analyze_var_ident(Token *ident)
 {
+	assert(ident);
 	seek_token(ident);
 	Symbol *symbol = lookup_rec(ident);
 	
@@ -142,6 +153,8 @@ Type *analyze_var_ident(Token *ident)
 
 void analyze_expr(Expr *expr)
 {
+	assert(expr);
+	
 	if(expr->kind == PRIM) {
 		Token *prim = expr->prim;
 		
@@ -154,6 +167,25 @@ void analyze_expr(Expr *expr)
 			Type *type = analyze_var_ident(prim);
 			expr->type = type;
 		}
+	}
+	else if(expr->kind == CALL) {
+		Token *ident = expr->ident;
+		Symbol *symbol = lookup_rec(ident);
+		seek_token(ident);
+		
+		if(symbol == 0)
+			error("'%s' is not defined", ident->text);
+		
+		Stmt *decl = symbol->decl;
+		
+		if(decl->kind != FUNCDECL)
+			error("'%s' is not a function", ident->text);
+		
+		expr->type = decl->type;
+		analyze_stmt(decl);
+		
+		if(!expr->iscallstmt && expr->type == 0)
+			error("function has no return value");
 	}
 	else if(expr->kind == PTR) {
 		analyze_expr(expr->child);
@@ -188,6 +220,8 @@ void analyze_expr(Expr *expr)
 
 void analyze_stmt(Stmt *stmt)
 {
+	assert(stmt);
+	
 	if(stmt->state != UNRESOLVED)
 		return;
 	
@@ -218,21 +252,8 @@ void analyze_stmt(Stmt *stmt)
 		analyze_block(stmt->body);
 	else if(stmt->kind == WHILESTMT)
 		analyze_block(stmt->body);
-	else if(stmt->kind == CALL) {
-		Token *ident = stmt->ident;
-		Symbol *symbol = lookup_rec(ident);
-		seek_token(ident);
-		
-		if(symbol == 0)
-			error("'%s' is not defined", ident->text);
-		
-		Stmt *decl = symbol->decl;
-		
-		if(decl->kind != FUNCDECL)
-			error("'%s' is not a function", ident->text);
-		
-		analyze_stmt(decl);
-	}
+	else if(stmt->kind == CALLSTMT)
+		analyze_expr(stmt->expr);
 	else if(stmt->kind == PRINT) {
 		analyze_expr(stmt->expr);
 		
@@ -259,6 +280,7 @@ void analyze_stmt(Stmt *stmt)
 
 void analyze_block(Block *block)
 {
+	assert(block);
 	Scope *oldscope = scope;
 	scope = block->scope;
 	

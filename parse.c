@@ -77,6 +77,28 @@ Expr *parse_prim()
 	return 0;
 }
 
+Expr *parse_call()
+{
+	Token *start = token;
+	Token *ident = parse_kind(IDENT);
+	
+	if(ident == 0)
+		return 0;
+	
+	if(parse_punct("(") == 0) {
+		seek_token(start);
+		return 0;
+	}
+	
+	if(parse_punct(")") == 0)
+		error("expected ')' after '('");
+	
+	Expr *call = create(Expr);
+	call->kind = CALL;
+	call->ident = ident;
+	return call;
+}
+
 Expr *parse_prefix()
 {
 	if(parse_punct(">")) {
@@ -102,6 +124,11 @@ Expr *parse_prefix()
 		ptr->child = expr;
 		return ptr;
 	}
+	
+	Expr *expr = parse_call();
+	
+	if(expr)
+		return expr;
 	
 	return parse_prim();
 }
@@ -339,25 +366,17 @@ Stmt *parse_vardecl()
 	return vardecl;
 }
 
-Stmt *parse_call()
+Stmt *parse_callstmt()
 {
-	Token *start = token;
-	Token *ident = parse_kind(IDENT);
+	Expr *expr = parse_call();
 	
-	if(ident == 0)
+	if(expr == 0)
 		return 0;
 	
-	if(parse_punct("(") == 0) {
-		seek_token(start);
-		return 0;
-	}
-	
-	if(parse_punct(")") == 0)
-		error("expected ')' after '('");
-	
+	expr->iscallstmt = 1;
 	Stmt *call = create(Stmt);
-	call->kind = CALL;
-	call->ident = ident;
+	call->kind = CALLSTMT;
+	call->expr = expr;
 	return call;
 }
 
@@ -481,7 +500,7 @@ Stmt *parse_stmt()
 	(stmt = parse_return()) ||
 	(stmt = parse_assign()) ||
 	(stmt = parse_vardecl()) ||
-	(stmt = parse_call()) ||
+	(stmt = parse_callstmt()) ||
 	0;
 	
 	return stmt;

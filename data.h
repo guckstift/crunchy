@@ -10,6 +10,7 @@ typedef enum {
 	// expressions
 	PRIM,
 	PTR,
+	CALL,
 	DEREF,
 	CHAIN,
 	// types
@@ -19,7 +20,7 @@ typedef enum {
 	ASSIGN,
 	VARDECL,
 	FUNCDECL,
-	CALL,
+	CALLSTMT,
 	PRINT,
 	RETURN,
 	IMPORT,
@@ -56,12 +57,14 @@ typedef struct Type {
 typedef struct Expr {
 	Kind kind;
 	Token *prim;
+	Token *ident;
 	struct Expr *left;
 	struct Expr *right;
 	struct Expr *child;
 	Token *op;
 	Type *type;
 	int isconst;
+	int iscallstmt;
 } Expr;
 
 typedef enum {
