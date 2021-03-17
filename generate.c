@@ -21,6 +21,14 @@ void gen_expr(Expr *expr)
 		fprintf(cfile, "0");
 	else if(expr->kind == PRIM)
 		gen_token(expr->prim);
+	else if(expr->kind == PTR) {
+		fprintf(cfile, "&");
+		gen_expr(expr->child);
+	}
+	else if(expr->kind == DEREF) {
+		fprintf(cfile, "*");
+		gen_expr(expr->child);
+	}
 	else if(expr->kind == CHAIN) {
 		fprintf(cfile, "(");
 		gen_expr(expr->left);
@@ -34,6 +42,10 @@ void gen_type(Type *type)
 {
 	if(type == 0)
 		fprintf(cfile, "void");
+	else if(type->kind == PTRTYPE) {
+		gen_type(type->child);
+		fprintf(cfile, "*");
+	}
 	else if(type->kind == PRIMTYPE) {
 		if(type->primtype == U8)
 			fprintf(cfile, "unsigned char");

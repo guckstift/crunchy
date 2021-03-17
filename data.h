@@ -9,9 +9,12 @@ typedef enum {
 	END,
 	// expressions
 	PRIM,
+	PTR,
+	DEREF,
 	CHAIN,
 	// types
 	PRIMTYPE,
+	PTRTYPE,
 	// statements
 	ASSIGN,
 	VARDECL,
@@ -44,9 +47,10 @@ typedef struct {
 	size_t count;
 } TokenList;
 
-typedef struct {
+typedef struct Type {
 	Kind kind;
 	PrimType primtype;
+	struct Type *child;
 } Type;
 
 typedef struct Expr {
@@ -54,6 +58,7 @@ typedef struct Expr {
 	Token *prim;
 	struct Expr *left;
 	struct Expr *right;
+	struct Expr *child;
 	Token *op;
 	Type *type;
 	int isconst;

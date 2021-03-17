@@ -77,6 +77,35 @@ Expr *parse_prim()
 	return 0;
 }
 
+Expr *parse_prefix()
+{
+	if(parse_punct(">")) {
+		Expr *expr = parse_prim();
+		
+		if(expr == 0 || expr->prim->kind != IDENT)
+			error("expected identifier to point to");
+		
+		Expr *ptr = create(Expr);
+		ptr->kind = PTR;
+		ptr->child = expr;
+		return ptr;
+	}
+	
+	if(parse_punct("<")) {
+		Expr *expr = parse_prefix();
+		
+		if(expr == 0)
+			error("expected pointer to dereference");
+		
+		Expr *ptr = create(Expr);
+		ptr->kind = DEREF;
+		ptr->child = expr;
+		return ptr;
+	}
+	
+	return parse_prim();
+}
+
 Token *parse_op(char *ops)
 {
 	if(!is_kind(PUNCT))
@@ -100,7 +129,7 @@ Expr *parse_chain(int tier)
 	char *ops = optable[tier];
 	
 	if(ops == 0)
-		return parse_prim();
+		return parse_prefix();
 	
 	Expr *left = parse_chain(tier + 1);
 	
@@ -165,6 +194,18 @@ Type *parse_primtype()
 
 Type *parse_type()
 {
+	if(parse_punct(">")) {
+		Type *type = parse_type();
+		
+		if(type == 0)
+			error("expected pointer base type");
+		
+		Type *ptrtype = create(Type);
+		ptrtype->kind = PTRTYPE;
+		ptrtype->child = type;
+		return ptrtype;
+	}
+	
 	return parse_primtype();
 }
 

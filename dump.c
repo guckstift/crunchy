@@ -31,6 +31,14 @@ void dump_expr(Expr *expr)
 		printf("<null>");
 	else if(expr->kind == PRIM)
 		dump_token(expr->prim);
+	else if(expr->kind == PTR) {
+		printf(">");
+		dump_expr(expr->child);
+	}
+	else if(expr->kind == DEREF) {
+		printf("<");
+		dump_expr(expr->child);
+	}
 	else if(expr->kind == CHAIN) {
 		printf("(");
 		dump_expr(expr->left);
@@ -46,6 +54,10 @@ void dump_type(Type *type)
 		printf("<null>");
 	else if(type->kind == PRIMTYPE)
 		printf("%s", primtype_names[type->primtype]);
+	else if(type->kind == PTRTYPE) {
+		printf(">");
+		dump_type(type->child);
+	}
 }
 
 void dump_stmt(Stmt *stmt)

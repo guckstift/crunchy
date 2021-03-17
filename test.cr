@@ -1,6 +1,8 @@
 a := 10
+b := >a
+c : >>int = >b
+x := c
 
-while a {
-	print 11 - a
-	a = a - 1
-}
+print <<x
+
+#b = 90

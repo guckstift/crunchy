@@ -112,7 +112,13 @@ void scan_decls()
 
 int types_equal(Type *t1, Type *t2)
 {
-	return t1 && t2 && t1->kind == t2->kind && t1->primtype == t2->primtype;
+	if(t1->kind == PRIMTYPE && t2->kind == PRIMTYPE)
+		return t1->primtype == t2->primtype;
+	
+	if(t1->kind == PTRTYPE && t2->kind == PTRTYPE)
+		return types_equal(t1->child, t2->child);
+	
+	return 0;
 }
 
 Type *analyze_var_ident(Token *ident)
@@ -149,9 +155,33 @@ void analyze_expr(Expr *expr)
 			expr->type = type;
 		}
 	}
+	else if(expr->kind == PTR) {
+		analyze_expr(expr->child);
+		Type *type = create(Type);
+		type->kind = PTRTYPE;
+		type->child = expr->child->type;
+		expr->type = type;
+	}
+	else if(expr->kind == DEREF) {
+		Expr *child = expr->child;
+		analyze_expr(child);
+		Type *child_type = child->type;
+		
+		if(child_type->kind != PTRTYPE)
+			error("can only dereference pointers");
+		
+		expr->type = child_type->child;
+	}
 	else if(expr->kind == CHAIN) {
 		analyze_expr(expr->left);
 		analyze_expr(expr->right);
+		
+		if(expr->left->type->kind == PTRTYPE)
+			error("left side of '%s' is a pointer", expr->op->text);
+		
+		if(expr->right->type->kind == PTRTYPE)
+			error("right side of '%s' is a pointer", expr->op->text);
+		
 		expr->type = expr->left->type;
 	}
 }
@@ -165,8 +195,11 @@ void analyze_stmt(Stmt *stmt)
 	
 	if(stmt->kind == ASSIGN) {
 		Token *ident = stmt->ident;
-		analyze_var_ident(ident);
+		Type *ident_type = analyze_var_ident(ident);
 		analyze_expr(stmt->expr);
+		
+		if(types_equal(ident_type, stmt->expr->type) == 0)
+			error("types are not equal");
 	}
 	else if(stmt->kind == VARDECL) {
 		if(stmt->expr) {
@@ -174,6 +207,9 @@ void analyze_stmt(Stmt *stmt)
 			
 			if(stmt->type == 0)
 				stmt->type = stmt->expr->type;
+			
+			if(types_equal(stmt->type, stmt->expr->type) == 0)
+				error("types are not equal");
 		}
 	}
 	else if(stmt->kind == FUNCDECL)
@@ -197,15 +233,18 @@ void analyze_stmt(Stmt *stmt)
 		
 		analyze_stmt(decl);
 	}
-	else if(stmt->kind == PRINT)
+	else if(stmt->kind == PRINT) {
 		analyze_expr(stmt->expr);
+		
+		if(stmt->expr->type->kind != PRIMTYPE)
+			error("can only print primitive types");
+	}
 	else if(stmt->kind == RETURN) {
 		Expr *expr = stmt->expr;
 		
 		if(expr) {
 			analyze_expr(expr);
 			Stmt *func = scope->funchost;
-			//seek_token(stmt->ident);
 			
 			if(func->type == 0)
 				error("function should not return a value");
