@@ -177,6 +177,24 @@ void gen_stmt(Stmt *stmt)
 		gen_indent();
 		fprintf(cfile, "main_%lx(argc, argv);\n", stmt->unit->hash);
 	}
+	else if(stmt->kind == IFSTMT) {
+		gen_indent();
+		fprintf(cfile, "if(");
+		gen_expr(stmt->expr);
+		fprintf(cfile, ") {\n");
+		gen_block(stmt->body);
+		gen_indent();
+		fprintf(cfile, "}\n");
+	}
+	else if(stmt->kind == WHILESTMT) {
+		gen_indent();
+		fprintf(cfile, "while(");
+		gen_expr(stmt->expr);
+		fprintf(cfile, ") {\n");
+		gen_block(stmt->body);
+		gen_indent();
+		fprintf(cfile, "}\n");
+	}
 }
 
 void gen_export_define(Stmt *decl)

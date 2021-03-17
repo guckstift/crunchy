@@ -94,9 +94,12 @@ void scan_block_decls(Block *block)
 			declare(stmt);
 			scan_block_decls(stmt->body);
 		}
-		else if(stmt->kind == IMPORT) {
+		else if(stmt->kind == IMPORT)
 			stmt->unit = do_import(stmt->string->text);
-		}
+		else if(stmt->kind == IFSTMT)
+			scan_block_decls(stmt->body);
+		else if(stmt->kind == WHILESTMT)
+			scan_block_decls(stmt->body);
 	}
 	
 	scope = oldscope;
@@ -174,6 +177,10 @@ void analyze_stmt(Stmt *stmt)
 		}
 	}
 	else if(stmt->kind == FUNCDECL)
+		analyze_block(stmt->body);
+	else if(stmt->kind == IFSTMT)
+		analyze_block(stmt->body);
+	else if(stmt->kind == WHILESTMT)
 		analyze_block(stmt->body);
 	else if(stmt->kind == CALL) {
 		Token *ident = stmt->ident;

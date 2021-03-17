@@ -96,6 +96,26 @@ void dump_stmt(Stmt *stmt)
 		printf("import ");
 		dump_token(stmt->string);
 	}
+	else if(stmt->kind == IFSTMT) {
+		printf("if ");
+		dump_expr(stmt->expr);
+		printf(" {\n");
+		level ++;
+		dump_block(stmt->body);
+		level --;
+		dump_indent();
+		printf("}");
+	}
+	else if(stmt->kind == WHILESTMT) {
+		printf("while ");
+		dump_expr(stmt->expr);
+		printf(" {\n");
+		level ++;
+		dump_block(stmt->body);
+		level --;
+		dump_indent();
+		printf("}");
+	}
 	
 	printf("\n");
 }

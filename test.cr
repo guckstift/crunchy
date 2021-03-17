@@ -1,3 +1,6 @@
-import "subdir/other.cr"
+a := 10
 
-foo()
+while a {
+	print 11 - a
+	a = a - 1
+}

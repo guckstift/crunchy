@@ -320,6 +320,56 @@ Stmt *parse_call()
 	return call;
 }
 
+Stmt *parse_ifstmt()
+{
+	if(parse_keyword("if") == 0)
+		return 0;
+	
+	Expr *expr = parse_expr();
+	
+	if(expr == 0)
+		error("expected condition after 'if'");
+	
+	if(parse_punct("{") == 0)
+		error("expected '{' after condition");
+	
+	Block *body = parse_block(0);
+	
+	if(parse_punct("}") == 0)
+		error("expected '}' after if body");
+	
+	Stmt *ifstmt = create(Stmt);
+	ifstmt->kind = IFSTMT;
+	ifstmt->expr = expr;
+	ifstmt->body = body;
+	return ifstmt;
+}
+
+Stmt *parse_whilestmt()
+{
+	if(parse_keyword("while") == 0)
+		return 0;
+	
+	Expr *expr = parse_expr();
+	
+	if(expr == 0)
+		error("expected condition after 'while'");
+	
+	if(parse_punct("{") == 0)
+		error("expected '{' after condition");
+	
+	Block *body = parse_block(0);
+	
+	if(parse_punct("}") == 0)
+		error("expected '}' after while body");
+	
+	Stmt *whilestmt = create(Stmt);
+	whilestmt->kind = WHILESTMT;
+	whilestmt->expr = expr;
+	whilestmt->body = body;
+	return whilestmt;
+}
+
 Stmt *parse_print()
 {
 	if(parse_keyword("print") == 0)
@@ -383,6 +433,8 @@ Stmt *parse_stmt()
 	
 	(stmt = parse_export()) ||
 	(stmt = parse_import()) ||
+	(stmt = parse_ifstmt()) ||
+	(stmt = parse_whilestmt()) ||
 	(stmt = parse_funcdecl()) ||
 	(stmt = parse_print()) ||
 	(stmt = parse_return()) ||

@@ -20,6 +20,8 @@ typedef enum {
 	PRINT,
 	RETURN,
 	IMPORT,
+	IFSTMT,
+	WHILESTMT,
 } Kind;
 
 typedef enum {
