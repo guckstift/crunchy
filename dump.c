@@ -1,6 +1,7 @@
 char *primtype_names[] = {
 	"u8", "u16", "u32", "u64",
 	"i8", "i16", "i32", "i64",
+	"f32", "f64",
 };
 
 void dump_block(Block *block);
@@ -16,6 +17,8 @@ void dump_token(Token *token)
 {
 	if(token->kind == INTEGER)
 		printf("%lu", token->val);
+	else if(token->kind == FLOAT)
+		printf("%s", d2s(token->fval, 0));
 	else if(token->kind == IDENT)
 		printf("%s", token->text);
 	else if(token->kind == STRING)

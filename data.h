@@ -3,6 +3,7 @@
 typedef enum {
 	// tokens
 	INTEGER,
+	FLOAT,
 	IDENT,
 	STRING,
 	PUNCT,
@@ -31,6 +32,7 @@ typedef enum {
 typedef enum {
 	U8, U16, U32, U64,
 	I8, I16, I32, I64,
+	F32, F64,
 } PrimType;
 
 typedef struct Token {
@@ -39,6 +41,7 @@ typedef struct Token {
 	size_t line;
 	size_t pos;
 	size_t val;
+	double fval;
 	char *text;
 } Token;
 

@@ -67,7 +67,7 @@ Token *parse_punct(char *punct)
 
 Expr *parse_prim()
 {
-	if(is_kind(INTEGER) || is_kind(IDENT)) {
+	if(is_kind(INTEGER) || is_kind(FLOAT) || is_kind(IDENT)) {
 		Expr *prim = create(Expr);
 		prim->kind = PRIM;
 		prim->prim = next_token();

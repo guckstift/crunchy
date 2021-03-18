@@ -155,6 +155,7 @@ void build_unit(char *filepath)
 	lex_unit();
 	dump_tokens();
 	parse_unit();
+	dump_ast();
 	analyze_unit();
 	dump_ast();
 	mkdir_p(unit->cpath);

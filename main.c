@@ -1,5 +1,6 @@
 #include "data.h"
 #include "common.c"
+#include "d2s.c"
 #include "dump.c"
 #include "build.c"
 #include "lex.c"

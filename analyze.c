@@ -163,6 +163,11 @@ void analyze_expr(Expr *expr)
 			expr->type->kind = PRIMTYPE;
 			expr->type->primtype = I64;
 		}
+		else if(prim->kind == FLOAT) {
+			expr->type = create(Type);
+			expr->type->kind = PRIMTYPE;
+			expr->type->primtype = F64;
+		}
 		else if(prim->kind == IDENT) {
 			Type *type = analyze_var_ident(prim);
 			expr->type = type;

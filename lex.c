@@ -115,8 +115,27 @@ void lex_unit()
 				src ++;
 			}
 			
-			emit_token(INTEGER);
-			token->val = val;
+			if(*src == '.') {
+				src ++;
+				
+				if(!isdigit(*src))
+					error("'.' must be followed by a digit");
+				
+				while(isdigit(*src)) {
+					src ++;
+				}
+				
+				char *fval_text = clone_strpart(start, src - start);
+				double fval = strtod(fval_text, 0);
+				free(fval_text);
+				emit_token(FLOAT);
+				token->fval = fval;
+			}
+			else {
+				emit_token(INTEGER);
+				token->val = val;
+			}
+			
 			pos += src - start;
 		}
 		else if(isalpha(*src) || *src == '_') {

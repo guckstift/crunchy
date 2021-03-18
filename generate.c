@@ -11,6 +11,8 @@ void gen_token(Token *token)
 {
 	if(token->kind == INTEGER)
 		fprintf(cfile, "%luL", token->val);
+	else if(token->kind == FLOAT)
+		fprintf(cfile, "%s", d2s(token->fval, 0));
 	else if(token->kind == IDENT)
 		fprintf(cfile, "id_%s", token->text);
 }
@@ -83,6 +85,10 @@ void gen_type(Type *type)
 			fprintf(cfile, "int");
 		else if(type->primtype == I64)
 			fprintf(cfile, "long");
+		else if(type->primtype == F32)
+			fprintf(cfile, "float");
+		else if(type->primtype == F64)
+			fprintf(cfile, "double");
 	}
 }
 
@@ -162,6 +168,10 @@ void gen_printf_format_spec(Type *type)
 			fprintf(cfile, "i");
 		else if(type->primtype == I64)
 			fprintf(cfile, "li");
+		else if(type->primtype == F32)
+			fprintf(cfile, "f");
+		else if(type->primtype == F64)
+			fprintf(cfile, "f");
 	}
 }
 
