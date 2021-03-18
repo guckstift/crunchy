@@ -252,6 +252,19 @@ Expr *adjust_assign_value(Expr *expr, Type *target_type)
 	Type *type = expr->type;
 	size_t deref_count = 0;
 	
+	if(target_type->kind == PTRTYPE && !types_equal(target_type, expr->type)) {
+		if(types_equal(target_type->child, expr->type)) {
+			Type *new_expr_type = create(Type);
+			new_expr_type->kind = PTRTYPE;
+			new_expr_type->child = expr->type;
+			Expr *new_expr = create(Expr);
+			new_expr->kind = PTR;
+			new_expr->child = expr;
+			new_expr->type = new_expr_type;
+			return new_expr;
+		}
+	}
+	
 	while(type->kind == PTRTYPE && !types_equal(target_type, type)) {
 		type = type->child;
 		deref_count ++;
@@ -270,27 +283,6 @@ Expr *adjust_assign_value(Expr *expr, Type *target_type)
 	}
 	
 	return expr;
-}
-
-Expr *adjust_init_value(Expr *init, Type *decl_type)
-{
-	assert(init);
-	assert(decl_type);
-	
-	if(decl_type->kind == PTRTYPE && !types_equal(decl_type, init->type)) {
-		if(types_equal(decl_type->child, init->type)) {
-			Type *new_init_type = create(Type);
-			new_init_type->kind = PTRTYPE;
-			new_init_type->child = init->type;
-			Expr *new_init = create(Expr);
-			new_init->kind = PTR;
-			new_init->child = init;
-			new_init->type = new_init_type;
-			return new_init;
-		}
-	}
-	
-	return init;
 }
 
 void analyze_stmt(Stmt *stmt)
@@ -321,7 +313,6 @@ void analyze_stmt(Stmt *stmt)
 			if(stmt->type == 0)
 				stmt->type = stmt->expr->type;
 			
-			stmt->expr = adjust_init_value(stmt->expr, stmt->type);
 			stmt->expr = adjust_assign_value(stmt->expr, stmt->type);
 			
 			if(types_equal(stmt->type, stmt->expr->type) == 0)
@@ -352,7 +343,9 @@ void analyze_stmt(Stmt *stmt)
 			if(func->type == 0)
 				error("function should not return a value");
 			
-			if(!types_equal(expr->type, func->type))
+			stmt->expr = adjust_assign_value(stmt->expr, func->type);
+			
+			if(!types_equal(stmt->expr->type, func->type))
 				error("returning the wrong type");
 		}
 	}
