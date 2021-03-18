@@ -10,6 +10,7 @@ typedef enum {
 	END,
 	// expressions
 	PRIM,
+	SUBSCRIPT,
 	ARRAY,
 	PTR,
 	CALL,

@@ -70,6 +70,12 @@ void gen_expr(Expr *expr)
 			fprintf(cfile, ")");
 		}
 	}
+	else if(expr->kind == SUBSCRIPT) {
+		gen_token(expr->ident);
+		fprintf(cfile, "[");
+		gen_expr(expr->child);
+		fprintf(cfile, "]");
+	}
 }
 
 void gen_type(Type *type)

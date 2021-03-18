@@ -152,6 +152,35 @@ Expr *parse_call()
 	return call;
 }
 
+Expr *parse_subscript()
+{
+	Token *ident = parse_kind(IDENT);
+	
+	if(ident == 0)
+		return parse_prim();
+	
+	if(parse_punct("[") == 0) {
+		Expr *prim = create(Expr);
+		prim->kind = PRIM;
+		prim->prim = ident;
+		return prim;
+	}
+	
+	Expr *index = parse_expr();
+	
+	if(index == 0)
+		error("expected index of subscript");
+	
+	if(parse_punct("]") == 0)
+		error("expected ']' after index");
+	
+	Expr *subscript = create(Expr);
+	subscript->kind = SUBSCRIPT;
+	subscript->ident = ident;
+	subscript->child = index;
+	return subscript;
+}
+
 Expr *parse_prefix()
 {
 	if(parse_punct(">")) {
@@ -188,7 +217,7 @@ Expr *parse_prefix()
 	if(expr)
 		return expr;
 	
-	return parse_prim();
+	return parse_subscript();
 }
 
 Token *parse_op(char *ops)

@@ -76,6 +76,12 @@ void dump_expr(Expr *expr)
 		
 		printf("]");
 	}
+	else if(expr->kind == SUBSCRIPT) {
+		dump_token(expr->ident);
+		printf("[");
+		dump_expr(expr->child);
+		printf("]");
+	}
 }
 
 void dump_type(Type *type)

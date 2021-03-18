@@ -244,6 +244,19 @@ void analyze_expr(Expr *expr)
 		
 		expr->type = expr->left->type;
 	}
+	else if(expr->kind == SUBSCRIPT) {
+		analyze_expr(expr->child);
+		Token *ident = expr->ident;
+		Type *type = analyze_var_ident(ident);
+		
+		if(type->kind != ARRAYTYPE)
+			error("'%s' is not an array", ident->text);
+		
+		if(expr->child->type->kind != PRIMTYPE)
+			error("index type is not primitive");
+		
+		expr->type = type->child;
+	}
 }
 
 Expr *adjust_assign_target(Expr *target, Type *expr_type)

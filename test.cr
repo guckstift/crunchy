@@ -1,22 +1,13 @@
 
-import "subdir/other.cr"
+a := [1, 2]
 
-b := [1,2]
-a := >b
+p := >a
 
-#c := <a
+#print <p[0]
 
-#a = [1,2]
+j := 1
+print a[a[0]]
 
-i := 9
-#c := [i, i]
+x : int = a[1]
 
-#x := [1, [2, 3]]
-
-func foo2() : >[2]int
-{
-	return b
-}
-
-m := [[1,2],[3,4], [3,90]]
-
+func foo(){}
