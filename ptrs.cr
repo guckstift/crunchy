@@ -12,7 +12,7 @@ i = p  # i = <p
 i = pp # i = <<p
 p = pp # p = <pp
 
-# adjust_init_value
+# adjust_assign_value
 p2 : >int = i    # p2 = >i
 pp2 : >>int = p  # pp2 = >p
 pp3 : >>int = pp # pp3 = pp
@@ -24,7 +24,10 @@ p3 : >int = pp # p3 = <pp
 
 pp3 = <<pp
 
+# adjust_assign_value
 func foo() : >int
 {
+	return i
+	return p
 	return pp
 }

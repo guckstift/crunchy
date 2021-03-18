@@ -9,8 +9,8 @@
 #include <unistd.h>
 #include <assert.h>
 
-#define create(type) \
-	calloc(1, sizeof(type))
+#define create(t) \
+	calloc(1, sizeof(t))
 
 char *filename = 0;
 size_t line = 0;

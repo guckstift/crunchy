@@ -4,6 +4,7 @@ char *primtype_names[] = {
 };
 
 void dump_block(Block *block);
+void dump_expr(Expr *expr);
 
 void dump_indent()
 {
@@ -25,6 +26,20 @@ void dump_token(Token *token)
 		printf("END");
 }
 
+void dump_chain(Expr *chain, int braced)
+{
+	if(braced) printf("(");
+	
+	if(chain->left->kind == CHAIN && chain->left->tier == chain->tier)
+		dump_chain(chain->left, 0);
+	else
+		dump_expr(chain->left);
+	
+	printf(" %s ", chain->op->text);
+	dump_expr(chain->right);
+	if(braced) printf(")");
+}
+
 void dump_expr(Expr *expr)
 {
 	if(expr == 0)
@@ -44,11 +59,7 @@ void dump_expr(Expr *expr)
 		dump_expr(expr->child);
 	}
 	else if(expr->kind == CHAIN) {
-		printf("(");
-		dump_expr(expr->left);
-		printf(" %s ", expr->op->text);
-		dump_expr(expr->right);
-		printf(")");
+		dump_chain(expr, 1);
 	}
 }
 

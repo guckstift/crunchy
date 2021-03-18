@@ -34,11 +34,27 @@ void gen_expr(Expr *expr)
 		gen_expr(expr->child);
 	}
 	else if(expr->kind == CHAIN) {
-		fprintf(cfile, "(");
-		gen_expr(expr->left);
-		fprintf(cfile, " %s ", expr->op->text);
-		gen_expr(expr->right);
-		fprintf(cfile, ")");
+		if(expr->tier == RELATIONAL) {
+			gen_expr(expr->left);
+			
+			if(expr->left->kind == CHAIN && expr->left->tier == RELATIONAL) {
+				fprintf(cfile, " && ");
+				gen_expr(expr->left->right);
+				fprintf(cfile, " %s ", expr->op->text);
+				gen_expr(expr->right);
+			}
+			else {
+				fprintf(cfile, " %s ", expr->op->text);
+				gen_expr(expr->right);
+			}
+		}
+		else {
+			fprintf(cfile, "(");
+			gen_expr(expr->left);
+			fprintf(cfile, " %s ", expr->op->text);
+			gen_expr(expr->right);
+			fprintf(cfile, ")");
+		}
 	}
 }
 

@@ -1,4 +1,5 @@
 char *optable[] = {
+	"== != <= >= < >",
 	"+ - ",
 	"* / ",
 	0,
@@ -179,6 +180,7 @@ Expr *parse_chain(int tier)
 		chain->left = left;
 		chain->right = right;
 		chain->op = op;
+		chain->tier = tier;
 		chain->isconst = left->isconst && right->isconst;
 		left = chain;
 	}
@@ -317,7 +319,7 @@ Stmt *parse_assign()
 	if(expr == 0)
 		error("expected expression after '='");
 	
-	Expr *target = create(expr);
+	Expr *target = create(Expr);
 	target->kind = PRIM;
 	target->prim = ident;
 	Stmt *assign = create(Stmt);

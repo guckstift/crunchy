@@ -221,6 +221,7 @@ void analyze_expr(Expr *expr)
 Expr *adjust_assign_target(Expr *target, Type *expr_type)
 {
 	assert(target);
+	assert(target->type);
 	assert(expr_type);
 	Type *type = target->type;
 	size_t deref_count = 0;
@@ -298,8 +299,8 @@ void analyze_stmt(Stmt *stmt)
 		Expr *target = stmt->target;
 		Token *ident = target->prim;
 		Type *ident_type = analyze_var_ident(ident);
+		stmt->target->type = ident_type;
 		analyze_expr(stmt->expr);
-		target->type = ident_type;
 		stmt->target = adjust_assign_target(stmt->target, stmt->expr->type);
 		stmt->expr = adjust_assign_value(stmt->expr, stmt->target->type);
 		
@@ -335,10 +336,10 @@ void analyze_stmt(Stmt *stmt)
 	}
 	else if(stmt->kind == RETURN) {
 		Expr *expr = stmt->expr;
+		Stmt *func = scope->funchost;
 		
 		if(expr) {
 			analyze_expr(expr);
-			Stmt *func = scope->funchost;
 			
 			if(func->type == 0)
 				error("function should not return a value");
@@ -347,6 +348,10 @@ void analyze_stmt(Stmt *stmt)
 			
 			if(!types_equal(stmt->expr->type, func->type))
 				error("returning the wrong type");
+		}
+		else {
+			if(func->type)
+				error("function should return with a value");
 		}
 	}
 	

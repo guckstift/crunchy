@@ -54,6 +54,12 @@ typedef struct Type {
 	struct Type *child;
 } Type;
 
+typedef enum {
+	RELATIONAL,
+	ADDITIVE,
+	MULTIPLICATIVE,
+} OpTier;
+
 typedef struct Expr {
 	Kind kind;
 	Token *prim;
@@ -62,6 +68,7 @@ typedef struct Expr {
 	struct Expr *right;
 	struct Expr *child;
 	Token *op;
+	OpTier tier;
 	Type *type;
 	int isconst;
 	int iscallstmt;
