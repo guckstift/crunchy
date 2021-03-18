@@ -75,6 +75,7 @@ Expr *parse_prim()
 		prim->kind = PRIM;
 		prim->prim = next_token();
 		prim->isconst = prim->prim->kind != IDENT;
+		prim->islvalue = prim->prim->kind == IDENT;
 		return prim;
 	}
 	
@@ -174,16 +175,17 @@ Expr *parse_subscript()
 	subscript->kind = SUBSCRIPT;
 	subscript->left = prim;
 	subscript->right = index;
+	subscript->islvalue = 1;
 	return subscript;
 }
 
 Expr *parse_prefix()
 {
 	if(parse_punct(">")) {
-		Expr *expr = parse_prim();
+		Expr *expr = parse_subscript();
 		
-		if(expr == 0 || expr->prim->kind != IDENT)
-			error("expected identifier to point to");
+		if(expr == 0 || expr->islvalue == 0)
+			error("expected l-value object to point to");
 		
 		Expr *ptr = create(Expr);
 		ptr->kind = PTR;
@@ -424,6 +426,7 @@ Stmt *parse_assign()
 	Expr *target = create(Expr);
 	target->kind = PRIM;
 	target->prim = ident;
+	target->islvalue = 1;
 	Stmt *assign = create(Stmt);
 	assign->kind = ASSIGN;
 	assign->target = target;

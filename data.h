@@ -83,6 +83,7 @@ typedef struct Expr {
 	Type *type;
 	int isconst;
 	int iscallstmt;
+	int islvalue;
 } Expr;
 
 typedef enum {
