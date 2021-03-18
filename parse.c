@@ -224,11 +224,17 @@ Token *parse_op(char *ops)
 		return 0;
 	
 	while(*ops) {
-		if(match_strpart(ops, token->text))
-			return next_token();
+		char *start = ops;
 		
 		while(*ops != ' ')
 			ops ++;
+		
+		char op_buf[ops - start];
+		memcpy(op_buf, start, ops - start);
+		
+		if(strcmp(token->text, op_buf) == 0) {
+			return next_token();
+		}
 		
 		ops ++;
 	}
@@ -408,9 +414,9 @@ Stmt *parse_funcdecl()
 Stmt *parse_assign()
 {
 	Token *start = token;
-	Token *ident = parse_kind(IDENT);
+	Expr *target = parse_subscript();
 	
-	if(ident == 0)
+	if(target == 0)
 		return 0;
 	
 	if(parse_punct("=") == 0) {
@@ -418,15 +424,14 @@ Stmt *parse_assign()
 		return 0;
 	}
 	
+	if(target->islvalue == 0)
+		error("target is not assignable");
+	
 	Expr *expr = parse_expr();
 	
 	if(expr == 0)
 		error("expected expression after '='");
 	
-	Expr *target = create(Expr);
-	target->kind = PRIM;
-	target->prim = ident;
-	target->islvalue = 1;
 	Stmt *assign = create(Stmt);
 	assign->kind = ASSIGN;
 	assign->target = target;

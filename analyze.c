@@ -364,10 +364,7 @@ void analyze_stmt(Stmt *stmt)
 	stmt->state = RESOLVING;
 	
 	if(stmt->kind == ASSIGN) {
-		Expr *target = stmt->target;
-		Token *ident = target->prim;
-		Type *ident_type = analyze_var_ident(ident);
-		stmt->target->type = ident_type;
+		analyze_expr(stmt->target);
 		analyze_expr(stmt->expr);
 		stmt->target = adjust_assign_target(stmt->target, stmt->expr->type);
 		stmt->expr = adjust_assign_value(stmt->expr, stmt->target->type);

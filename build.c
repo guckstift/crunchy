@@ -241,4 +241,5 @@ void build_project(char *main_filepath)
 	project->units = create(UnitList);
 	build_unit(main_filepath);
 	link_project();
+	printf("build complete\n");
 }
