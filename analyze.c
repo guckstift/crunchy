@@ -154,6 +154,33 @@ Type *analyze_var_ident(Token *ident)
 	return decl->type;
 }
 
+Expr *unwrap_ptr_to_array(Expr *expr)
+{
+	assert(expr);
+	assert(expr->type);
+	Type *type = expr->type;
+	size_t deref_count = 0;
+	
+	while(type->kind == PTRTYPE) {
+		type = type->child;
+		deref_count ++;
+	}
+	
+	if(type->kind != ARRAYTYPE)
+		return expr;
+	
+	while(deref_count > 0) {
+		Expr *new_expr = create(Expr);
+		new_expr->kind = DEREF;
+		new_expr->child = expr;
+		new_expr->type = expr->type->child;
+		expr = new_expr;
+		deref_count --;
+	}
+	
+	return expr;
+}
+
 void analyze_expr(Expr *expr)
 {
 	assert(expr);
@@ -245,17 +272,17 @@ void analyze_expr(Expr *expr)
 		expr->type = expr->left->type;
 	}
 	else if(expr->kind == SUBSCRIPT) {
-		analyze_expr(expr->child);
-		Token *ident = expr->ident;
-		Type *type = analyze_var_ident(ident);
+		analyze_expr(expr->left);
+		analyze_expr(expr->right);
+		expr->left = unwrap_ptr_to_array(expr->left);
 		
-		if(type->kind != ARRAYTYPE)
-			error("'%s' is not an array", ident->text);
+		if(expr->left->type->kind != ARRAYTYPE)
+			error("left side of subscript is not an array");
 		
-		if(expr->child->type->kind != PRIMTYPE)
+		if(expr->right->type->kind != PRIMTYPE)
 			error("index type is not primitive");
 		
-		expr->type = type->child;
+		expr->type = expr->left->type->child;
 	}
 }
 

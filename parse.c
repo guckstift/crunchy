@@ -154,17 +154,13 @@ Expr *parse_call()
 
 Expr *parse_subscript()
 {
-	Token *ident = parse_kind(IDENT);
+	Expr *prim = parse_prim();
 	
-	if(ident == 0)
-		return parse_prim();
-	
-	if(parse_punct("[") == 0) {
-		Expr *prim = create(Expr);
-		prim->kind = PRIM;
-		prim->prim = ident;
+	if(prim == 0 || prim->prim->kind != IDENT)
 		return prim;
-	}
+	
+	if(parse_punct("[") == 0)
+		return prim;
 	
 	Expr *index = parse_expr();
 	
@@ -176,8 +172,8 @@ Expr *parse_subscript()
 	
 	Expr *subscript = create(Expr);
 	subscript->kind = SUBSCRIPT;
-	subscript->ident = ident;
-	subscript->child = index;
+	subscript->left = prim;
+	subscript->right = index;
 	return subscript;
 }
 

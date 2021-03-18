@@ -77,9 +77,9 @@ void dump_expr(Expr *expr)
 		printf("]");
 	}
 	else if(expr->kind == SUBSCRIPT) {
-		dump_token(expr->ident);
+		dump_expr(expr->left);
 		printf("[");
-		dump_expr(expr->child);
+		dump_expr(expr->right);
 		printf("]");
 	}
 }

@@ -32,8 +32,9 @@ void gen_expr(Expr *expr)
 		gen_expr(expr->child);
 	}
 	else if(expr->kind == DEREF) {
-		fprintf(cfile, "*");
+		fprintf(cfile, "(*");
 		gen_expr(expr->child);
+		fprintf(cfile, ")");
 	}
 	else if(expr->kind == ARRAY) {
 		fprintf(cfile, "{");
@@ -71,9 +72,9 @@ void gen_expr(Expr *expr)
 		}
 	}
 	else if(expr->kind == SUBSCRIPT) {
-		gen_token(expr->ident);
+		gen_expr(expr->left);
 		fprintf(cfile, "[");
-		gen_expr(expr->child);
+		gen_expr(expr->right);
 		fprintf(cfile, "]");
 	}
 }
