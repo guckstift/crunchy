@@ -177,16 +177,23 @@ void analyze_expr(Expr *expr)
 		}
 	}
 	if(expr->kind == ARRAY) {
-		for(Expr *item = expr->child; item; item = item->next)
+		Type *itemtype = 0;
+		
+		for(Expr *item = expr->child; item; item = item->next) {
 			analyze_expr(item);
+			
+			if(itemtype) {
+				if(!types_equal(itemtype, item->type))
+					error("array item types are not consistent");
+			}
+			else
+				itemtype = item->type;
+		}
 		
 		Type *type = create(Type);
 		type->kind = ARRAYTYPE;
 		type->count = expr->length;
-		
-		if(expr->child)
-			type->child = expr->child->type;
-		
+		type->child = itemtype;
 		expr->type = type;
 	}
 	else if(expr->kind == CALL) {
