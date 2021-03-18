@@ -10,6 +10,7 @@ typedef enum {
 	END,
 	// expressions
 	PRIM,
+	ARRAY,
 	PTR,
 	CALL,
 	DEREF,
@@ -56,7 +57,7 @@ typedef struct Type {
 	Kind kind;
 	PrimType primtype;
 	struct Type *child;
-	Token *count;
+	size_t count;
 } Type;
 
 typedef enum {
@@ -74,6 +75,8 @@ typedef struct Expr {
 	struct Expr *left;
 	struct Expr *right;
 	struct Expr *child;
+	struct Expr *next;
+	size_t length;
 	Token *op;
 	OpTier tier;
 	Type *type;

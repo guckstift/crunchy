@@ -128,6 +128,9 @@ int types_equal(Type *t1, Type *t2)
 	if(t1->kind == PTRTYPE && t2->kind == PTRTYPE)
 		return types_equal(t1->child, t2->child);
 	
+	if(t1->kind == ARRAYTYPE && t2->kind == ARRAYTYPE)
+		return t1->count == t2->count && types_equal(t1->child, t2->child);
+	
 	return 0;
 }
 
@@ -172,6 +175,19 @@ void analyze_expr(Expr *expr)
 			Type *type = analyze_var_ident(prim);
 			expr->type = type;
 		}
+	}
+	if(expr->kind == ARRAY) {
+		for(Expr *item = expr->child; item; item = item->next)
+			analyze_expr(item);
+		
+		Type *type = create(Type);
+		type->kind = ARRAYTYPE;
+		type->count = expr->length;
+		
+		if(expr->child)
+			type->child = expr->child->type;
+		
+		expr->type = type;
 	}
 	else if(expr->kind == CALL) {
 		Token *ident = expr->ident;
@@ -309,6 +325,9 @@ void analyze_stmt(Stmt *stmt)
 		stmt->target = adjust_assign_target(stmt->target, stmt->expr->type);
 		stmt->expr = adjust_assign_value(stmt->expr, stmt->target->type);
 		
+		if(stmt->target->type->kind == ARRAYTYPE)
+			error("reassignment of arrays is not supported");
+		
 		if(types_equal(stmt->target->type, stmt->expr->type) == 0)
 			error("types are not equal");
 	}
@@ -323,6 +342,10 @@ void analyze_stmt(Stmt *stmt)
 			
 			if(types_equal(stmt->type, stmt->expr->type) == 0)
 				error("types are not equal");
+			
+			if(stmt->expr)
+				if(stmt->type->kind == ARRAYTYPE && stmt->expr->kind != ARRAY)
+					error("can only initialize array with a literal");
 		}
 	}
 	else if(stmt->kind == FUNCDECL)

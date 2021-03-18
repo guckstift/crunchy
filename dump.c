@@ -64,6 +64,18 @@ void dump_expr(Expr *expr)
 	else if(expr->kind == CHAIN) {
 		dump_chain(expr, 1);
 	}
+	else if(expr->kind == ARRAY) {
+		printf("[");
+		
+		for(Expr *item = expr->child; item; item = item->next) {
+			dump_expr(item);
+			
+			if(item->next)
+				printf(", ");
+		}
+		
+		printf("]");
+	}
 }
 
 void dump_type(Type *type)
@@ -78,7 +90,7 @@ void dump_type(Type *type)
 	}
 	else if(type->kind == ARRAYTYPE) {
 		printf("[");
-		dump_token(type->count);
+		printf("%lu", type->count);
 		printf("]");
 		dump_type(type->child);
 	}

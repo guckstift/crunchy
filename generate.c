@@ -35,6 +35,18 @@ void gen_expr(Expr *expr)
 		fprintf(cfile, "*");
 		gen_expr(expr->child);
 	}
+	else if(expr->kind == ARRAY) {
+		fprintf(cfile, "{");
+		
+		for(Expr *item = expr->child; item; item = item->next) {
+			gen_expr(item);
+			
+			if(item->next)
+				fprintf(cfile, ", ");
+		}
+		
+		fprintf(cfile, "}");
+	}
 	else if(expr->kind == CHAIN) {
 		if(expr->tier == RELATIONAL) {
 			gen_expr(expr->left);
@@ -99,7 +111,7 @@ void gen_type_post(Type *type)
 {
 	if(type->kind == ARRAYTYPE) {
 		fprintf(cfile, "[");
-		gen_token(type->count);
+		fprintf(cfile, "%lu", type->count);
 		fprintf(cfile, "]");
 		gen_type_post(type->child);
 	}

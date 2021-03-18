@@ -8,6 +8,7 @@ char *optable[] = {
 };
 
 Block *parse_block(Stmt *funchost);
+Expr *parse_expr();
 
 Token *next_token()
 {
@@ -80,6 +81,55 @@ Expr *parse_prim()
 	return 0;
 }
 
+Expr *parse_array()
+{
+	if(parse_punct("[") == 0)
+		return 0;
+	
+	Expr *first = 0;
+	Expr *last = 0;
+	size_t length = 0;
+	int isconst = 1;
+	
+	while(1) {
+		Expr *item = parse_expr();
+		
+		if(item == 0)
+			break;
+		
+		if(first) {
+			last->next = item;
+			last = item;
+		}
+		else {
+			first = item;
+			last = item;
+		}
+		
+		length ++;
+		isconst = isconst && item->isconst;
+		
+		if(parse_punct(",") == 0)
+			break;
+	}
+	
+	if(length == 0)
+		error("empty array literals are not allowed");
+	
+	if(parse_punct("]") == 0)
+		error("array literal must be terminated with ']'");
+	
+	if(isconst == 0)
+		error("array literals must be constant");
+	
+	Expr *array = create(Expr);
+	array->kind = ARRAY;
+	array->child = first;
+	array->length = length;
+	array->isconst = isconst;
+	return array;
+}
+
 Expr *parse_call()
 {
 	Token *start = token;
@@ -129,6 +179,11 @@ Expr *parse_prefix()
 	}
 	
 	Expr *expr = parse_call();
+	
+	if(expr)
+		return expr;
+	
+	expr = parse_array();
 	
 	if(expr)
 		return expr;
@@ -252,7 +307,7 @@ Type *parse_type()
 		
 		Type *type = create(Type);
 		type->kind = ARRAYTYPE;
-		type->count = count;
+		type->count = count->val;
 		type->child = child;
 		return type;
 	}
