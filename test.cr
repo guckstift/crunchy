@@ -10,3 +10,8 @@ i := 9
 #c := [i, i]
 
 #x := [1, [2, 3]]
+
+func foo() : >[2]int
+{
+	return b
+}

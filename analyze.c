@@ -355,8 +355,12 @@ void analyze_stmt(Stmt *stmt)
 					error("can only initialize array with a literal");
 		}
 	}
-	else if(stmt->kind == FUNCDECL)
+	else if(stmt->kind == FUNCDECL) {
+		if(stmt->type && stmt->type->kind == ARRAYTYPE)
+			error("functions can not return arrays");
+		
 		analyze_block(stmt->body);
+	}
 	else if(stmt->kind == IFSTMT)
 		analyze_block(stmt->body);
 	else if(stmt->kind == WHILESTMT)

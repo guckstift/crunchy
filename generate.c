@@ -121,17 +121,23 @@ void gen_type_post(Type *type)
 	}
 }
 
-void gen_proto(Stmt *stmt)
+void gen_func_head(Stmt *stmt)
 {
-	gen_indent();
-	
 	if(!stmt->exported)
 		fprintf(cfile, "static ");
 	
 	gen_type(stmt->type);
 	fprintf(cfile, " ");
 	gen_token(stmt->ident);
-	fprintf(cfile, "();\n");
+	fprintf(cfile, "()");
+	gen_type_post(stmt->type);
+}
+
+void gen_proto(Stmt *stmt)
+{
+	gen_indent();
+	gen_func_head(stmt);
+	fprintf(cfile, ";\n");
 }
 
 void gen_extern_var(Stmt *decl)
@@ -164,13 +170,8 @@ void gen_decl(Stmt *stmt)
 		fprintf(cfile, ";");
 	}
 	else if(stmt->kind == FUNCDECL) {
-		if(!stmt->exported)
-			fprintf(cfile, "static ");
-		
-		gen_type(stmt->type);
-		fprintf(cfile, " ");
-		gen_token(stmt->ident);
-		fprintf(cfile, "() {\n");
+		gen_func_head(stmt);
+		fprintf(cfile, " {\n");
 		gen_block(stmt->body);
 		gen_indent();
 		fprintf(cfile, "}");
