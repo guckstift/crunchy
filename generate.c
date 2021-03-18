@@ -14,7 +14,7 @@ void gen_token(Token *token)
 	else if(token->kind == FLOAT)
 		fprintf(cfile, "%s", d2s(token->fval, 0));
 	else if(token->kind == IDENT)
-		fprintf(cfile, "id_%s", token->text);
+		fprintf(cfile, "i_%s", token->text);
 }
 
 void gen_expr(Expr *expr)
@@ -109,6 +109,9 @@ void gen_type(Type *type)
 
 void gen_type_post(Type *type)
 {
+	if(type == 0)
+		return;
+	
 	if(type->kind == ARRAYTYPE) {
 		fprintf(cfile, "[");
 		fprintf(cfile, "%lu", type->count);
@@ -146,6 +149,7 @@ void gen_extern_var(Stmt *decl)
 	gen_type(decl->type);
 	fprintf(cfile, " ");
 	gen_token(decl->ident);
+	gen_type_post(decl->type);
 	fprintf(cfile, ";\n");
 }
 
@@ -275,9 +279,9 @@ void gen_export_define(Stmt *decl)
 	gen_indent();
 	fprintf(cfile, "#define ");
 	gen_token(decl->ident);
-	fprintf(cfile, " ex_");
+	fprintf(cfile, " x_");
 	fprintf(cfile, "%lx_", decl->exporthash);
-	gen_token(decl->ident);
+	fprintf(cfile, "%s", decl->ident->text);
 	fprintf(cfile, "\n");
 }
 

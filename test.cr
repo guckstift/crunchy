@@ -1,4 +1,6 @@
 
+import "subdir/other.cr"
+
 b := [1,2]
 a := >b
 
@@ -11,7 +13,10 @@ i := 9
 
 #x := [1, [2, 3]]
 
-func foo() : >[2]int
+func foo2() : >[2]int
 {
 	return b
 }
+
+m := [[1,2],[3,4], [3,90]]
+

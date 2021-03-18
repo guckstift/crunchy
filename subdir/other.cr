@@ -1,7 +1,7 @@
 import "../test.cr"
 import "more.cr"
 
-var : u16 = 666
+var := 666
 
 export func foo()
 {
