@@ -153,7 +153,7 @@ void gen_stmt(Stmt *stmt)
 {
 	if(stmt->kind == ASSIGN) {
 		gen_indent();
-		gen_token(stmt->ident);
+		gen_expr(stmt->target);
 		fprintf(cfile, " = ");
 		gen_expr(stmt->expr);
 		fprintf(cfile, ";\n");

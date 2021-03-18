@@ -69,7 +69,7 @@ void dump_stmt(Stmt *stmt)
 	dump_indent();
 	
 	if(stmt->kind == ASSIGN) {
-		dump_token(stmt->ident);
+		dump_expr(stmt->target);
 		printf(" = ");
 		dump_expr(stmt->expr);
 	}

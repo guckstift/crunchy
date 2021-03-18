@@ -78,6 +78,7 @@ typedef struct Stmt {
 	struct Stmt *next;
 	Token *ident;
 	Token *string;
+	Expr *target;
 	Expr *expr;
 	Type *type;
 	struct Block *body;

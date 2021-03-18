@@ -218,6 +218,81 @@ void analyze_expr(Expr *expr)
 	}
 }
 
+Expr *adjust_assign_target(Expr *target, Type *expr_type)
+{
+	assert(target);
+	assert(expr_type);
+	Type *type = target->type;
+	size_t deref_count = 0;
+	
+	while(type->kind == PTRTYPE && !types_equal(type, expr_type)) {
+		type = type->child;
+		deref_count ++;
+	}
+	
+	if(!types_equal(type, expr_type))
+		return target;
+	
+	while(deref_count > 0) {
+		Expr *new_target = create(Expr);
+		new_target->kind = DEREF;
+		new_target->child = target;
+		new_target->type = target->type->child;
+		target = new_target;
+		deref_count --;
+	}
+	
+	return target;
+}
+
+Expr *adjust_assign_value(Expr *expr, Type *target_type)
+{
+	assert(expr);
+	assert(target_type);
+	Type *type = expr->type;
+	size_t deref_count = 0;
+	
+	while(type->kind == PTRTYPE && !types_equal(target_type, type)) {
+		type = type->child;
+		deref_count ++;
+	}
+	
+	if(!types_equal(target_type, type))
+		return expr;
+	
+	while(deref_count > 0) {
+		Expr *new_expr = create(Expr);
+		new_expr->kind = DEREF;
+		new_expr->child = expr;
+		new_expr->type = expr->type->child;
+		expr = new_expr;
+		deref_count --;
+	}
+	
+	return expr;
+}
+
+Expr *adjust_init_value(Expr *init, Type *decl_type)
+{
+	assert(init);
+	assert(decl_type);
+	
+	if(decl_type->kind == PTRTYPE && !types_equal(decl_type, init->type)) {
+		if(types_equal(decl_type->child, init->type)) {
+			Type *new_init_type = create(Type);
+			new_init_type->kind = PTRTYPE;
+			new_init_type->child = init->type;
+			Expr *new_init = create(Expr);
+			new_init->kind = PTR;
+			new_init->child = init;
+			new_init->type = new_init_type;
+			return new_init;
+		}
+	}
+	
+	return init;
+}
+
 void analyze_stmt(Stmt *stmt)
 {
 	assert(stmt);
@@ -228,11 +303,15 @@ void analyze_stmt(Stmt *stmt)
 	stmt->state = RESOLVING;
 	
 	if(stmt->kind == ASSIGN) {
-		Token *ident = stmt->ident;
+		Expr *target = stmt->target;
+		Token *ident = target->prim;
 		Type *ident_type = analyze_var_ident(ident);
 		analyze_expr(stmt->expr);
+		target->type = ident_type;
+		stmt->target = adjust_assign_target(stmt->target, stmt->expr->type);
+		stmt->expr = adjust_assign_value(stmt->expr, stmt->target->type);
 		
-		if(types_equal(ident_type, stmt->expr->type) == 0)
+		if(types_equal(stmt->target->type, stmt->expr->type) == 0)
 			error("types are not equal");
 	}
 	else if(stmt->kind == VARDECL) {
@@ -241,6 +320,9 @@ void analyze_stmt(Stmt *stmt)
 			
 			if(stmt->type == 0)
 				stmt->type = stmt->expr->type;
+			
+			stmt->expr = adjust_init_value(stmt->expr, stmt->type);
+			stmt->expr = adjust_assign_value(stmt->expr, stmt->type);
 			
 			if(types_equal(stmt->type, stmt->expr->type) == 0)
 				error("types are not equal");

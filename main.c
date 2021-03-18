@@ -1,11 +1,11 @@
 #include "data.h"
 #include "common.c"
+#include "dump.c"
 #include "build.c"
 #include "lex.c"
 #include "parse.c"
 #include "analyze.c"
 #include "generate.c"
-#include "dump.c"
 
 int main(int argc, char *argv[])
 {

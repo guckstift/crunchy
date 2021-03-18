@@ -317,9 +317,12 @@ Stmt *parse_assign()
 	if(expr == 0)
 		error("expected expression after '='");
 	
+	Expr *target = create(expr);
+	target->kind = PRIM;
+	target->prim = ident;
 	Stmt *assign = create(Stmt);
 	assign->kind = ASSIGN;
-	assign->ident = ident;
+	assign->target = target;
 	assign->expr = expr;
 	return assign;
 }
