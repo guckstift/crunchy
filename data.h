@@ -58,6 +58,8 @@ typedef struct Type {
 } Type;
 
 typedef enum {
+	LOGOR,
+	LOGAND,
 	RELATIONAL,
 	ADDITIVE,
 	MULTIPLICATIVE,
