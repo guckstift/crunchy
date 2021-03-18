@@ -66,29 +66,46 @@ void gen_type(Type *type)
 		fprintf(cfile, "void");
 	else if(type->kind == PTRTYPE) {
 		gen_type(type->child);
-		fprintf(cfile, "*");
+		fprintf(cfile, "(*");
+	}
+	else if(type->kind == ARRAYTYPE) {
+		gen_type(type->child);
 	}
 	else if(type->kind == PRIMTYPE) {
 		if(type->primtype == U8)
-			fprintf(cfile, "unsigned char");
+			fprintf(cfile, "uint8_t");
 		else if(type->primtype == U16)
-			fprintf(cfile, "unsigned short");
+			fprintf(cfile, "uint16_t");
 		else if(type->primtype == U32)
-			fprintf(cfile, "unsigned int");
+			fprintf(cfile, "uint32_t");
 		else if(type->primtype == U64)
-			fprintf(cfile, "unsigned long");
+			fprintf(cfile, "uint64_t");
 		else if(type->primtype == I8)
-			fprintf(cfile, "char");
+			fprintf(cfile, "int8_t");
 		else if(type->primtype == I16)
-			fprintf(cfile, "short");
+			fprintf(cfile, "int16_t");
 		else if(type->primtype == I32)
-			fprintf(cfile, "int");
+			fprintf(cfile, "int32_t");
 		else if(type->primtype == I64)
-			fprintf(cfile, "long");
+			fprintf(cfile, "int64_t");
 		else if(type->primtype == F32)
 			fprintf(cfile, "float");
 		else if(type->primtype == F64)
 			fprintf(cfile, "double");
+	}
+}
+
+void gen_type_post(Type *type)
+{
+	if(type->kind == ARRAYTYPE) {
+		fprintf(cfile, "[");
+		gen_token(type->count);
+		fprintf(cfile, "]");
+		gen_type_post(type->child);
+	}
+	else if(type->kind == PTRTYPE) {
+		fprintf(cfile, ")");
+		gen_type_post(type->child);
 	}
 }
 
@@ -125,6 +142,7 @@ void gen_decl(Stmt *stmt)
 		gen_type(stmt->type);
 		fprintf(cfile, " ");
 		gen_token(stmt->ident);
+		gen_type_post(stmt->type);
 		
 		if(stmt->expr && stmt->expr->isconst) {
 			fprintf(cfile, " = ");
@@ -320,6 +338,7 @@ void gen_unit(Unit *unit)
 	Block *block = unit->ast;
 	scope = block->scope;
 	fprintf(cfile, "#include <stdio.h>\n");
+	fprintf(cfile, "#include <stdint.h>\n");
 	
 	gen_scope(block->scope);
 	fprintf(cfile, "int main_%lx(int argc, char *argv[]) {\n", unit->hash);

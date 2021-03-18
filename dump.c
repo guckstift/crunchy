@@ -76,6 +76,12 @@ void dump_type(Type *type)
 		printf(">");
 		dump_type(type->child);
 	}
+	else if(type->kind == ARRAYTYPE) {
+		printf("[");
+		dump_token(type->count);
+		printf("]");
+		dump_type(type->child);
+	}
 }
 
 void dump_stmt(Stmt *stmt)

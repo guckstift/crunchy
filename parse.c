@@ -236,6 +236,26 @@ Type *parse_type()
 		ptrtype->child = type;
 		return ptrtype;
 	}
+	else if(parse_punct("[")) {
+		Token *count = parse_kind(INTEGER);
+		
+		if(count == 0)
+			error("expected integer after '['");
+		
+		if(parse_punct("]") == 0)
+			error("expected ']' after integer");
+		
+		Type *child = parse_type();
+		
+		if(child == 0)
+			error("expected base type after array dimension");
+		
+		Type *type = create(Type);
+		type->kind = ARRAYTYPE;
+		type->count = count;
+		type->child = child;
+		return type;
+	}
 	
 	return parse_primtype();
 }
