@@ -483,6 +483,7 @@ void analyze_stmt(Stmt *stmt)
 		analyze_expr(stmt->expr);
 	else if(stmt->kind == PRINT) {
 		analyze_expr(stmt->expr);
+		stmt->expr = unwrap_pointer(stmt->expr);
 		
 		if(stmt->expr->type->kind != PRIMTYPE)
 			error("can only print primitive types");

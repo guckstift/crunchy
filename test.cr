@@ -1,7 +1,13 @@
 
-i := 1
-p := >i
-q := >p
+a := [23,42]
 
-q += 45
-i *= p
+func foo(p : >int)
+{
+	print p
+	p = -<p
+}
+
+foo(a[1])
+foo(a[1])
+foo(a[1])
+foo(a[1])

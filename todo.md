@@ -19,3 +19,4 @@
 * modulo operator
 * break and continue
 * compound assignment operators
+* unwrap pointers in print expr
