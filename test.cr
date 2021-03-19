@@ -1,13 +1,19 @@
 
-a := [1,2]
+a := [1,2,3]
+b := >a
+c := b[0]
+d := >b[1]
 
-i := 9
-p := >i
+a[1] = 9
+b[2] = 3
 
-print foo(p, i, a)
-
-func foo(x : int, y : >int, z : >[2]int) : int
+func foo() : >[3]int
 {
-	return x * <y
+	return a
 }
 
+x := -foo()[2]
+
+print x
+
+print 15 % 10 * 100

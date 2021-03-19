@@ -24,6 +24,10 @@ void gen_expr(Expr *expr)
 		fprintf(cfile, "0");
 	else if(expr->kind == PRIM)
 		gen_token(expr->prim);
+	else if(expr->kind == UNARY) {
+		fprintf(cfile, "%s", expr->op->text);
+		gen_expr(expr->child);
+	}
 	else if(expr->kind == CALL) {
 		gen_token(expr->ident);
 		fprintf(cfile, "(");

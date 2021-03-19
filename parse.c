@@ -3,7 +3,7 @@ char *optable[] = {
 	"&& ",
 	"== != <= >= < > ",
 	"+ - ",
-	"* / ",
+	"* / % ",
 	0,
 };
 
@@ -77,6 +77,32 @@ Expr *parse_prim()
 		prim->prim = next_token();
 		prim->isconst = prim->prim->kind != IDENT;
 		prim->islvalue = prim->prim->kind == IDENT;
+		return prim;
+	}
+	
+	return 0;
+}
+
+Expr *parse_ident_prim()
+{
+	if(is_kind(IDENT)) {
+		Expr *prim = create(Expr);
+		prim->kind = PRIM;
+		prim->prim = next_token();
+		prim->islvalue = 1;
+		return prim;
+	}
+	
+	return 0;
+}
+
+Expr *parse_literal_prim()
+{
+	if(is_kind(INTEGER) || is_kind(FLOAT)) {
+		Expr *prim = create(Expr);
+		prim->kind = PRIM;
+		prim->prim = next_token();
+		prim->isconst = 1;
 		return prim;
 	}
 	
@@ -171,7 +197,7 @@ Expr *parse_call()
 	}
 	
 	if(parse_punct(")") == 0)
-		error("expected ')' after '('");
+		error("expected ')' after argument list");
 	
 	Expr *call = create(Expr);
 	call->kind = CALL;
@@ -181,69 +207,130 @@ Expr *parse_call()
 	return call;
 }
 
+Expr *parse_target()
+{
+	Expr *expr = parse_ident_prim();
+	
+	if(expr == 0)
+		return 0;
+	
+	while(1) {
+		if(parse_punct("[") == 0)
+			break;
+		
+		Expr *index = parse_expr();
+		
+		if(index == 0)
+			error("expected index of subscript");
+		
+		if(parse_punct("]") == 0)
+			error("expected ']' after index");
+		
+		Expr *subscript = create(Expr);
+		subscript->kind = SUBSCRIPT;
+		subscript->left = expr;
+		subscript->right = index;
+		subscript->islvalue = 1;
+		expr = subscript;
+	}
+	
+	return expr;
+}
+
 Expr *parse_subscript()
 {
-	Expr *prim = parse_prim();
+	Expr *expr = parse_call();
 	
-	if(prim == 0 || prim->prim->kind != IDENT)
-		return prim;
+	if(expr == 0)
+		expr = parse_ident_prim();
 	
-	if(parse_punct("[") == 0)
-		return prim;
+	if(expr == 0)
+		return 0;
 	
-	Expr *index = parse_expr();
+	while(1) {
+		if(parse_punct("[") == 0)
+			break;
+		
+		Expr *index = parse_expr();
+		
+		if(index == 0)
+			error("expected index of subscript");
+		
+		if(parse_punct("]") == 0)
+			error("expected ']' after index");
+		
+		Expr *subscript = create(Expr);
+		subscript->kind = SUBSCRIPT;
+		subscript->left = expr;
+		subscript->right = index;
+		subscript->islvalue = expr->islvalue;
+		expr = subscript;
+	}
 	
-	if(index == 0)
-		error("expected index of subscript");
+	return expr;
+}
+
+Expr *parse_pointer()
+{
+	if(parse_punct("<")) {
+		Expr *ptr = parse_pointer();
+		
+		if(ptr == 0)
+			error("expected pointer to dereference");
+			
+		Expr *deref = create(Expr);
+		deref->kind = DEREF;
+		deref->child = ptr;
+		return deref;
+	}
 	
-	if(parse_punct("]") == 0)
-		error("expected ']' after index");
+	if(parse_punct(">")) {
+		Expr *target = parse_target();
+		
+		if(target == 0)
+			error("expected target to point to");
+		
+		Expr *ptr = create(Expr);
+		ptr->kind = PTR;
+		ptr->child = target;
+		return ptr;
+	}
 	
-	Expr *subscript = create(Expr);
-	subscript->kind = SUBSCRIPT;
-	subscript->left = prim;
-	subscript->right = index;
-	subscript->islvalue = 1;
-	return subscript;
+	return parse_subscript();
 }
 
 Expr *parse_prefix()
 {
-	if(parse_punct(">")) {
-		Expr *expr = parse_subscript();
+	Token *op = 0;
+	
+	(op = parse_punct("+")) ||
+	(op = parse_punct("-")) ||
+	0 ;
+	
+	if(op) {
+		Expr *child = parse_prefix();
 		
-		if(expr == 0 || expr->islvalue == 0)
-			error("expected l-value object to point to");
+		if(child == 0)
+			error("expected expression after unary operator '%s'", op->text);
 		
-		Expr *ptr = create(Expr);
-		ptr->kind = PTR;
-		ptr->child = expr;
-		return ptr;
+		Expr *unary = create(Expr);
+		unary->kind = UNARY;
+		unary->child = child;
+		unary->op = op;
+		return unary;
 	}
 	
-	if(parse_punct("<")) {
-		Expr *expr = parse_prefix();
-		
-		if(expr == 0)
-			error("expected pointer to dereference");
-		
-		Expr *ptr = create(Expr);
-		ptr->kind = DEREF;
-		ptr->child = expr;
-		return ptr;
-	}
-	
-	Expr *expr = parse_call();
+	Expr *expr = parse_array();
 	
 	if(expr)
 		return expr;
 	
-	expr = parse_array();
+	expr = parse_literal_prim();
 	
 	if(expr)
 		return expr;
 	
-	return parse_subscript();
+	return parse_pointer();
 }
 
 Token *parse_op(char *ops)
@@ -460,7 +547,7 @@ Stmt *parse_funcdecl()
 	}
 	
 	if(parse_punct("{") == 0)
-		error("expected '{' after ')'");
+		error("expected '{' after function head");
 	
 	Stmt *funcdecl = create(Stmt);
 	Block *body = parse_block(funcdecl);
@@ -480,7 +567,7 @@ Stmt *parse_funcdecl()
 Stmt *parse_assign()
 {
 	Token *start = token;
-	Expr *target = parse_subscript();
+	Expr *target = parse_target();
 	
 	if(target == 0)
 		return 0;

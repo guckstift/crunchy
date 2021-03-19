@@ -49,6 +49,12 @@ void dump_expr(Expr *expr)
 		printf("<null>");
 	else if(expr->kind == PRIM)
 		dump_token(expr->prim);
+	else if(expr->kind == UNARY) {
+		printf("(");
+		dump_token(expr->op);
+		dump_expr(expr->child);
+		printf(")");
+	}
 	else if(expr->kind == CALL) {
 		dump_token(expr->ident);
 		printf("(");
@@ -67,8 +73,9 @@ void dump_expr(Expr *expr)
 		dump_expr(expr->child);
 	}
 	else if(expr->kind == DEREF) {
-		printf("<");
+		printf("(<");
 		dump_expr(expr->child);
+		printf(")");
 	}
 	else if(expr->kind == CHAIN) {
 		dump_chain(expr, 1);

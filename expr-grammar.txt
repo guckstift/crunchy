@@ -1,0 +1,38 @@
+expr = chain(0)
+
+chain(tier)
+	= chain(tier) op(tier) chain(tier + 1)
+	| chain(tier + 1)
+	| prefix IF optable[tier] IS NULL
+
+prefix
+	= "+" prefix
+	| "-" prefix
+	| pointer
+	| array
+	| prim(literal)
+
+pointer
+	= "<" pointer
+	| ">" target
+	| subscript
+
+subscript
+	= subscript "[" expr "]"
+	| call
+	| prim(<IDENT>)
+
+target
+	= target "[" expr "]"
+	| prim(<IDENT>)
+
+call = <IDENT> "(" expr_list ")"
+
+array = "[" expr_list "]"
+
+expr_list
+	= ""
+	| expr
+	| expr "," expr_list
+
+prim = <IDENT> | <INTEGER> | <FLOAT>

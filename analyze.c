@@ -222,7 +222,11 @@ void analyze_expr(Expr *expr)
 			expr->type = type;
 		}
 	}
-	if(expr->kind == ARRAY) {
+	else if(expr->kind == UNARY) {
+		analyze_expr(expr->child);
+		expr->type = expr->child->type;
+	}
+	else if(expr->kind == ARRAY) {
 		Type *itemtype = 0;
 		
 		for(Expr *item = expr->child; item; item = item->next) {
