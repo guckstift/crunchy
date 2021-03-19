@@ -50,6 +50,11 @@ void gen_expr(Expr *expr)
 		gen_expr(expr->child);
 		fprintf(cfile, ")");
 	}
+	else if(expr->kind == ADDRESS) {
+		fprintf(cfile, "((size_t)");
+		gen_expr(expr->child);
+		fprintf(cfile, ")");
+	}
 	else if(expr->kind == ARRAY) {
 		fprintf(cfile, "{");
 		

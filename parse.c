@@ -287,6 +287,18 @@ Expr *parse_pointer()
 		return deref;
 	}
 	
+	if(parse_punct("@")) {
+		Expr *ptr = parse_pointer();
+		
+		if(ptr == 0)
+			error("expected pointer to take the address from");
+			
+		Expr *address = create(Expr);
+		address->kind = ADDRESS;
+		address->child = ptr;
+		return address;
+	}
+	
 	if(parse_punct(">")) {
 		Expr *target = parse_target();
 		

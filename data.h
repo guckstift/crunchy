@@ -1,4 +1,6 @@
+#define _GNU_SOURCE
 #include <stddef.h>
+#include <stdint.h>
 
 typedef enum {
 	// tokens
@@ -16,6 +18,7 @@ typedef enum {
 	PTR,
 	CALL,
 	DEREF,
+	ADDRESS,
 	CHAIN,
 	// types
 	PRIMTYPE,
@@ -87,6 +90,7 @@ typedef struct Expr {
 	int isconst;
 	int iscallstmt;
 	int islvalue;
+	int64_t iconst;
 } Expr;
 
 typedef enum {

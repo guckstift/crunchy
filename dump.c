@@ -77,6 +77,10 @@ void dump_expr(Expr *expr)
 		dump_expr(expr->child);
 		printf(")");
 	}
+	else if(expr->kind == ADDRESS) {
+		printf("@");
+		dump_expr(expr->child);
+	}
 	else if(expr->kind == CHAIN) {
 		dump_chain(expr, 1);
 	}

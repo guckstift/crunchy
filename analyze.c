@@ -211,6 +211,7 @@ void analyze_expr(Expr *expr)
 			expr->type = create(Type);
 			expr->type->kind = PRIMTYPE;
 			expr->type->primtype = I64;
+			expr->iconst = prim->val;
 		}
 		else if(prim->kind == FLOAT) {
 			expr->type = create(Type);
@@ -225,6 +226,9 @@ void analyze_expr(Expr *expr)
 	else if(expr->kind == UNARY) {
 		analyze_expr(expr->child);
 		expr->type = expr->child->type;
+		
+		if(strcmp(expr->op->text, "-") == 0)
+			expr->iconst = - expr->child->iconst;
 	}
 	else if(expr->kind == ARRAY) {
 		Type *itemtype = 0;
@@ -311,6 +315,18 @@ void analyze_expr(Expr *expr)
 		
 		expr->type = child_type->child;
 	}
+	else if(expr->kind == ADDRESS) {
+		Expr *child = expr->child;
+		analyze_expr(child);
+		Type *child_type = child->type;
+		
+		if(child_type->kind != PTRTYPE)
+			error("can only take the address of pointers");
+		
+		expr->type = create(Type);
+		expr->type->kind = PRIMTYPE;
+		expr->type->primtype = U64;
+	}
 	else if(expr->kind == CHAIN) {
 		analyze_expr(expr->left);
 		analyze_expr(expr->right);
@@ -322,6 +338,33 @@ void analyze_expr(Expr *expr)
 			error("right side of '%s' is a pointer", expr->op->text);
 		
 		expr->type = expr->left->type;
+		
+		if(strcmp(expr->op->text, "+") == 0)
+			expr->iconst = expr->left->iconst + expr->right->iconst;
+		else if(strcmp(expr->op->text, "-") == 0)
+			expr->iconst = expr->left->iconst - expr->right->iconst;
+		else if(strcmp(expr->op->text, "*") == 0)
+			expr->iconst = expr->left->iconst * expr->right->iconst;
+		else if(strcmp(expr->op->text, "/") == 0)
+			expr->iconst = expr->left->iconst / expr->right->iconst;
+		else if(strcmp(expr->op->text, "%") == 0)
+			expr->iconst = expr->left->iconst % expr->right->iconst;
+		else if(strcmp(expr->op->text, "&&") == 0)
+			expr->iconst = expr->left->iconst && expr->right->iconst;
+		else if(strcmp(expr->op->text, "||") == 0)
+			expr->iconst = expr->left->iconst || expr->right->iconst;
+		else if(strcmp(expr->op->text, "==") == 0)
+			expr->iconst = expr->left->iconst == expr->right->iconst;
+		else if(strcmp(expr->op->text, "!=") == 0)
+			expr->iconst = expr->left->iconst != expr->right->iconst;
+		else if(strcmp(expr->op->text, "<=") == 0)
+			expr->iconst = expr->left->iconst <= expr->right->iconst;
+		else if(strcmp(expr->op->text, ">=") == 0)
+			expr->iconst = expr->left->iconst >= expr->right->iconst;
+		else if(strcmp(expr->op->text, "<") == 0)
+			expr->iconst = expr->left->iconst < expr->right->iconst;
+		else if(strcmp(expr->op->text, ">") == 0)
+			expr->iconst = expr->left->iconst > expr->right->iconst;
 	}
 	else if(expr->kind == SUBSCRIPT) {
 		analyze_expr(expr->left);
@@ -333,6 +376,11 @@ void analyze_expr(Expr *expr)
 		
 		if(expr->right->type->kind != PRIMTYPE)
 			error("index type is not primitive");
+		
+		if(expr->right->isconst) {
+			if(expr->right->iconst >= expr->left->type->count)
+				error("array bounds exceeded");
+		}
 		
 		expr->type = expr->left->type->child;
 	}

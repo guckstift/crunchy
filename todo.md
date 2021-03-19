@@ -1,7 +1,5 @@
 # todo
 
-* address-operator
-* static array bounds checking
 * structs
 * enums
 * shared lib import
@@ -20,3 +18,5 @@
 * compound assignment operators
 * unwrap pointers in print expr
 * multi value print
+* address-operator
+* static array bounds checking
