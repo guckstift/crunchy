@@ -8,7 +8,6 @@
 * copy-assign arrays
 * pass by value arrays
 * return by value arrays
-* multi value print
 * make strings multline
 * escape sequences
 
@@ -20,3 +19,4 @@
 * break and continue
 * compound assignment operators
 * unwrap pointers in print expr
+* multi value print

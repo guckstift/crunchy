@@ -172,7 +172,13 @@ void dump_stmt(Stmt *stmt)
 	}
 	else if(stmt->kind == PRINT) {
 		printf("print ");
-		dump_expr(stmt->expr);
+		
+		for(Expr *item = stmt->expr; item; item = item->next) {
+			dump_expr(item);
+			
+			if(item->next)
+				printf(", ");
+		}
 	}
 	else if(stmt->kind == RETURN) {
 		printf("return ");

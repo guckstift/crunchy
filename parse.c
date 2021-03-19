@@ -712,14 +712,38 @@ Stmt *parse_print()
 	if(parse_keyword("print") == 0)
 		return 0;
 	
-	Expr *expr = parse_expr();
+	Expr *first = 0;
+	Expr *last = 0;
+	size_t count = 0;
 	
-	if(expr == 0)
-		error("expected expression after 'print'");
+	while(1) {
+		Expr *item = parse_expr();
+		
+		if(item == 0)
+			break;
+		
+		if(first) {
+			last->next = item;
+			last = item;
+		}
+		else {
+			first = item;
+			last = item;
+		}
+		
+		count ++;
+		
+		if(parse_punct(",") == 0)
+			break;
+	}
+	
+	if(first == 0)
+		error("expected at least one expression after 'print'");
 	
 	Stmt *print = create(Stmt);
 	print->kind = PRINT;
-	print->expr = expr;
+	print->expr = first;
+	print->param_count = count;
 	return print;
 }
 

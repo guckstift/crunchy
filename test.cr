@@ -1,13 +1,7 @@
 
-a := [23,42]
+a := 9
+p := >a
 
-func foo(p : >int)
-{
-	print p
-	p = -<p
-}
+print 1, a, p
 
-foo(a[1])
-foo(a[1])
-foo(a[1])
-foo(a[1])
+print 1, a, p

@@ -271,12 +271,44 @@ void gen_stmt(Stmt *stmt)
 	}
 	else if(stmt->kind == PRINT) {
 		gen_indent();
-		fprintf(cfile, "printf(\"%%");
-		gen_printf_format_spec(stmt->expr->type);
+		fprintf(cfile, "printf(\"");
+		
+		for(Expr *item = stmt->expr; item; item = item->next) {
+			fprintf(cfile, "%%");
+			gen_printf_format_spec(item->type);
+			
+			if(item->next)
+				fprintf(cfile, " ");
+		}
+		
 		fprintf(cfile, "\\n\", ");
-		gen_expr(stmt->expr);
+		
+		for(Expr *item = stmt->expr; item; item = item->next) {
+			gen_expr(item);
+			
+			if(item->next)
+				fprintf(cfile, ", ");
+		}
+		
 		fprintf(cfile, ");\n");
 	}
+	/*
+	// alternative serial printing of values
+	//
+	else if(stmt->kind == PRINT) {
+		for(Expr *item = stmt->expr; item; item = item->next) {
+			gen_indent();
+			fprintf(cfile, "printf(\"%%");
+			gen_printf_format_spec(item->type);
+			fprintf(cfile, " \", ");
+			gen_expr(item);
+			fprintf(cfile, ");\n");
+		}
+		
+		gen_indent();
+		fprintf(cfile, "printf(\"\\n\");\n");
+	}
+	*/
 	else if(stmt->kind == RETURN) {
 		gen_indent();
 		fprintf(cfile, "return ");

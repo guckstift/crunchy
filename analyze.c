@@ -482,11 +482,27 @@ void analyze_stmt(Stmt *stmt)
 	else if(stmt->kind == CALLSTMT)
 		analyze_expr(stmt->expr);
 	else if(stmt->kind == PRINT) {
-		analyze_expr(stmt->expr);
-		stmt->expr = unwrap_pointer(stmt->expr);
+		Expr *last = 0;
 		
-		if(stmt->expr->type->kind != PRIMTYPE)
-			error("can only print primitive types");
+		for(Expr *item = stmt->expr; item; item = item->next) {
+			analyze_expr(item);
+			Expr *unwrapped = unwrap_pointer(item);
+			
+			if(unwrapped != item) {
+				if(last)
+					last->next = unwrapped;
+				else
+					stmt->expr = unwrapped;
+				
+				unwrapped->next = item->next;
+				item = unwrapped;
+			}
+			
+			if(item->type->kind != PRIMTYPE)
+				error("can only print primitive types");
+			
+			last = item;
+		}
 	}
 	else if(stmt->kind == RETURN) {
 		Expr *expr = stmt->expr;
