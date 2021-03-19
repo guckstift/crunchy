@@ -51,7 +51,16 @@ void dump_expr(Expr *expr)
 		dump_token(expr->prim);
 	else if(expr->kind == CALL) {
 		dump_token(expr->ident);
-		printf("()");
+		printf("(");
+		
+		for(Expr *arg = expr->child; arg; arg = arg->next) {
+			dump_expr(arg);
+			
+			if(arg->next)
+				printf(", ");
+		}
+		
+		printf(")");
 	}
 	else if(expr->kind == PTR) {
 		printf(">");
@@ -104,8 +113,6 @@ void dump_type(Type *type)
 
 void dump_stmt(Stmt *stmt)
 {
-	dump_indent();
-	
 	if(stmt->kind == ASSIGN) {
 		dump_expr(stmt->target);
 		printf(" = ");
@@ -118,8 +125,11 @@ void dump_stmt(Stmt *stmt)
 		dump_token(stmt->ident);
 		printf(" : ");
 		dump_type(stmt->type);
-		printf(" = ");
-		dump_expr(stmt->expr);
+		
+		if(stmt->expr) {
+			printf(" = ");
+			dump_expr(stmt->expr);
+		}
 	}
 	else if(stmt->kind == FUNCDECL) {
 		if(stmt->exported)
@@ -127,7 +137,16 @@ void dump_stmt(Stmt *stmt)
 		
 		printf("func ");
 		dump_token(stmt->ident);
-		printf("()");
+		printf("(");
+		
+		for(Stmt *param = stmt->param; param; param = param->next) {
+			dump_stmt(param);
+			
+			if(param->next)
+				printf(", ");
+		}
+		
+		printf(")");
 		
 		if(stmt->type) {
 			printf(" : ");
@@ -176,8 +195,6 @@ void dump_stmt(Stmt *stmt)
 		dump_indent();
 		printf("}");
 	}
-	
-	printf("\n");
 }
 
 void dump_scope(Scope *scope)
@@ -213,8 +230,11 @@ void dump_block(Block *block)
 {
 	dump_scope(block->scope);
 	
-	for(Stmt *stmt = block->first; stmt; stmt = stmt->next)
+	for(Stmt *stmt = block->first; stmt; stmt = stmt->next) {
+		dump_indent();
 		dump_stmt(stmt);
+		printf("\n");
+	}
 }
 
 void dump_tokens()

@@ -1,10 +1,13 @@
 
-a : [10]>int
+a := [1,2]
 
 i := 9
-j := 1
+p := >i
 
-a[0] = >i
-a[1] = >j
+print foo(p, i, a)
 
-print <a[0]
+func foo(x : int, y : >int, z : >[2]int) : int
+{
+	return x * <y
+}
+

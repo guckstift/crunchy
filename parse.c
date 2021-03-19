@@ -9,6 +9,7 @@ char *optable[] = {
 
 Block *parse_block(Stmt *funchost);
 Expr *parse_expr();
+Stmt *parse_vardecl();
 
 Token *next_token()
 {
@@ -144,12 +145,39 @@ Expr *parse_call()
 		return 0;
 	}
 	
+	Expr *first = 0;
+	Expr *last = 0;
+	size_t arg_count = 0;
+	
+	while(1) {
+		Expr *arg = parse_expr();
+		
+		if(arg == 0)
+			break;
+		
+		if(first) {
+			last->next = arg;
+			last = arg;
+		}
+		else {
+			first = arg;
+			last = arg;
+		}
+		
+		arg_count ++;
+		
+		if(parse_punct(",") == 0)
+			break;
+	}
+	
 	if(parse_punct(")") == 0)
 		error("expected ')' after '('");
 	
 	Expr *call = create(Expr);
 	call->kind = CALL;
 	call->ident = ident;
+	call->child = first;
+	call->length = arg_count;
 	return call;
 }
 
@@ -229,8 +257,10 @@ Token *parse_op(char *ops)
 		while(*ops != ' ')
 			ops ++;
 		
-		char op_buf[ops - start];
-		memcpy(op_buf, start, ops - start);
+		size_t op_len = ops - start;
+		char op_buf[op_len + 1];
+		memcpy(op_buf, start, op_len);
+		op_buf[op_len] = 0;
 		
 		if(strcmp(token->text, op_buf) == 0) {
 			return next_token();
@@ -285,7 +315,7 @@ Type *parse_primtype()
 {
 	PrimType primtype;
 	
-	if(is_keyword("int") || is_keyword("i64"))
+	if(is_keyword("i64") || is_keyword("int"))
 		primtype = I64;
 	else if(is_keyword("i32"))
 		primtype = I32;
@@ -301,6 +331,10 @@ Type *parse_primtype()
 		primtype = U16;
 	else if(is_keyword("u8"))
 		primtype = U8;
+	else if(is_keyword("f64") || is_keyword("float"))
+		primtype = F64;
+	else if(is_keyword("f32"))
+		primtype = F32;
 	else
 		return 0;
 	
@@ -383,8 +417,38 @@ Stmt *parse_funcdecl()
 	if(parse_punct("(") == 0)
 		error("expected '(' after function name");
 	
+	Stmt *first = 0;
+	Stmt *last = 0;
+	size_t param_count = 0;
+	
+	while(1) {
+		Stmt *param = parse_vardecl();
+		
+		if(param == 0)
+			break;
+		
+		if(param->expr)
+			error("parameter can not have an initializer");
+		
+		param->isparam = 1;
+		
+		if(first) {
+			last->next = param;
+			last = param;
+		}
+		else {
+			first = param;
+			last = param;
+		}
+		
+		param_count ++;
+		
+		if(parse_punct(",") == 0)
+			break;
+	}
+	
 	if(parse_punct(")") == 0)
-		error("expected ')' after '('");
+		error("expected ')' after parameter list");
 	
 	Type *type = 0;
 	
@@ -408,6 +472,8 @@ Stmt *parse_funcdecl()
 	funcdecl->ident = ident;
 	funcdecl->type = type;
 	funcdecl->body = body;
+	funcdecl->param = first;
+	funcdecl->param_count = param_count;
 	return funcdecl;
 }
 

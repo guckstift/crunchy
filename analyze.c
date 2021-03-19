@@ -1,5 +1,8 @@
+
+void scan_block_decls(Block *block);
 void analyze_block(Block *block);
 void analyze_stmt(Stmt *stmt);
+Expr *adjust_assign_value(Expr *expr, Type *target_type);
 
 Symbol *lookup(Token *ident)
 {
@@ -77,6 +80,44 @@ void declare_import(Stmt *decl)
 	scope->import_count ++;
 }
 
+void scan_stmt_decls(Stmt *stmt)
+{
+	if(stmt->kind == VARDECL) {
+		Token *ident = stmt->ident;
+		
+		if(lookup(ident))
+			error_at(ident, "'%s' is already declared", ident->text);
+		
+		declare(stmt);
+	}
+	else if(stmt->kind == FUNCDECL) {
+		Token *ident = stmt->ident;
+		
+		if(lookup(ident))
+			error_at(ident, "'%s' is already declared", ident->text);
+		
+		declare(stmt);
+		Scope *oldscope = scope;
+		scope = stmt->body->scope;
+		
+		for(Stmt *param = stmt->param; param; param = param->next) {
+			if(param->type->kind == ARRAYTYPE)
+				error("function parameters can not be arrays");
+			
+			declare(param);
+		}
+		
+		scope = oldscope;
+		scan_block_decls(stmt->body);
+	}
+	else if(stmt->kind == IMPORT)
+		stmt->unit = do_import(stmt->string->text);
+	else if(stmt->kind == IFSTMT)
+		scan_block_decls(stmt->body);
+	else if(stmt->kind == WHILESTMT)
+		scan_block_decls(stmt->body);
+}
+
 void scan_block_decls(Block *block)
 {
 	assert(block);
@@ -84,29 +125,7 @@ void scan_block_decls(Block *block)
 	scope = block->scope;
 	
 	for(Stmt *stmt = block->first; stmt; stmt = stmt->next) {
-		if(stmt->kind == VARDECL) {
-			Token *ident = stmt->ident;
-			
-			if(lookup(ident))
-				error_at(ident, "'%s' is already declared", ident->text);
-			
-			declare(stmt);
-		}
-		else if(stmt->kind == FUNCDECL) {
-			Token *ident = stmt->ident;
-			
-			if(lookup(ident))
-				error_at(ident, "'%s' is already declared", ident->text);
-			
-			declare(stmt);
-			scan_block_decls(stmt->body);
-		}
-		else if(stmt->kind == IMPORT)
-			stmt->unit = do_import(stmt->string->text);
-		else if(stmt->kind == IFSTMT)
-			scan_block_decls(stmt->body);
-		else if(stmt->kind == WHILESTMT)
-			scan_block_decls(stmt->body);
+		scan_stmt_decls(stmt);
 	}
 	
 	scope = oldscope;
@@ -241,6 +260,35 @@ void analyze_expr(Expr *expr)
 		
 		if(!expr->iscallstmt && expr->type == 0)
 			error("function has no return value");
+		
+		if(expr->length != decl->param_count)
+			error("argument count does not fit");
+		
+		Stmt *param = decl->param;
+		Expr *last = 0;
+		
+		for(Expr *arg = expr->child; arg; arg = arg->next) {
+			analyze_expr(arg);
+			Type *param_type = param->type;
+			Expr *new_arg = adjust_assign_value(arg, param_type);
+			Type *arg_type = new_arg->type;
+			
+			if(!types_equal(arg_type, param_type))
+				error("argument type does not fit");
+			
+			if(new_arg != arg) {
+				if(last)
+					last->next = new_arg;
+				else
+					expr->child = new_arg;
+				
+				new_arg->next = arg->next;
+				arg = new_arg;
+			}
+			
+			last = arg;
+			param = param->next;
+		}
 	}
 	else if(expr->kind == PTR) {
 		analyze_expr(expr->child);
@@ -322,7 +370,7 @@ Expr *adjust_assign_value(Expr *expr, Type *target_type)
 	size_t deref_count = 0;
 	
 	if(target_type->kind == PTRTYPE && !types_equal(target_type, expr->type)) {
-		if(types_equal(target_type->child, expr->type)) {
+		if(types_equal(target_type->child, expr->type) && expr->islvalue) {
 			Type *new_expr_type = create(Type);
 			new_expr_type->kind = PTRTYPE;
 			new_expr_type->child = expr->type;
@@ -396,6 +444,13 @@ void analyze_stmt(Stmt *stmt)
 		if(stmt->type && stmt->type->kind == ARRAYTYPE)
 			error("functions can not return arrays");
 		
+		Scope *oldscope = scope;
+		scope = stmt->body->scope;
+		
+		for(Stmt *param = stmt->param; param; param = param->next)
+			analyze_stmt(param);
+		
+		scope = oldscope;
 		analyze_block(stmt->body);
 	}
 	else if(stmt->kind == IFSTMT)

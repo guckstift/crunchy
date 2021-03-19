@@ -1,5 +1,6 @@
 
 void gen_block(Block *block);
+void gen_vardecl(Stmt *stmt);
 
 void gen_indent()
 {
@@ -25,7 +26,16 @@ void gen_expr(Expr *expr)
 		gen_token(expr->prim);
 	else if(expr->kind == CALL) {
 		gen_token(expr->ident);
-		fprintf(cfile, "()");
+		fprintf(cfile, "(");
+	
+		for(Expr *arg = expr->child; arg; arg = arg->next) {
+			gen_expr(arg);
+			
+			if(arg->next)
+				fprintf(cfile, ", ");
+		}
+		
+		fprintf(cfile, ")");
 	}
 	else if(expr->kind == PTR) {
 		fprintf(cfile, "&");
@@ -139,7 +149,18 @@ void gen_func_head(Stmt *stmt)
 	gen_type(stmt->type);
 	fprintf(cfile, " ");
 	gen_token(stmt->ident);
-	fprintf(cfile, "()");
+	fprintf(cfile, "(");
+	scope = stmt->body->scope;
+	
+	for(Stmt *param = stmt->param; param; param = param->next) {
+		gen_vardecl(param);
+		
+		if(param->next)
+			fprintf(cfile, ", ");
+	}
+	
+	scope = scope->parent;
+	fprintf(cfile, ")");
 	gen_type_post(stmt->type);
 }
 
@@ -160,24 +181,28 @@ void gen_extern_var(Stmt *decl)
 	fprintf(cfile, ";\n");
 }
 
+void gen_vardecl(Stmt *stmt)
+{
+	if(!stmt->exported && scope->parent == 0)
+		fprintf(cfile, "static ");
+	
+	gen_type(stmt->type);
+	fprintf(cfile, " ");
+	gen_token(stmt->ident);
+	gen_type_post(stmt->type);
+	
+	if(stmt->expr && stmt->expr->isconst) {
+		fprintf(cfile, " = ");
+		gen_expr(stmt->expr);
+	}
+}
+
 void gen_decl(Stmt *stmt)
 {
 	gen_indent();
 	
 	if(stmt->kind == VARDECL) {
-		if(!stmt->exported && scope->parent == 0)
-			fprintf(cfile, "static ");
-		
-		gen_type(stmt->type);
-		fprintf(cfile, " ");
-		gen_token(stmt->ident);
-		gen_type_post(stmt->type);
-		
-		if(stmt->expr && stmt->expr->isconst) {
-			fprintf(cfile, " = ");
-			gen_expr(stmt->expr);
-		}
-		
+		gen_vardecl(stmt);
 		fprintf(cfile, ";");
 	}
 	else if(stmt->kind == FUNCDECL) {
@@ -325,7 +350,7 @@ void gen_scope(Scope *scope)
 	for(Symbol *symbol = scope->first; symbol; symbol = symbol->next) {
 		Stmt *decl = symbol->decl;
 		
-		if(decl->kind == VARDECL)
+		if(decl->kind == VARDECL && decl->isparam == 0)
 			gen_decl(decl);
 	}
 	

@@ -95,6 +95,9 @@ typedef enum {
 typedef struct Stmt {
 	Kind kind;
 	struct Stmt *next;
+	struct Stmt *param;
+	size_t param_count;
+	int isparam;
 	Token *ident;
 	Token *string;
 	Expr *target;
