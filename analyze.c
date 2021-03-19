@@ -338,6 +338,19 @@ void analyze_expr(Expr *expr)
 	}
 }
 
+Expr *unwrap_pointer(Expr *expr)
+{
+	while(expr->type->kind == PTRTYPE) {
+		Expr *new_expr = create(Expr);
+		new_expr->kind = DEREF;
+		new_expr->child = expr;
+		new_expr->type = expr->type->child;
+		expr = new_expr;
+	}
+	
+	return expr;
+}
+
 Expr *adjust_assign_target(Expr *target, Type *expr_type)
 {
 	assert(target);
@@ -418,7 +431,12 @@ void analyze_stmt(Stmt *stmt)
 	if(stmt->kind == ASSIGN) {
 		analyze_expr(stmt->target);
 		analyze_expr(stmt->expr);
-		stmt->target = adjust_assign_target(stmt->target, stmt->expr->type);
+		
+		if(strcmp(stmt->op->text, "=") != 0)
+			stmt->target = unwrap_pointer(stmt->target);
+		else
+			stmt->target = adjust_assign_target(stmt->target, stmt->expr->type);
+		
 		stmt->expr = adjust_assign_value(stmt->expr, stmt->target->type);
 		
 		if(stmt->target->type->kind == ARRAYTYPE)

@@ -251,7 +251,7 @@ void gen_stmt(Stmt *stmt)
 	if(stmt->kind == ASSIGN) {
 		gen_indent();
 		gen_expr(stmt->target);
-		fprintf(cfile, " = ");
+		fprintf(cfile, " %s ", stmt->op->text);
 		gen_expr(stmt->expr);
 		fprintf(cfile, ";\n");
 	}

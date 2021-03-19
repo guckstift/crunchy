@@ -7,6 +7,7 @@ char *optable[] = {
 	0,
 };
 
+char *assignops = "+= -= *= /= %= = ";
 int inloop = 0;
 
 Block *parse_block(Stmt *funchost);
@@ -574,7 +575,9 @@ Stmt *parse_assign()
 	if(target == 0)
 		return 0;
 	
-	if(parse_punct("=") == 0) {
+	Token *op = parse_op(assignops);
+	
+	if(op == 0) {
 		seek_token(start);
 		return 0;
 	}
@@ -585,12 +588,13 @@ Stmt *parse_assign()
 	Expr *expr = parse_expr();
 	
 	if(expr == 0)
-		error("expected expression after '='");
+		error("expected expression after '%s'", op->text);
 	
 	Stmt *assign = create(Stmt);
 	assign->kind = ASSIGN;
 	assign->target = target;
 	assign->expr = expr;
+	assign->op = op;
 	return assign;
 }
 

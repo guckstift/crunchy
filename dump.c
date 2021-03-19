@@ -122,7 +122,7 @@ void dump_stmt(Stmt *stmt)
 {
 	if(stmt->kind == ASSIGN) {
 		dump_expr(stmt->target);
-		printf(" = ");
+		printf(" %s ", stmt->op->text);
 		dump_expr(stmt->expr);
 	}
 	else if(stmt->kind == VARDECL) {

@@ -103,6 +103,7 @@ typedef struct Stmt {
 	int isparam;
 	Token *ident;
 	Token *string;
+	Token *op;
 	Expr *target;
 	Expr *expr;
 	Type *type;

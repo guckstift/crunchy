@@ -1,7 +1,7 @@
 # todo
 
+* address-operator
 * static array bounds checking
-* break and continue
 * structs
 * enums
 * shared lib import
@@ -11,10 +11,11 @@
 * multi value print
 * make strings multline
 * escape sequences
-* compound assignment operators
 
 # done
 
 * multi-dim array element assignment and expression
 * unary + and -
 * modulo operator
+* break and continue
+* compound assignment operators
