@@ -24,10 +24,13 @@ typedef enum {
 	PRIMTYPE,
 	PTRTYPE,
 	ARRAYTYPE,
+	NAMEDTYPE,
+	STRUCTTYPE,
 	// statements
 	ASSIGN,
 	VARDECL,
 	FUNCDECL,
+	STRUCTDECL,
 	CALLSTMT,
 	PRINT,
 	RETURN,
@@ -64,6 +67,8 @@ typedef struct Type {
 	Kind kind;
 	PrimType primtype;
 	struct Type *child;
+	Token *ident;
+	struct Stmt *typedecl;
 	size_t count;
 } Type;
 

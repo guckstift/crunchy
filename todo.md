@@ -1,6 +1,6 @@
 # todo
 
-* structs
+* ~ structs
 * enums
 * shared lib import
 * copy-assign arrays

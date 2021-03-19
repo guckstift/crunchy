@@ -110,6 +110,10 @@ void scan_stmt_decls(Stmt *stmt)
 		scope = oldscope;
 		scan_block_decls(stmt->body);
 	}
+	else if(stmt->kind == STRUCTDECL) {
+		declare(stmt);
+		scan_block_decls(stmt->body);
+	}
 	else if(stmt->kind == IMPORT)
 		stmt->unit = do_import(stmt->string->text);
 	else if(stmt->kind == IFSTMT)
@@ -494,6 +498,23 @@ void analyze_stmt(Stmt *stmt)
 			error("types are not equal");
 	}
 	else if(stmt->kind == VARDECL) {
+		if(stmt->type) {
+			if(stmt->type->kind == NAMEDTYPE) {
+				Symbol *sym = lookup(stmt->type->ident);
+				
+				if(sym == 0)
+					error("'%s' is an unknown type name");
+				
+				Stmt *decl = sym->decl;
+				
+				if(decl->kind != STRUCTDECL)
+					error("'%s' is not a struct type name");
+				
+				stmt->type->kind = STRUCTTYPE;
+				stmt->type->typedecl = decl;
+			}
+		}
+		
 		if(stmt->expr) {
 			analyze_expr(stmt->expr);
 			
@@ -523,6 +544,8 @@ void analyze_stmt(Stmt *stmt)
 		scope = oldscope;
 		analyze_block(stmt->body);
 	}
+	else if(stmt->kind == STRUCTDECL)
+		analyze_block(stmt->body);
 	else if(stmt->kind == IFSTMT)
 		analyze_block(stmt->body);
 	else if(stmt->kind == WHILESTMT)

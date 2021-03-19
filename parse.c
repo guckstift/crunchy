@@ -437,6 +437,12 @@ Type *parse_primtype()
 		primtype = F64;
 	else if(is_keyword("f32"))
 		primtype = F32;
+	else if(is_kind(IDENT)) {
+		Type *type = create(Type);
+		type->kind = NAMEDTYPE;
+		type->ident = next_token();
+		return type;
+	}
 	else
 		return 0;
 	
@@ -826,6 +832,71 @@ Stmt *parse_continue()
 	return stmt;
 }
 
+Block *parse_struct_block()
+{
+	Stmt *first = 0;
+	Stmt *last = 0;
+	size_t count = 0;
+	Scope *blockscope = create(Scope);
+	blockscope->parent = scope;
+	scope = blockscope;
+	
+	while(1) {
+		Stmt *stmt = parse_vardecl();
+		
+		if(stmt == 0) {
+			break;
+		}
+		
+		if(stmt->expr && stmt->expr->isconst == 0)
+			error("structure members can only be initialized with constants");
+		
+		if(count) {
+			last->next = stmt;
+			last = stmt;
+		}
+		else {
+			first = stmt;
+			last = stmt;
+		}
+		
+		count ++;
+	}
+	
+	Block *block = create(Block);
+	block->first = first;
+	block->last = last;
+	block->count = count;
+	block->scope = scope;
+	scope = scope->parent;
+	return block;
+}
+
+Stmt *parse_structdecl()
+{
+	if(parse_keyword("struct") == 0)
+		return 0;
+	
+	Token *ident = parse_kind(IDENT);
+	
+	if(ident == 0)
+		error("expected identifier after 'struct'");
+	
+	if(parse_punct("{") == 0)
+		error("expected '{' after structure name");
+	
+	Block *body = parse_struct_block();
+	
+	if(parse_punct("}") == 0)
+		error("expected '}' after structure definition");
+	
+	Stmt *stmt = create(Stmt);
+	stmt->kind = STRUCTDECL;
+	stmt->ident = ident;
+	stmt->body = body;
+	return stmt;
+}
+
 Stmt *parse_stmt()
 {
 	Stmt *stmt;
@@ -835,6 +906,7 @@ Stmt *parse_stmt()
 	(stmt = parse_ifstmt()) ||
 	(stmt = parse_whilestmt()) ||
 	(stmt = parse_funcdecl()) ||
+	(stmt = parse_structdecl()) ||
 	(stmt = parse_print()) ||
 	(stmt = parse_return()) ||
 	(stmt = parse_assign()) ||

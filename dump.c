@@ -110,6 +110,13 @@ void dump_type(Type *type)
 		printf("<null>");
 	else if(type->kind == PRIMTYPE)
 		printf("%s", primtype_names[type->primtype]);
+	else if(type->kind == NAMEDTYPE)
+		dump_token(type->ident);
+	else if(type->kind == STRUCTTYPE) {
+		printf("struct<");
+		dump_token(type->ident);
+		printf(">");
+	}
 	else if(type->kind == PTRTYPE) {
 		printf(">");
 		dump_type(type->child);
@@ -164,6 +171,16 @@ void dump_stmt(Stmt *stmt)
 			dump_type(stmt->type);
 		}
 		
+		printf(" {\n");
+		level ++;
+		dump_block(stmt->body);
+		level --;
+		dump_indent();
+		printf("}");
+	}
+	else if(stmt->kind == STRUCTDECL) {
+		printf("struct ");
+		dump_token(stmt->ident);
 		printf(" {\n");
 		level ++;
 		dump_block(stmt->body);

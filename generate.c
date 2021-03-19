@@ -106,8 +106,11 @@ void gen_type(Type *type)
 		gen_type(type->child);
 		fprintf(cfile, "(*");
 	}
-	else if(type->kind == ARRAYTYPE) {
+	else if(type->kind == ARRAYTYPE)
 		gen_type(type->child);
+	else if(type->kind == STRUCTTYPE) {
+		fprintf(cfile, "struct ");
+		gen_token(type->ident);
 	}
 	else if(type->kind == PRIMTYPE) {
 		if(type->primtype == U8)
@@ -206,6 +209,29 @@ void gen_vardecl(Stmt *stmt)
 	}
 }
 
+void gen_struct_member(Stmt *stmt)
+{
+	gen_indent();
+	gen_type(stmt->type);
+	fprintf(cfile, " ");
+	gen_token(stmt->ident);
+	gen_type_post(stmt->type);
+	fprintf(cfile, ";\n");
+}
+
+
+void gen_struct_block(Block *block)
+{
+	level ++;
+	scope = block->scope;
+	
+	for(Stmt *stmt = block->first; stmt; stmt = stmt->next)
+		gen_struct_member(stmt);
+	
+	scope = scope->parent;
+	level --;
+}
+
 void gen_decl(Stmt *stmt)
 {
 	gen_indent();
@@ -220,6 +246,14 @@ void gen_decl(Stmt *stmt)
 		gen_block(stmt->body);
 		gen_indent();
 		fprintf(cfile, "}");
+	}
+	else if(stmt->kind == STRUCTDECL) {
+		fprintf(cfile, "struct ");
+		gen_token(stmt->ident);
+		fprintf(cfile, " {\n");
+		gen_struct_block(stmt->body);
+		gen_indent();
+		fprintf(cfile, "};");
 	}
 	
 	fprintf(cfile, "\n");
@@ -366,48 +400,46 @@ void gen_export_define(Stmt *decl)
 	fprintf(cfile, "\n");
 }
 
-void gen_scope(Scope *scope)
+void gen_export_defines(Symbol *symbols)
 {
-	for(Symbol *symbol = scope->first_import; symbol; symbol = symbol->next) {
+	for(Symbol *symbol = symbols; symbol; symbol = symbol->next) {
 		Stmt *decl = symbol->decl;
 		
 		if(decl->exported)
 			gen_export_define(decl);
 	}
-	
-	for(Symbol *symbol = scope->first_import; symbol; symbol = symbol->next) {
+}
+
+void gen_func_protos(Symbol *symbols)
+{
+	for(Symbol *symbol = symbols; symbol; symbol = symbol->next) {
 		Stmt *decl = symbol->decl;
 		
 		if(decl->kind == FUNCDECL)
 			gen_proto(decl);
 	}
-	
-	for(Symbol *symbol = scope->first_import; symbol; symbol = symbol->next) {
-		Stmt *decl = symbol->decl;
-		
-		if(decl->kind == VARDECL)
-			gen_extern_var(decl);
-	}
+}
+
+void gen_scope(Scope *scope)
+{
+	gen_export_defines(scope->first_import);
+	gen_export_defines(scope->first);
 	
 	for(Symbol *symbol = scope->first; symbol; symbol = symbol->next) {
 		Stmt *decl = symbol->decl;
 		
-		if(decl->exported)
-			gen_export_define(decl);
+		if(decl->kind == STRUCTDECL)
+			gen_decl(decl);
 	}
+	
+	gen_func_protos(scope->first_import);
+	gen_func_protos(scope->first);
 	
 	for(Symbol *symbol = scope->first; symbol; symbol = symbol->next) {
 		Stmt *decl = symbol->decl;
 		
 		if(decl->kind == VARDECL && decl->isparam == 0)
 			gen_decl(decl);
-	}
-	
-	for(Symbol *symbol = scope->first; symbol; symbol = symbol->next) {
-		Stmt *decl = symbol->decl;
-		
-		if(decl->kind == FUNCDECL)
-			gen_proto(decl);
 	}
 	
 	for(Symbol *symbol = scope->first; symbol; symbol = symbol->next) {
