@@ -182,6 +182,10 @@ void dump_stmt(Stmt *stmt)
 		printf("import ");
 		dump_token(stmt->string);
 	}
+	else if(stmt->kind == BREAK)
+		printf("break");
+	else if(stmt->kind == CONTINUE)
+		printf("continue");
 	else if(stmt->kind == IFSTMT) {
 		printf("if ");
 		dump_expr(stmt->expr);

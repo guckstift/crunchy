@@ -31,6 +31,8 @@ typedef enum {
 	IMPORT,
 	IFSTMT,
 	WHILESTMT,
+	BREAK,
+	CONTINUE,
 } Kind;
 
 typedef enum {

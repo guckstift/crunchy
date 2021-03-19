@@ -7,6 +7,8 @@ char *optable[] = {
 	0,
 };
 
+int inloop = 0;
+
 Block *parse_block(Stmt *funchost);
 Expr *parse_expr();
 Stmt *parse_vardecl();
@@ -686,7 +688,10 @@ Stmt *parse_whilestmt()
 	if(parse_punct("{") == 0)
 		error("expected '{' after condition");
 	
+	int old_inloop = inloop;
+	inloop = 1;
 	Block *body = parse_block(0);
+	inloop = old_inloop;
 	
 	if(parse_punct("}") == 0)
 		error("expected '}' after while body");
@@ -755,6 +760,32 @@ Stmt *parse_export()
 	return stmt;
 }
 
+Stmt *parse_break()
+{
+	if(parse_keyword("break") == 0)
+		return 0;
+	
+	if(!inloop)
+		error("break can only be used inside a loop");
+	
+	Stmt *stmt = create(Stmt);
+	stmt->kind = BREAK;
+	return stmt;
+}
+
+Stmt *parse_continue()
+{
+	if(parse_keyword("continue") == 0)
+		return 0;
+	
+	if(!inloop)
+		error("continue can only be used inside a loop");
+	
+	Stmt *stmt = create(Stmt);
+	stmt->kind = CONTINUE;
+	return stmt;
+}
+
 Stmt *parse_stmt()
 {
 	Stmt *stmt;
@@ -769,6 +800,8 @@ Stmt *parse_stmt()
 	(stmt = parse_assign()) ||
 	(stmt = parse_vardecl()) ||
 	(stmt = parse_callstmt()) ||
+	(stmt = parse_break()) ||
+	(stmt = parse_continue()) ||
 	0;
 	
 	return stmt;
@@ -824,6 +857,7 @@ void parse_unit()
 	line = token->line;
 	pos = token->pos;
 	scope = 0;
+	inloop = 0;
 	unit->ast = parse_block(0);
 	
 	if(!is_kind(END)) {

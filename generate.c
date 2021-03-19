@@ -308,6 +308,14 @@ void gen_stmt(Stmt *stmt)
 		gen_indent();
 		fprintf(cfile, "}\n");
 	}
+	else if(stmt->kind == BREAK) {
+		gen_indent();
+		fprintf(cfile, "break;\n");
+	}
+	else if(stmt->kind == CONTINUE) {
+		gen_indent();
+		fprintf(cfile, "continue;\n");
+	}
 }
 
 void gen_export_define(Stmt *decl)

@@ -1,19 +1,11 @@
 
-a := [1,2,3]
-b := >a
-c := b[0]
-d := >b[1]
+i := 10
 
-a[1] = 9
-b[2] = 3
-
-func foo() : >[3]int
-{
-	return a
+while 1 {
+	print i
+	i = i - 1
+	if i > 0 {
+		continue
+	}
+	break
 }
-
-x := -foo()[2]
-
-print x
-
-print 15 % 10 * 100
