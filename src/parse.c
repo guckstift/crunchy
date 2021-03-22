@@ -89,6 +89,39 @@ Token *parse_op(char *ops)
 	return 0;
 }
 
+Type *create_type(Kind kind)
+{
+	Type *type = create(Type);
+	type->kind = kind;
+	type->line = node_line;
+	type->pos = node_pos;
+	node_line = line;
+	node_pos = pos;
+	return type;
+}
+
+Stmt *create_stmt(Kind kind)
+{
+	Stmt *stmt = create(Stmt);
+	stmt->kind = kind;
+	stmt->line = node_line;
+	stmt->pos = node_pos;
+	node_line = line;
+	node_pos = pos;
+	return stmt;
+}
+
+Expr *create_expr(Kind kind)
+{
+	Expr *expr = create(Expr);
+	expr->kind = kind;
+	expr->line = node_line;
+	expr->pos = node_pos;
+	node_line = line;
+	node_pos = pos;
+	return expr;
+}
+
 #include "expr.c"
 
 Type *parse_primtype()
@@ -116,16 +149,14 @@ Type *parse_primtype()
 	else if(is_keyword("f32"))
 		primtype = F32;
 	else if(is_kind(IDENT)) {
-		Type *type = create(Type);
-		type->kind = NAMEDTYPE;
+		Type *type = create_type(NAMEDTYPE);
 		type->ident = next_token();
 		return type;
 	}
 	else
 		return 0;
 	
-	Type *type = create(Type);
-	type->kind = PRIMTYPE;
+	Type *type = create_type(PRIMTYPE);
 	type->primtype = primtype;
 	next_token();
 	return type;
@@ -139,8 +170,7 @@ Type *parse_type()
 		if(type == 0)
 			error("expected pointer base type");
 		
-		Type *ptrtype = create(Type);
-		ptrtype->kind = PTRTYPE;
+		Type *ptrtype = create_type(PTRTYPE);
 		ptrtype->child = type;
 		return ptrtype;
 	}
@@ -158,8 +188,7 @@ Type *parse_type()
 		if(child == 0)
 			error("expected base type after array dimension");
 		
-		Type *type = create(Type);
-		type->kind = ARRAYTYPE;
+		Type *type = create_type(ARRAYTYPE);
 		type->count = count->val;
 		type->child = child;
 		return type;
@@ -181,8 +210,7 @@ Stmt *parse_import()
 	if(name == 0)
 		error("expected string after 'import'");
 	
-	Stmt *import = create(Stmt);
-	import->kind = IMPORT;
+	Stmt *import = create_stmt(IMPORT);
 	import->string = name;
 	return import;
 }
@@ -248,13 +276,12 @@ Stmt *parse_funcdecl()
 	if(parse_punct(PN_LCURLY) == 0)
 		error("expected '{' after function head");
 	
-	Stmt *funcdecl = create(Stmt);
+	Stmt *funcdecl = create_stmt(FUNCDECL);
 	Block *body = parse_block(funcdecl);
 	
 	if(parse_punct(PN_RCURLY) == 0)
 		error("expected '}' after function statements");
 	
-	funcdecl->kind = FUNCDECL;
 	funcdecl->ident = ident;
 	funcdecl->type = type;
 	funcdecl->body = body;
@@ -286,8 +313,7 @@ Stmt *parse_assign()
 	if(expr == 0)
 		error("expected expression after '%s'", op->text);
 	
-	Stmt *assign = create(Stmt);
-	assign->kind = ASSIGN;
+	Stmt *assign = create_stmt(ASSIGN);
 	assign->target = target;
 	assign->expr = expr;
 	assign->op = op;
@@ -328,8 +354,7 @@ Stmt *parse_vardecl()
 		return 0;
 	}
 	
-	Stmt *vardecl = create(Stmt);
-	vardecl->kind = VARDECL;
+	Stmt *vardecl = create_stmt(VARDECL);
 	vardecl->ident = ident;
 	vardecl->type = type;
 	vardecl->expr = expr;
@@ -344,8 +369,7 @@ Stmt *parse_callstmt()
 		return 0;
 	
 	expr->iscallstmt = 1;
-	Stmt *call = create(Stmt);
-	call->kind = CALLSTMT;
+	Stmt *call = create_stmt(CALLSTMT);
 	call->expr = expr;
 	return call;
 }
@@ -368,8 +392,7 @@ Stmt *parse_ifstmt()
 	if(parse_punct(PN_RCURLY) == 0)
 		error("expected '}' after if body");
 	
-	Stmt *ifstmt = create(Stmt);
-	ifstmt->kind = IFSTMT;
+	Stmt *ifstmt = create_stmt(IFSTMT);
 	ifstmt->expr = expr;
 	ifstmt->body = body;
 	return ifstmt;
@@ -396,8 +419,7 @@ Stmt *parse_whilestmt()
 	if(parse_punct(PN_RCURLY) == 0)
 		error("expected '}' after while body");
 	
-	Stmt *whilestmt = create(Stmt);
-	whilestmt->kind = WHILESTMT;
+	Stmt *whilestmt = create_stmt(WHILESTMT);
 	whilestmt->expr = expr;
 	whilestmt->body = body;
 	return whilestmt;
@@ -436,8 +458,7 @@ Stmt *parse_print()
 	if(first == 0)
 		error("expected at least one expression after 'print'");
 	
-	Stmt *print = create(Stmt);
-	print->kind = PRINT;
+	Stmt *print = create_stmt(PRINT);
 	print->expr = first;
 	print->param_count = count;
 	return print;
@@ -451,8 +472,7 @@ Stmt *parse_return()
 	if(scope->funchost == 0)
 		error("return statement can only be used inside a function");
 	
-	Stmt *stmt = create(Stmt);
-	stmt->kind = RETURN;
+	Stmt *stmt = create_stmt(RETURN);
 	Expr *expr = parse_expr();
 	
 	if(expr == 0)
@@ -492,8 +512,7 @@ Stmt *parse_break()
 	if(!inloop)
 		error("break can only be used inside a loop");
 	
-	Stmt *stmt = create(Stmt);
-	stmt->kind = BREAK;
+	Stmt *stmt = create_stmt(BREAK);
 	return stmt;
 }
 
@@ -505,8 +524,7 @@ Stmt *parse_continue()
 	if(!inloop)
 		error("continue can only be used inside a loop");
 	
-	Stmt *stmt = create(Stmt);
-	stmt->kind = CONTINUE;
+	Stmt *stmt = create_stmt(CONTINUE);
 	return stmt;
 }
 
@@ -568,8 +586,7 @@ Stmt *parse_structdecl()
 	if(parse_punct(PN_RCURLY) == 0)
 		error("expected '}' after structure definition");
 	
-	Stmt *stmt = create(Stmt);
-	stmt->kind = STRUCTDECL;
+	Stmt *stmt = create_stmt(STRUCTDECL);
 	stmt->ident = ident;
 	stmt->body = body;
 	return stmt;
@@ -646,6 +663,8 @@ void parse_unit()
 	token = unit->tokens;
 	line = token->line;
 	pos = token->pos;
+	node_line = line;
+	node_pos = pos;
 	scope = 0;
 	inloop = 0;
 	unit->ast = parse_block(0);

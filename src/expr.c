@@ -10,8 +10,7 @@ char *optable[] = {
 Expr *parse_prim()
 {
 	if(is_kind(INTEGER) || is_kind(FLOAT) || is_kind(IDENT)) {
-		Expr *prim = create(Expr);
-		prim->kind = PRIM;
+		Expr *prim = create_expr(PRIM);
 		prim->prim = next_token();
 		prim->isconst = prim->prim->kind != IDENT;
 		prim->islvalue = prim->prim->kind == IDENT;
@@ -24,8 +23,7 @@ Expr *parse_prim()
 Expr *parse_ident_prim()
 {
 	if(is_kind(IDENT)) {
-		Expr *prim = create(Expr);
-		prim->kind = PRIM;
+		Expr *prim = create_expr(PRIM);
 		prim->prim = next_token();
 		prim->islvalue = 1;
 		return prim;
@@ -37,8 +35,7 @@ Expr *parse_ident_prim()
 Expr *parse_literal_prim()
 {
 	if(is_kind(INTEGER) || is_kind(FLOAT)) {
-		Expr *prim = create(Expr);
-		prim->kind = PRIM;
+		Expr *prim = create_expr(PRIM);
 		prim->prim = next_token();
 		prim->isconst = 1;
 		return prim;
@@ -88,8 +85,7 @@ Expr *parse_array()
 	if(isconst == 0)
 		error("array literals must be constant");
 	
-	Expr *array = create(Expr);
-	array->kind = ARRAY;
+	Expr *array = create_expr(ARRAY);
 	array->child = first;
 	array->length = length;
 	array->isconst = isconst;
@@ -137,8 +133,7 @@ Expr *parse_call()
 	if(parse_punct(PN_RPAREN) == 0)
 		error("expected ')' after argument list");
 	
-	Expr *call = create(Expr);
-	call->kind = CALL;
+	Expr *call = create_expr(CALL);
 	call->ident = ident;
 	call->child = first;
 	call->length = arg_count;
@@ -162,8 +157,7 @@ Expr *parse_target()
 			if(parse_punct(PN_RBRACK) == 0)
 				error("expected ']' after index");
 			
-			Expr *subscript = create(Expr);
-			subscript->kind = SUBSCRIPT;
+			Expr *subscript = create_expr(SUBSCRIPT);
 			subscript->left = expr;
 			subscript->right = index;
 			subscript->islvalue = expr->islvalue;
@@ -175,8 +169,7 @@ Expr *parse_target()
 			if(ident == 0)
 				error("expected member identifier after '.'");
 			
-			Expr *member = create(Expr);
-			member->kind = MEMBER;
+			Expr *member = create_expr(MEMBER);
 			member->left = expr;
 			member->right = ident;
 			member->islvalue = 1;
@@ -209,8 +202,7 @@ Expr *parse_postfix()
 			if(parse_punct(PN_RBRACK) == 0)
 				error("expected ']' after index");
 			
-			Expr *subscript = create(Expr);
-			subscript->kind = SUBSCRIPT;
+			Expr *subscript = create_expr(SUBSCRIPT);
 			subscript->left = expr;
 			subscript->right = index;
 			subscript->islvalue = expr->islvalue;
@@ -222,8 +214,7 @@ Expr *parse_postfix()
 			if(ident == 0)
 				error("expected member identifier after '.'");
 			
-			Expr *member = create(Expr);
-			member->kind = MEMBER;
+			Expr *member = create_expr(MEMBER);
 			member->left = expr;
 			member->right = ident;
 			member->islvalue = 1;
@@ -244,8 +235,7 @@ Expr *parse_pointer()
 		if(ptr == 0)
 			error("expected pointer to dereference");
 			
-		Expr *deref = create(Expr);
-		deref->kind = DEREF;
+		Expr *deref = create_expr(DEREF);
 		deref->child = ptr;
 		return deref;
 	}
@@ -256,8 +246,7 @@ Expr *parse_pointer()
 		if(ptr == 0)
 			error("expected pointer to take the address from");
 			
-		Expr *address = create(Expr);
-		address->kind = ADDRESS;
+		Expr *address = create_expr(ADDRESS);
 		address->child = ptr;
 		return address;
 	}
@@ -268,8 +257,7 @@ Expr *parse_pointer()
 		if(target == 0)
 			error("expected target to point to");
 		
-		Expr *ptr = create(Expr);
-		ptr->kind = PTR;
+		Expr *ptr = create_expr(PTR);
 		ptr->child = target;
 		return ptr;
 	}
@@ -291,8 +279,7 @@ Expr *parse_prefix()
 		if(child == 0)
 			error("expected expression after unary operator '%s'", op->text);
 		
-		Expr *unary = create(Expr);
-		unary->kind = UNARY;
+		Expr *unary = create_expr(UNARY);
 		unary->child = child;
 		unary->op = op;
 		return unary;
@@ -334,8 +321,7 @@ Expr *parse_chain(int tier)
 		if(right == 0)
 			error("right side expected after binary operator '%s'", op->text);
 		
-		Expr *chain = create(Expr);
-		chain->kind = CHAIN;
+		Expr *chain = create_expr(CHAIN);
 		chain->left = left;
 		chain->right = right;
 		chain->op = op;

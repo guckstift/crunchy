@@ -136,6 +136,8 @@ void dump_type(Type *type)
 
 void dump_stmt(Stmt *stmt)
 {
+	printf("(%lu:%lu) ", stmt->line, stmt->pos);
+	
 	if(stmt->kind == ASSIGN) {
 		dump_expr(stmt->target);
 		printf(" %s ", stmt->op->text);

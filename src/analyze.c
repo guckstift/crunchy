@@ -80,9 +80,21 @@ void declare_import(Stmt *decl)
 	scope->import_count ++;
 }
 
+Expr *create_expr_wrap(Kind kind, Expr *child)
+{
+	Expr *wrap = create_expr(kind);
+	wrap->child = child;
+	wrap->line = child->line;
+	wrap->pos = child->pos;
+	return wrap;
+}
+
 void scan_stmt_decls(Stmt *stmt)
 {
-	if(stmt->kind == VARDECL) {
+	if(
+		stmt->kind == VARDECL || stmt->kind == FUNCDECL ||
+		stmt->kind == STRUCTDECL
+	) {
 		Token *ident = stmt->ident;
 		
 		if(lookup(ident))
@@ -90,19 +102,14 @@ void scan_stmt_decls(Stmt *stmt)
 		
 		declare(stmt);
 	}
-	else if(stmt->kind == FUNCDECL) {
-		Token *ident = stmt->ident;
-		
-		if(lookup(ident))
-			error_at(ident, "'%s' is already declared", ident->text);
-		
-		declare(stmt);
+	
+	if(stmt->kind == FUNCDECL) {
 		Scope *oldscope = scope;
 		scope = stmt->body->scope;
 		
 		for(Stmt *param = stmt->param; param; param = param->next) {
 			if(param->type->kind == ARRAYTYPE)
-				error("function parameters can not be arrays");
+				error_stmt(param, "function parameters can not be arrays");
 			
 			declare(param);
 		}
@@ -110,10 +117,8 @@ void scan_stmt_decls(Stmt *stmt)
 		scope = oldscope;
 		scan_block_decls(stmt->body);
 	}
-	else if(stmt->kind == STRUCTDECL) {
-		declare(stmt);
+	else if(stmt->kind == STRUCTDECL)
 		scan_block_decls(stmt->body);
-	}
 	else if(stmt->kind == IMPORT)
 		stmt->unit = do_import(stmt->string->text);
 	else if(stmt->kind == IFSTMT)
@@ -163,19 +168,18 @@ int types_equal(Type *t1, Type *t2)
 Type *analyze_var_ident(Token *ident)
 {
 	assert(ident);
-	seek_token(ident);
 	Symbol *symbol = lookup_rec(ident);
 	
 	if(symbol == 0)
-		error("'%s' is not defined", ident->text);
+		error_at(ident, "'%s' is not defined", ident->text);
 	
 	Stmt *decl = symbol->decl;
 	
 	if(decl->kind != VARDECL)
-		error("'%s' is not a variable", ident->text);
+		error_at(ident, "'%s' is not a variable", ident->text);
 	
 	if(decl->state != RESOLVED)
-		error("'%s' is not initialized yet", ident->text);
+		error_at(ident, "'%s' is not initialized yet", ident->text);
 	
 	return decl->type;
 }
@@ -196,9 +200,7 @@ Expr *unwrap_ptr_to_array(Expr *expr)
 		return expr;
 	
 	while(deref_count > 0) {
-		Expr *new_expr = create(Expr);
-		new_expr->kind = DEREF;
-		new_expr->child = expr;
+		Expr *new_expr = create_expr_wrap(DEREF, expr);
 		new_expr->type = expr->type->child;
 		expr = new_expr;
 		deref_count --;
@@ -223,9 +225,7 @@ Expr *unwrap_ptr_to_struct(Expr *expr)
 		return expr;
 	
 	while(deref_count > 0) {
-		Expr *new_expr = create(Expr);
-		new_expr->kind = DEREF;
-		new_expr->child = expr;
+		Expr *new_expr = create_expr_wrap(DEREF, expr);
 		new_expr->type = expr->type->child;
 		expr = new_expr;
 		deref_count --;
@@ -242,14 +242,12 @@ void analyze_expr(Expr *expr)
 		Token *prim = expr->prim;
 		
 		if(prim->kind == INTEGER) {
-			expr->type = create(Type);
-			expr->type->kind = PRIMTYPE;
+			expr->type = create_type(PRIMTYPE);
 			expr->type->primtype = I64;
 			expr->iconst = prim->val;
 		}
 		else if(prim->kind == FLOAT) {
-			expr->type = create(Type);
-			expr->type->kind = PRIMTYPE;
+			expr->type = create_type(PRIMTYPE);
 			expr->type->primtype = F64;
 		}
 		else if(prim->kind == IDENT) {
@@ -272,14 +270,13 @@ void analyze_expr(Expr *expr)
 			
 			if(itemtype) {
 				if(!types_equal(itemtype, item->type))
-					error("array item types are not consistent");
+					error_expr(item, "array item types are not consistent");
 			}
 			else
 				itemtype = item->type;
 		}
 		
-		Type *type = create(Type);
-		type->kind = ARRAYTYPE;
+		Type *type = create_type(ARRAYTYPE);
 		type->count = expr->length;
 		type->child = itemtype;
 		expr->type = type;
@@ -287,24 +284,23 @@ void analyze_expr(Expr *expr)
 	else if(expr->kind == CALL) {
 		Token *ident = expr->ident;
 		Symbol *symbol = lookup_rec(ident);
-		seek_token(ident);
 		
 		if(symbol == 0)
-			error("'%s' is not defined", ident->text);
+			error_at(ident, "'%s' is not defined", ident->text);
 		
 		Stmt *decl = symbol->decl;
 		
 		if(decl->kind != FUNCDECL)
-			error("'%s' is not a function", ident->text);
+			error_at(ident, "'%s' is not a function", ident->text);
 		
 		expr->type = decl->type;
 		analyze_stmt(decl);
 		
 		if(!expr->iscallstmt && expr->type == 0)
-			error("function has no return value");
+			error_expr(expr, "function has no return value");
 		
 		if(expr->length != decl->param_count)
-			error("argument count does not fit");
+			error_expr(expr, "argument count does not fit");
 		
 		Stmt *param = decl->param;
 		Expr *last = 0;
@@ -316,7 +312,7 @@ void analyze_expr(Expr *expr)
 			Type *arg_type = new_arg->type;
 			
 			if(!types_equal(arg_type, param_type))
-				error("argument type does not fit");
+				error_expr(arg, "argument type does not fit");
 			
 			if(new_arg != arg) {
 				if(last)
@@ -334,8 +330,7 @@ void analyze_expr(Expr *expr)
 	}
 	else if(expr->kind == PTR) {
 		analyze_expr(expr->child);
-		Type *type = create(Type);
-		type->kind = PTRTYPE;
+		Type *type = create_type(PTRTYPE);
 		type->child = expr->child->type;
 		expr->type = type;
 	}
@@ -345,7 +340,7 @@ void analyze_expr(Expr *expr)
 		Type *child_type = child->type;
 		
 		if(child_type->kind != PTRTYPE)
-			error("can only dereference pointers");
+			error_expr(child, "can only dereference pointers");
 		
 		expr->type = child_type->child;
 	}
@@ -355,10 +350,9 @@ void analyze_expr(Expr *expr)
 		Type *child_type = child->type;
 		
 		if(child_type->kind != PTRTYPE)
-			error("can only take the address of pointers");
+			error_expr(child, "can only take the address of pointers");
 		
-		expr->type = create(Type);
-		expr->type->kind = PRIMTYPE;
+		expr->type = create_type(PRIMTYPE);
 		expr->type->primtype = U64;
 	}
 	else if(expr->kind == CHAIN) {
@@ -366,10 +360,16 @@ void analyze_expr(Expr *expr)
 		analyze_expr(expr->right);
 		
 		if(expr->left->type->kind == PTRTYPE)
-			error("left side of '%s' is a pointer", expr->op->text);
+			error_expr(
+				expr->left,
+				"left side of '%s' is a pointer", expr->op->text
+			);
 		
 		if(expr->right->type->kind == PTRTYPE)
-			error("right side of '%s' is a pointer", expr->op->text);
+			error_expr(
+				expr->right,
+				"right side of '%s' is a pointer", expr->op->text
+			);
 		
 		expr->type = expr->left->type;
 		
@@ -421,14 +421,14 @@ void analyze_expr(Expr *expr)
 		expr->left = unwrap_ptr_to_array(expr->left);
 		
 		if(expr->left->type->kind != ARRAYTYPE)
-			error("left side of subscript is not an array");
+			error_expr(expr->left, "left side of subscript is not an array");
 		
 		if(expr->right->type->kind != PRIMTYPE)
-			error("index type is not primitive");
+			error_expr(expr->right, "index type is not primitive");
 		
 		if(expr->right->isconst) {
 			if(expr->right->iconst >= expr->left->type->count)
-				error("array bounds exceeded");
+				error_expr(expr->right, "array bounds exceeded");
 		}
 		
 		expr->type = expr->left->type->child;
@@ -439,7 +439,7 @@ void analyze_expr(Expr *expr)
 		Type *left_type = expr->left->type;
 		
 		if(left_type->kind != STRUCTTYPE)
-			error("left side of '.' is not a structure");
+			error_expr(expr->left, "left side of '.' is not a structure");
 		
 		Stmt *structdecl = left_type->typedecl;
 		Scope *oldscope = scope;
@@ -453,9 +453,7 @@ void analyze_expr(Expr *expr)
 Expr *unwrap_pointer(Expr *expr)
 {
 	while(expr->type->kind == PTRTYPE) {
-		Expr *new_expr = create(Expr);
-		new_expr->kind = DEREF;
-		new_expr->child = expr;
+		Expr *new_expr = create_expr_wrap(DEREF, expr);
 		new_expr->type = expr->type->child;
 		expr = new_expr;
 	}
@@ -480,9 +478,7 @@ Expr *adjust_assign_target(Expr *target, Type *expr_type)
 		return target;
 	
 	while(deref_count > 0) {
-		Expr *new_target = create(Expr);
-		new_target->kind = DEREF;
-		new_target->child = target;
+		Expr *new_target = create_expr_wrap(DEREF, target);
 		new_target->type = target->type->child;
 		target = new_target;
 		deref_count --;
@@ -500,12 +496,9 @@ Expr *adjust_assign_value(Expr *expr, Type *target_type)
 	
 	if(target_type->kind == PTRTYPE && !types_equal(target_type, expr->type)) {
 		if(types_equal(target_type->child, expr->type) && expr->islvalue) {
-			Type *new_expr_type = create(Type);
-			new_expr_type->kind = PTRTYPE;
+			Type *new_expr_type = create_type(PTRTYPE);
 			new_expr_type->child = expr->type;
-			Expr *new_expr = create(Expr);
-			new_expr->kind = PTR;
-			new_expr->child = expr;
+			Expr *new_expr = create_expr_wrap(PTR, expr);
 			new_expr->type = new_expr_type;
 			return new_expr;
 		}
@@ -520,9 +513,7 @@ Expr *adjust_assign_value(Expr *expr, Type *target_type)
 		return expr;
 	
 	while(deref_count > 0) {
-		Expr *new_expr = create(Expr);
-		new_expr->kind = DEREF;
-		new_expr->child = expr;
+		Expr *new_expr = create_expr_wrap(DEREF, expr);
 		new_expr->type = expr->type->child;
 		expr = new_expr;
 		deref_count --;
@@ -552,23 +543,30 @@ void analyze_stmt(Stmt *stmt)
 		stmt->expr = adjust_assign_value(stmt->expr, stmt->target->type);
 		
 		if(stmt->target->type->kind == ARRAYTYPE)
-			error("reassignment of arrays is not supported");
+			error_stmt(stmt, "reassignment of arrays is not supported");
 		
 		if(types_equal(stmt->target->type, stmt->expr->type) == 0)
-			error("types are not equal");
+			error_stmt(stmt, "types are not equal");
 	}
 	else if(stmt->kind == VARDECL) {
 		if(stmt->type) {
 			if(stmt->type->kind == NAMEDTYPE) {
-				Symbol *sym = lookup_rec(stmt->type->ident);
+				Token *ident = stmt->type->ident;
+				Symbol *sym = lookup_rec(ident);
 				
 				if(sym == 0)
-					error("'%s' is an unknown type name");
+					error_at(
+						ident,
+						"'%s' is an unknown type name", ident->text
+					);
 				
 				Stmt *decl = sym->decl;
 				
 				if(decl->kind != STRUCTDECL)
-					error("'%s' is not a struct type name");
+					error_at(
+						ident,
+						"'%s' is not a struct type name", ident->text
+					);
 				
 				stmt->type->kind = STRUCTTYPE;
 				stmt->type->typedecl = decl;
@@ -584,16 +582,18 @@ void analyze_stmt(Stmt *stmt)
 			stmt->expr = adjust_assign_value(stmt->expr, stmt->type);
 			
 			if(types_equal(stmt->type, stmt->expr->type) == 0)
-				error("types are not equal");
+				error_stmt(stmt, "types are not equal");
 			
 			if(stmt->expr)
 				if(stmt->type->kind == ARRAYTYPE && stmt->expr->kind != ARRAY)
-					error("can only initialize array with a literal");
+					error_stmt(
+						stmt, "can only initialize array with a literal"
+					);
 		}
 	}
 	else if(stmt->kind == FUNCDECL) {
 		if(stmt->type && stmt->type->kind == ARRAYTYPE)
-			error("functions can not return arrays");
+			error_stmt(stmt, "functions can not return arrays");
 		
 		Scope *oldscope = scope;
 		scope = stmt->body->scope;
@@ -630,7 +630,7 @@ void analyze_stmt(Stmt *stmt)
 			}
 			
 			if(item->type->kind != PRIMTYPE)
-				error("can only print primitive types");
+				error_expr(item, "can only print primitive types");
 			
 			last = item;
 		}
@@ -643,16 +643,16 @@ void analyze_stmt(Stmt *stmt)
 			analyze_expr(expr);
 			
 			if(func->type == 0)
-				error("function should not return a value");
+				error_stmt(stmt, "function should not return a value");
 			
 			stmt->expr = adjust_assign_value(stmt->expr, func->type);
 			
 			if(!types_equal(stmt->expr->type, func->type))
-				error("returning the wrong type");
+				error_expr(expr, "returning the wrong type");
 		}
 		else {
 			if(func->type)
-				error("function should return with a value");
+				error_stmt(stmt, "function should return with a value");
 		}
 	}
 	

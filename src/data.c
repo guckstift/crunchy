@@ -66,6 +66,8 @@ typedef struct Token {
 
 typedef struct Type {
 	Kind kind;
+	size_t line;
+	size_t pos;
 	PrimType primtype;
 	struct Type *child;
 	Token *ident;
@@ -83,6 +85,8 @@ typedef enum {
 
 typedef struct Expr {
 	Kind kind;
+	size_t line;
+	size_t pos;
 	Token *prim;
 	Token *ident;
 	struct Expr *left;
@@ -107,6 +111,8 @@ typedef enum {
 
 typedef struct Stmt {
 	Kind kind;
+	size_t line;
+	size_t pos;
 	struct Stmt *next;
 	struct Stmt *param;
 	size_t param_count;
