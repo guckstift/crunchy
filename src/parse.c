@@ -8,7 +8,7 @@ Stmt *parse_vardecl();
 Token *next_token()
 {
 	Token *temp = token;
-	token = token->next;
+	token ++;
 	line = token->line;
 	pos = token->pos;
 	return temp;
@@ -643,7 +643,7 @@ Block *parse_block(Stmt *funchost)
 void parse_unit()
 {
 	filename = unit->filename;
-	token = unit->tokens->first;
+	token = unit->tokens;
 	line = token->line;
 	pos = token->pos;
 	scope = 0;

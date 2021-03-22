@@ -49,20 +49,14 @@ typedef enum {
 } PrimType;
 
 typedef struct Token {
-	struct Token *next;
 	Kind kind;
 	size_t line;
 	size_t pos;
 	size_t val;
 	double fval;
 	char *text;
+	size_t length;
 } Token;
-
-typedef struct {
-	Token *first;
-	Token *last;
-	size_t count;
-} TokenList;
 
 typedef struct Type {
 	Kind kind;
@@ -158,7 +152,8 @@ typedef struct Unit {
 	struct Unit *next;
 	char *source;
 	size_t length;
-	TokenList *tokens;
+	Token *tokens;
+	size_t tcount;
 	Block *ast;
 } Unit;
 

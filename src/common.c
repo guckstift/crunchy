@@ -17,7 +17,6 @@ size_t pos = 0;
 Project *project = 0;
 Unit *unit = 0;
 char *src = 0;
-TokenList *tokens = 0;
 Token *token = 0;
 Scope *scope = 0;
 int level = 0;

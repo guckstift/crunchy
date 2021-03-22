@@ -10,6 +10,8 @@ char *puncts[] = {
 	0
 };
 
+char *start = 0;
+
 char *clone_strpart(char *start, size_t length)
 {
 	char *cloned = malloc(length + 1);
@@ -46,34 +48,25 @@ size_t match_punct()
 
 void emit_token(Kind kind)
 {
-	token = create(Token);
+	unit->tcount ++;
+	unit->tokens = realloc(unit->tokens, sizeof(Token) * unit->tcount);
+	token = &unit->tokens[unit->tcount - 1];
 	token->kind = kind;
 	token->line = line;
 	token->pos = pos;
-	
-	if(tokens->count) {
-		tokens->last->next = token;
-		tokens->last = token;
-	}
-	else {
-		tokens->first = token;
-		tokens->last = token;
-	}
-	
-	tokens->count ++;
+	token->text = start;
+	token->length = src - start;
 }
 
 void lex_unit()
 {
-	unit->tokens = create(TokenList);
 	filename = unit->filename;
 	line = 1;
 	pos = 1;
 	src = unit->source;
-	tokens = unit->tokens;
 	
 	while(*src) {
-		char *start = src;
+		start = src;
 		
 		if(*src == '\n') {
 			src ++;
@@ -145,7 +138,6 @@ void lex_unit()
 				src ++;
 			
 			emit_token(IDENT);
-			token->text = clone_strpart(start, src - start);
 			pos += src - start;
 		}
 		else if(*src == '"') {
@@ -159,7 +151,6 @@ void lex_unit()
 				error("string literals must end with \"");
 			
 			emit_token(STRING);
-			token->text = clone_strpart(start, src - start);
 			src ++;
 			pos += src - start;
 		}
@@ -167,9 +158,8 @@ void lex_unit()
 			size_t punctlen = match_punct(src);
 			
 			if(punctlen) {
-				emit_token(PUNCT);
-				token->text = clone_strpart(src, punctlen);
 				src += punctlen;
+				emit_token(PUNCT);
 				pos += src - start;
 			}
 			else
@@ -178,4 +168,16 @@ void lex_unit()
 	}
 	
 	emit_token(END);
+	
+	for(Token *token = unit->tokens; token->kind != END; token ++) {
+		if(token->kind == IDENT) {
+			token->text = clone_strpart(token->text, token->length);
+		}
+		else if(token->kind == STRING) {
+			token->text = clone_strpart(token->text, token->length);
+		}
+		else if(token->kind == PUNCT) {
+			token->text = clone_strpart(token->text, token->length);
+		}
+	}
 }

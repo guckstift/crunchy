@@ -284,7 +284,7 @@ void dump_tokens()
 {
 	printf("\ntoken dump of '%s':\n\n", filename);
 	
-	for(Token *token = unit->tokens->first; token; token = token->next) {
+	for(Token *token = unit->tokens; token->kind != END; token ++) {
 		printf("%lu:%lu ", token->line, token->pos);
 		dump_token(token);
 		printf("\n");
