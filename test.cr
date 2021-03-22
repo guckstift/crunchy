@@ -1,10 +1,11 @@
-y := 8
+struct Foo {
+	x : int
+	y : float = 10.0
+}
 
 foo : Foo
 
-struct Foo {
-	x : int = 7 + 5
-	y := 111.0
-}
+print foo.y
 
-a := 0.1
+func fuu(f : Foo) {
+}

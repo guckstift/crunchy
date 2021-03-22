@@ -16,15 +16,34 @@ pointer
 	= "<" pointer
 	| "@" pointer
 	| ">" target
-	| subscript
+	| postfix
 
+/*
 subscript
 	= subscript "[" expr "]"
+	| subscript "." subscript
+	| call
+	| prim(<IDENT>)
+*/
+
+postfix
+	| postfix "[" expr "]"
+	| postfix "." prim(<IDENT>)
 	| call
 	| prim(<IDENT>)
 
+/*
+	x
+	x.y
+	x[i]
+	x(o)
+	x[i].y(0).z[1]
+	(((((x[i]).y)(0)).z)[1])
+*/
+
 target
 	= target "[" expr "]"
+	| target "." prim(<IDENT>)
 	| prim(<IDENT>)
 
 call = <IDENT> "(" expr_list ")"

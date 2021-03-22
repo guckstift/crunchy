@@ -19,6 +19,7 @@ typedef enum {
 	CALL,
 	DEREF,
 	ADDRESS,
+	MEMBER,
 	CHAIN,
 	// types
 	PRIMTYPE,

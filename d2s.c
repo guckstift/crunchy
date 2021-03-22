@@ -345,6 +345,10 @@ char *d2s(double f, int* len_out)
 				}
 			}
 		}
+		else {
+			outbuf[k++] = '.';
+			outbuf[k++] = '0';
+		}
 	}
 	
 	outbuf[k++] = 0;

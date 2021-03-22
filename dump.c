@@ -102,6 +102,11 @@ void dump_expr(Expr *expr)
 		dump_expr(expr->right);
 		printf("]");
 	}
+	else if(expr->kind == MEMBER) {
+		dump_expr(expr->left);
+		printf(".");
+		dump_expr(expr->right);
+	}
 }
 
 void dump_type(Type *type)

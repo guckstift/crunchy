@@ -148,6 +148,9 @@ int types_equal(Type *t1, Type *t2)
 	if(t1->kind == PRIMTYPE && t2->kind == PRIMTYPE)
 		return t1->primtype == t2->primtype;
 	
+	if(t1->kind == STRUCTTYPE && t2->kind == STRUCTTYPE)
+		return t1->typedecl == t2->typedecl;
+	
 	if(t1->kind == PTRTYPE && t2->kind == PTRTYPE)
 		return types_equal(t1->child, t2->child);
 	
@@ -190,6 +193,33 @@ Expr *unwrap_ptr_to_array(Expr *expr)
 	}
 	
 	if(type->kind != ARRAYTYPE)
+		return expr;
+	
+	while(deref_count > 0) {
+		Expr *new_expr = create(Expr);
+		new_expr->kind = DEREF;
+		new_expr->child = expr;
+		new_expr->type = expr->type->child;
+		expr = new_expr;
+		deref_count --;
+	}
+	
+	return expr;
+}
+
+Expr *unwrap_ptr_to_struct(Expr *expr)
+{
+	assert(expr);
+	assert(expr->type);
+	Type *type = expr->type;
+	size_t deref_count = 0;
+	
+	while(type->kind == PTRTYPE) {
+		type = type->child;
+		deref_count ++;
+	}
+	
+	if(type->kind != STRUCTTYPE)
 		return expr;
 	
 	while(deref_count > 0) {
@@ -388,6 +418,21 @@ void analyze_expr(Expr *expr)
 		
 		expr->type = expr->left->type->child;
 	}
+	else if(expr->kind == MEMBER) {
+		analyze_expr(expr->left);
+		expr->left = unwrap_ptr_to_struct(expr->left);
+		Type *left_type = expr->left->type;
+		
+		if(left_type->kind != STRUCTTYPE)
+			error("left side of '.' is not a structure");
+		
+		Stmt *structdecl = left_type->typedecl;
+		Scope *oldscope = scope;
+		scope = structdecl->body->scope;
+		analyze_expr(expr->right);
+		expr->type = expr->right->type;
+		scope = oldscope;
+	}
 }
 
 Expr *unwrap_pointer(Expr *expr)
@@ -500,7 +545,7 @@ void analyze_stmt(Stmt *stmt)
 	else if(stmt->kind == VARDECL) {
 		if(stmt->type) {
 			if(stmt->type->kind == NAMEDTYPE) {
-				Symbol *sym = lookup(stmt->type->ident);
+				Symbol *sym = lookup_rec(stmt->type->ident);
 				
 				if(sym == 0)
 					error("'%s' is an unknown type name");

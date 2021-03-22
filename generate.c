@@ -96,6 +96,11 @@ void gen_expr(Expr *expr)
 		gen_expr(expr->right);
 		fprintf(cfile, "]");
 	}
+	else if(expr->kind == MEMBER) {
+		gen_expr(expr->left);
+		fprintf(cfile, ".");
+		gen_expr(expr->right);
+	}
 }
 
 void gen_type(Type *type)
