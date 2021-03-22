@@ -28,7 +28,7 @@ int is_kind(Kind kind)
 
 int is_keyword(char *key)
 {
-	return is_kind(IDENT) && strcmp(token->text, key) == 0;
+	return is_kind(IDENT) && token->text == key;
 }
 
 int is_punct(char *punct)
@@ -95,7 +95,7 @@ Type *parse_primtype()
 {
 	PrimType primtype;
 	
-	if(is_keyword("i64") || is_keyword("int"))
+	if(is_keyword("i64") || is_keyword(kw_int))
 		primtype = I64;
 	else if(is_keyword("i32"))
 		primtype = I32;
@@ -111,7 +111,7 @@ Type *parse_primtype()
 		primtype = U16;
 	else if(is_keyword("u8"))
 		primtype = U8;
-	else if(is_keyword("f64") || is_keyword("float"))
+	else if(is_keyword("f64") || is_keyword(kw_float))
 		primtype = F64;
 	else if(is_keyword("f32"))
 		primtype = F32;
@@ -170,7 +170,7 @@ Type *parse_type()
 
 Stmt *parse_import()
 {
-	if(parse_keyword("import") == 0)
+	if(parse_keyword(kw_import) == 0)
 		return 0;
 	
 	if(scope->parent)
@@ -189,7 +189,7 @@ Stmt *parse_import()
 
 Stmt *parse_funcdecl()
 {
-	if(parse_keyword("func") == 0)
+	if(parse_keyword(kw_func) == 0)
 		return 0;
 	
 	if(scope->parent)
@@ -352,7 +352,7 @@ Stmt *parse_callstmt()
 
 Stmt *parse_ifstmt()
 {
-	if(parse_keyword("if") == 0)
+	if(parse_keyword(kw_if) == 0)
 		return 0;
 	
 	Expr *expr = parse_expr();
@@ -377,7 +377,7 @@ Stmt *parse_ifstmt()
 
 Stmt *parse_whilestmt()
 {
-	if(parse_keyword("while") == 0)
+	if(parse_keyword(kw_while) == 0)
 		return 0;
 	
 	Expr *expr = parse_expr();
@@ -405,7 +405,7 @@ Stmt *parse_whilestmt()
 
 Stmt *parse_print()
 {
-	if(parse_keyword("print") == 0)
+	if(parse_keyword(kw_print) == 0)
 		return 0;
 	
 	Expr *first = 0;
@@ -445,7 +445,7 @@ Stmt *parse_print()
 
 Stmt *parse_return()
 {
-	if(parse_keyword("return") == 0)
+	if(parse_keyword(kw_return) == 0)
 		return 0;
 	
 	if(scope->funchost == 0)
@@ -464,7 +464,7 @@ Stmt *parse_return()
 
 Stmt *parse_export()
 {
-	if(parse_keyword("export") == 0)
+	if(parse_keyword(kw_export) == 0)
 		return 0;
 	
 	if(scope->parent)
@@ -486,7 +486,7 @@ Stmt *parse_export()
 
 Stmt *parse_break()
 {
-	if(parse_keyword("break") == 0)
+	if(parse_keyword(kw_break) == 0)
 		return 0;
 	
 	if(!inloop)
@@ -499,7 +499,7 @@ Stmt *parse_break()
 
 Stmt *parse_continue()
 {
-	if(parse_keyword("continue") == 0)
+	if(parse_keyword(kw_continue) == 0)
 		return 0;
 	
 	if(!inloop)
@@ -552,7 +552,7 @@ Block *parse_struct_block()
 
 Stmt *parse_structdecl()
 {
-	if(parse_keyword("struct") == 0)
+	if(parse_keyword(kw_struct) == 0)
 		return 0;
 	
 	Token *ident = parse_kind(IDENT);

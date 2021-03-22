@@ -9,13 +9,13 @@ Symbol *lookup(Token *ident)
 	assert(ident);
 	
 	for(Symbol *symbol = scope->first; symbol; symbol = symbol->next) {
-		if(strcmp(symbol->ident->text, ident->text) == 0) {
+		if(symbol->ident->text == ident->text) {
 			return symbol;
 		}
 	}
 	
 	for(Symbol *symbol = scope->first_import; symbol; symbol = symbol->next) {
-		if(strcmp(symbol->ident->text, ident->text) == 0) {
+		if(symbol->ident->text == ident->text) {
 			return symbol;
 		}
 	}

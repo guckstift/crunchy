@@ -10,7 +10,27 @@ char *puncts[] = {
 	0
 };
 
-char *start = 0;
+char *pool_str(char *str, size_t len)
+{
+	if(len == 0)
+		len = strlen(str);
+	
+	for(size_t i=0; i<pool_count; i++) {
+		String *pooled = &str_pool[i];
+		
+		if(pooled->len == len && strncmp(pooled->str, str, len) == 0)
+			return pooled->str;
+	}
+	
+	pool_count ++;
+	str_pool = realloc(str_pool, sizeof(String) * pool_count);
+	String *pooled = &str_pool[pool_count - 1];
+	pooled->len = len;
+	pooled->str = malloc(len + 1);
+	pooled->str[len] = 0;
+	memcpy(pooled->str, str, len);
+	return pooled->str;
+}
 
 char *clone_strpart(char *start, size_t length)
 {
@@ -171,13 +191,13 @@ void lex_unit()
 	
 	for(Token *token = unit->tokens; token->kind != END; token ++) {
 		if(token->kind == IDENT) {
-			token->text = clone_strpart(token->text, token->length);
+			token->text = pool_str(token->text, token->length);
 		}
 		else if(token->kind == STRING) {
 			token->text = clone_strpart(token->text, token->length);
 		}
 		else if(token->kind == PUNCT) {
-			token->text = clone_strpart(token->text, token->length);
+			token->text = pool_str(token->text, token->length);
 		}
 	}
 }

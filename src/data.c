@@ -48,6 +48,11 @@ typedef enum {
 	F32, F64,
 } PrimType;
 
+typedef struct {
+	char *str;
+	size_t len;
+} String;
+
 typedef struct Token {
 	Kind kind;
 	size_t line;
