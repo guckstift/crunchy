@@ -20,7 +20,7 @@ foo : Foo
 
 ar : >[2]int
 
-ar = foo
+#ar[0] = foo.x
 
 #Foo : int
 

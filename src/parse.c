@@ -93,10 +93,8 @@ Type *create_type(Kind kind)
 {
 	Type *type = create(Type);
 	type->kind = kind;
-	type->line = node_line;
-	type->pos = node_pos;
-	node_line = line;
-	node_pos = pos;
+	type->line = line;
+	type->pos = pos;
 	return type;
 }
 
@@ -104,10 +102,8 @@ Stmt *create_stmt(Kind kind)
 {
 	Stmt *stmt = create(Stmt);
 	stmt->kind = kind;
-	stmt->line = node_line;
-	stmt->pos = node_pos;
-	node_line = line;
-	node_pos = pos;
+	stmt->line = line;
+	stmt->pos = pos;
 	return stmt;
 }
 
@@ -115,10 +111,8 @@ Expr *create_expr(Kind kind)
 {
 	Expr *expr = create(Expr);
 	expr->kind = kind;
-	expr->line = node_line;
-	expr->pos = node_pos;
-	node_line = line;
-	node_pos = pos;
+	expr->line = line;
+	expr->pos = pos;
 	return expr;
 }
 
@@ -202,6 +196,8 @@ Stmt *parse_import()
 	if(parse_keyword(kw_import) == 0)
 		return 0;
 	
+	Stmt *import = create_stmt(IMPORT);
+	
 	if(scope->parent)
 		error("imports can only be used in global scope");
 	
@@ -210,7 +206,6 @@ Stmt *parse_import()
 	if(name == 0)
 		error("expected string after 'import'");
 	
-	Stmt *import = create_stmt(IMPORT);
 	import->string = name;
 	return import;
 }
@@ -219,6 +214,8 @@ Stmt *parse_funcdecl()
 {
 	if(parse_keyword(kw_func) == 0)
 		return 0;
+	
+	Stmt *funcdecl = create_stmt(FUNCDECL);
 	
 	if(scope->parent)
 		error("functions can only be declared in global scope");
@@ -276,7 +273,6 @@ Stmt *parse_funcdecl()
 	if(parse_punct(PN_LCURLY) == 0)
 		error("expected '{' after function head");
 	
-	Stmt *funcdecl = create_stmt(FUNCDECL);
 	Block *body = parse_block(funcdecl);
 	
 	if(parse_punct(PN_RCURLY) == 0)
@@ -305,6 +301,8 @@ Stmt *parse_assign()
 		return 0;
 	}
 	
+	Stmt *assign = create_stmt(ASSIGN);
+	
 	if(target->islvalue == 0)
 		error("target is not assignable");
 	
@@ -313,7 +311,6 @@ Stmt *parse_assign()
 	if(expr == 0)
 		error("expected expression after '%s'", op->text);
 	
-	Stmt *assign = create_stmt(ASSIGN);
 	assign->target = target;
 	assign->expr = expr;
 	assign->op = op;
@@ -326,11 +323,13 @@ Stmt *parse_vardecl()
 	Token *ident = parse_kind(IDENT);
 	Type *type = 0;
 	Expr *expr = 0;
+	Stmt *vardecl = 0;
 	
 	if(ident == 0)
 		return 0;
 	
 	if(parse_punct(PN_COLON)) {
+		vardecl = create_stmt(VARDECL);
 		type = parse_type();
 		
 		if(type == 0)
@@ -344,6 +343,7 @@ Stmt *parse_vardecl()
 		}
 	}
 	else if(parse_punct(PN_DECL)) {
+		vardecl = create_stmt(VARDECL);
 		expr = parse_expr();
 		
 		if(expr == 0)
@@ -354,7 +354,6 @@ Stmt *parse_vardecl()
 		return 0;
 	}
 	
-	Stmt *vardecl = create_stmt(VARDECL);
 	vardecl->ident = ident;
 	vardecl->type = type;
 	vardecl->expr = expr;
@@ -370,6 +369,8 @@ Stmt *parse_callstmt()
 	
 	expr->iscallstmt = 1;
 	Stmt *call = create_stmt(CALLSTMT);
+	call->line = expr->line;
+	call->pos = expr->pos;
 	call->expr = expr;
 	return call;
 }
@@ -379,6 +380,7 @@ Stmt *parse_ifstmt()
 	if(parse_keyword(kw_if) == 0)
 		return 0;
 	
+	Stmt *ifstmt = create_stmt(IFSTMT);
 	Expr *expr = parse_expr();
 	
 	if(expr == 0)
@@ -392,7 +394,6 @@ Stmt *parse_ifstmt()
 	if(parse_punct(PN_RCURLY) == 0)
 		error("expected '}' after if body");
 	
-	Stmt *ifstmt = create_stmt(IFSTMT);
 	ifstmt->expr = expr;
 	ifstmt->body = body;
 	return ifstmt;
@@ -403,6 +404,7 @@ Stmt *parse_whilestmt()
 	if(parse_keyword(kw_while) == 0)
 		return 0;
 	
+	Stmt *whilestmt = create_stmt(WHILESTMT);
 	Expr *expr = parse_expr();
 	
 	if(expr == 0)
@@ -419,7 +421,6 @@ Stmt *parse_whilestmt()
 	if(parse_punct(PN_RCURLY) == 0)
 		error("expected '}' after while body");
 	
-	Stmt *whilestmt = create_stmt(WHILESTMT);
 	whilestmt->expr = expr;
 	whilestmt->body = body;
 	return whilestmt;
@@ -430,6 +431,7 @@ Stmt *parse_print()
 	if(parse_keyword(kw_print) == 0)
 		return 0;
 	
+	Stmt *print = create_stmt(PRINT);
 	Expr *first = 0;
 	Expr *last = 0;
 	size_t count = 0;
@@ -458,7 +460,6 @@ Stmt *parse_print()
 	if(first == 0)
 		error("expected at least one expression after 'print'");
 	
-	Stmt *print = create_stmt(PRINT);
 	print->expr = first;
 	print->param_count = count;
 	return print;
@@ -573,6 +574,7 @@ Stmt *parse_structdecl()
 	if(parse_keyword(kw_struct) == 0)
 		return 0;
 	
+	Stmt *stmt = create_stmt(STRUCTDECL);
 	Token *ident = parse_kind(IDENT);
 	
 	if(ident == 0)
@@ -586,7 +588,6 @@ Stmt *parse_structdecl()
 	if(parse_punct(PN_RCURLY) == 0)
 		error("expected '}' after structure definition");
 	
-	Stmt *stmt = create_stmt(STRUCTDECL);
 	stmt->ident = ident;
 	stmt->body = body;
 	return stmt;
@@ -663,8 +664,6 @@ void parse_unit()
 	token = unit->tokens;
 	line = token->line;
 	pos = token->pos;
-	node_line = line;
-	node_pos = pos;
 	scope = 0;
 	inloop = 0;
 	unit->ast = parse_block(0);
