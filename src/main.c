@@ -1,4 +1,4 @@
-#include "data.h"
+#include "data.c"
 #include "common.c"
 #include "d2s.c"
 #include "dump.c"
