@@ -61,6 +61,7 @@ typedef struct Token {
 	double fval;
 	char *text;
 	size_t length;
+	int punct;
 } Token;
 
 typedef struct Type {

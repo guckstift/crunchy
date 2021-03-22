@@ -25,20 +25,6 @@ Scope *scope = 0;
 int level = 0;
 FILE *cfile = 0;
 
-char *kw_break = 0;
-char *kw_continue = 0;
-char *kw_else = 0;
-char *kw_export = 0;
-char *kw_float = 0;
-char *kw_func = 0;
-char *kw_if = 0;
-char *kw_int = 0;
-char *kw_import = 0;
-char *kw_print = 0;
-char *kw_return = 0;
-char *kw_struct = 0;
-char *kw_while = 0;
-
 void error(char *msg, ...)
 {
 	va_list args;

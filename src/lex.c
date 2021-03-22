@@ -1,3 +1,28 @@
+char *kw_break = 0;
+char *kw_continue = 0;
+char *kw_else = 0;
+char *kw_export = 0;
+char *kw_float = 0;
+char *kw_func = 0;
+char *kw_if = 0;
+char *kw_int = 0;
+char *kw_import = 0;
+char *kw_print = 0;
+char *kw_return = 0;
+char *kw_struct = 0;
+char *kw_while = 0;
+
+typedef enum {
+	PN_AND, PN_OR,
+	PN_EQU, PN_NEQU, PN_LTEQU, PN_GTEQU,
+	PN_DECL,
+	PN_ADDASSIGN, PN_SUBASSIGN, PN_MULASSIGN, PN_DIVASSIGN, PN_MODASSIGN,
+	PN_PLUS, PN_MINUS, PN_MUL, PN_DIV, PN_MOD,
+	PN_GT, PN_LT, PN_ADDR,
+	PN_COLON, PN_ASSIGN, PN_COMMA, PN_PERIOD,
+	PN_LPAREN, PN_RPAREN, PN_LCURLY, PN_RCURLY, PN_LBRACK, PN_RBRACK,
+} Punct;
+
 char *puncts[] = {
 	"&&", "||",
 	"==", "!=", "<=", ">=",
@@ -9,6 +34,17 @@ char *puncts[] = {
 	"(", ")", "{", "}", "[", "]",
 	0
 };
+
+char *pool_insert(char *str)
+{
+	size_t len = strlen(str);
+	pool_count ++;
+	str_pool = realloc(str_pool, sizeof(String) * pool_count);
+	String *pooled = &str_pool[pool_count - 1];
+	pooled->len = len;
+	pooled->str = str;
+	return pooled->str;
+}
 
 char *pool_str(char *str, size_t len)
 {
@@ -53,14 +89,16 @@ size_t match_strpart(char *start, char *needle)
 	return 0;
 }
 
-size_t match_punct()
+size_t match_punct(Punct *punct_id)
 {
 	for(int i=0; puncts[i]; i++) {
 		char *punct = puncts[i];
 		size_t length = match_strpart(src, punct);
 		
-		if(length)
+		if(length) {
+			*punct_id = i;
 			return length;
+		}
 	}
 	
 	return 0;
@@ -80,6 +118,22 @@ void emit_token(Kind kind)
 
 void lex_unit()
 {
+	if(str_pool == 0) {
+		kw_break = pool_insert("break");
+		kw_continue = pool_insert("continue");
+		kw_else = pool_insert("else");
+		kw_export = pool_insert("export");
+		kw_float = pool_insert("float");
+		kw_func = pool_insert("func");
+		kw_if = pool_insert("if");
+		kw_int = pool_insert("int");
+		kw_import = pool_insert("import");
+		kw_print = pool_insert("print");
+		kw_return = pool_insert("return");
+		kw_struct = pool_insert("struct");
+		kw_while = pool_insert("while");
+	}
+	
 	filename = unit->filename;
 	line = 1;
 	pos = 1;
@@ -175,11 +229,13 @@ void lex_unit()
 			pos += src - start;
 		}
 		else {
-			size_t punctlen = match_punct(src);
+			Punct punct;
+			size_t punctlen = match_punct(&punct);
 			
 			if(punctlen) {
 				src += punctlen;
 				emit_token(PUNCT);
+				token->punct = punct;
 				pos += src - start;
 			}
 			else
@@ -197,7 +253,7 @@ void lex_unit()
 			token->text = clone_strpart(token->text, token->length);
 		}
 		else if(token->kind == PUNCT) {
-			token->text = pool_str(token->text, token->length);
+			token->text = puncts[token->punct];
 		}
 	}
 }

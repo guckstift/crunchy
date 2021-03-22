@@ -31,9 +31,9 @@ int is_keyword(char *key)
 	return is_kind(IDENT) && token->text == key;
 }
 
-int is_punct(char *punct)
+int is_punct(Punct punct)
 {
-	return is_kind(PUNCT) && strcmp(token->text, punct) == 0;
+	return is_kind(PUNCT) && token->punct == punct;
 }
 
 Token *parse_kind(Kind kind)
@@ -54,7 +54,7 @@ Token *parse_keyword(char *key)
 	return 0;
 }
 
-Token *parse_punct(char *punct)
+Token *parse_punct(Punct punct)
 {
 	if(is_punct(punct)) {
 		return next_token();
@@ -133,7 +133,7 @@ Type *parse_primtype()
 
 Type *parse_type()
 {
-	if(parse_punct(">")) {
+	if(parse_punct(PN_GT)) {
 		Type *type = parse_type();
 		
 		if(type == 0)
@@ -144,13 +144,13 @@ Type *parse_type()
 		ptrtype->child = type;
 		return ptrtype;
 	}
-	else if(parse_punct("[")) {
+	else if(parse_punct(PN_LBRACK)) {
 		Token *count = parse_kind(INTEGER);
 		
 		if(count == 0)
 			error("expected integer after '['");
 		
-		if(parse_punct("]") == 0)
+		if(parse_punct(PN_RBRACK) == 0)
 			error("expected ']' after integer");
 		
 		Type *child = parse_type();
@@ -200,7 +200,7 @@ Stmt *parse_funcdecl()
 	if(ident == 0)
 		error("expected function name after 'func'");
 	
-	if(parse_punct("(") == 0)
+	if(parse_punct(PN_LPAREN) == 0)
 		error("expected '(' after function name");
 	
 	Stmt *first = 0;
@@ -229,29 +229,29 @@ Stmt *parse_funcdecl()
 		
 		param_count ++;
 		
-		if(parse_punct(",") == 0)
+		if(parse_punct(PN_COMMA) == 0)
 			break;
 	}
 	
-	if(parse_punct(")") == 0)
+	if(parse_punct(PN_RPAREN) == 0)
 		error("expected ')' after parameter list");
 	
 	Type *type = 0;
 	
-	if(parse_punct(":")) {
+	if(parse_punct(PN_COLON)) {
 		type = parse_type();
 		
 		if(type == 0)
 			error("expected type after ':'");
 	}
 	
-	if(parse_punct("{") == 0)
+	if(parse_punct(PN_LCURLY) == 0)
 		error("expected '{' after function head");
 	
 	Stmt *funcdecl = create(Stmt);
 	Block *body = parse_block(funcdecl);
 	
-	if(parse_punct("}") == 0)
+	if(parse_punct(PN_RCURLY) == 0)
 		error("expected '}' after function statements");
 	
 	funcdecl->kind = FUNCDECL;
@@ -304,20 +304,20 @@ Stmt *parse_vardecl()
 	if(ident == 0)
 		return 0;
 	
-	if(parse_punct(":")) {
+	if(parse_punct(PN_COLON)) {
 		type = parse_type();
 		
 		if(type == 0)
 			error("expected type after ':'");
 		
-		if(parse_punct("=")) {
+		if(parse_punct(PN_ASSIGN)) {
 			expr = parse_expr();
 			
 			if(expr == 0)
 				error("expected initializer after '='");
 		}
 	}
-	else if(parse_punct(":=")) {
+	else if(parse_punct(PN_DECL)) {
 		expr = parse_expr();
 		
 		if(expr == 0)
@@ -360,12 +360,12 @@ Stmt *parse_ifstmt()
 	if(expr == 0)
 		error("expected condition after 'if'");
 	
-	if(parse_punct("{") == 0)
+	if(parse_punct(PN_LCURLY) == 0)
 		error("expected '{' after condition");
 	
 	Block *body = parse_block(0);
 	
-	if(parse_punct("}") == 0)
+	if(parse_punct(PN_RCURLY) == 0)
 		error("expected '}' after if body");
 	
 	Stmt *ifstmt = create(Stmt);
@@ -385,7 +385,7 @@ Stmt *parse_whilestmt()
 	if(expr == 0)
 		error("expected condition after 'while'");
 	
-	if(parse_punct("{") == 0)
+	if(parse_punct(PN_LCURLY) == 0)
 		error("expected '{' after condition");
 	
 	int old_inloop = inloop;
@@ -393,7 +393,7 @@ Stmt *parse_whilestmt()
 	Block *body = parse_block(0);
 	inloop = old_inloop;
 	
-	if(parse_punct("}") == 0)
+	if(parse_punct(PN_RCURLY) == 0)
 		error("expected '}' after while body");
 	
 	Stmt *whilestmt = create(Stmt);
@@ -429,7 +429,7 @@ Stmt *parse_print()
 		
 		count ++;
 		
-		if(parse_punct(",") == 0)
+		if(parse_punct(PN_COMMA) == 0)
 			break;
 	}
 	
@@ -560,12 +560,12 @@ Stmt *parse_structdecl()
 	if(ident == 0)
 		error("expected identifier after 'struct'");
 	
-	if(parse_punct("{") == 0)
+	if(parse_punct(PN_LCURLY) == 0)
 		error("expected '{' after structure name");
 	
 	Block *body = parse_struct_block();
 	
-	if(parse_punct("}") == 0)
+	if(parse_punct(PN_RCURLY) == 0)
 		error("expected '}' after structure definition");
 	
 	Stmt *stmt = create(Stmt);

@@ -49,7 +49,7 @@ Expr *parse_literal_prim()
 
 Expr *parse_array()
 {
-	if(parse_punct("[") == 0)
+	if(parse_punct(PN_LBRACK) == 0)
 		return 0;
 	
 	Expr *first = 0;
@@ -75,14 +75,14 @@ Expr *parse_array()
 		length ++;
 		isconst = isconst && item->isconst;
 		
-		if(parse_punct(",") == 0)
+		if(parse_punct(PN_COMMA) == 0)
 			break;
 	}
 	
 	if(length == 0)
 		error("empty array literals are not allowed");
 	
-	if(parse_punct("]") == 0)
+	if(parse_punct(PN_RBRACK) == 0)
 		error("array literal must be terminated with ']'");
 	
 	if(isconst == 0)
@@ -104,7 +104,7 @@ Expr *parse_call()
 	if(ident == 0)
 		return 0;
 	
-	if(parse_punct("(") == 0) {
+	if(parse_punct(PN_LPAREN) == 0) {
 		seek_token(start);
 		return 0;
 	}
@@ -130,11 +130,11 @@ Expr *parse_call()
 		
 		arg_count ++;
 		
-		if(parse_punct(",") == 0)
+		if(parse_punct(PN_COMMA) == 0)
 			break;
 	}
 	
-	if(parse_punct(")") == 0)
+	if(parse_punct(PN_RPAREN) == 0)
 		error("expected ')' after argument list");
 	
 	Expr *call = create(Expr);
@@ -153,13 +153,13 @@ Expr *parse_target()
 		return 0;
 	
 	while(1) {
-		if(parse_punct("[")) {
+		if(parse_punct(PN_LBRACK)) {
 			Expr *index = parse_expr();
 			
 			if(index == 0)
 				error("expected index of subscript");
 			
-			if(parse_punct("]") == 0)
+			if(parse_punct(PN_RBRACK) == 0)
 				error("expected ']' after index");
 			
 			Expr *subscript = create(Expr);
@@ -169,7 +169,7 @@ Expr *parse_target()
 			subscript->islvalue = expr->islvalue;
 			expr = subscript;
 		}
-		else if(parse_punct(".")) {
+		else if(parse_punct(PN_PERIOD)) {
 			Expr *ident = parse_ident_prim();
 			
 			if(ident == 0)
@@ -200,13 +200,13 @@ Expr *parse_postfix()
 		return 0;
 	
 	while(1) {
-		if(parse_punct("[")) {
+		if(parse_punct(PN_LBRACK)) {
 			Expr *index = parse_expr();
 			
 			if(index == 0)
 				error("expected index of subscript");
 			
-			if(parse_punct("]") == 0)
+			if(parse_punct(PN_RBRACK) == 0)
 				error("expected ']' after index");
 			
 			Expr *subscript = create(Expr);
@@ -216,7 +216,7 @@ Expr *parse_postfix()
 			subscript->islvalue = expr->islvalue;
 			expr = subscript;
 		}
-		else if(parse_punct(".")) {
+		else if(parse_punct(PN_PERIOD)) {
 			Expr *ident = parse_ident_prim();
 			
 			if(ident == 0)
@@ -238,7 +238,7 @@ Expr *parse_postfix()
 
 Expr *parse_pointer()
 {
-	if(parse_punct("<")) {
+	if(parse_punct(PN_LT)) {
 		Expr *ptr = parse_pointer();
 		
 		if(ptr == 0)
@@ -250,7 +250,7 @@ Expr *parse_pointer()
 		return deref;
 	}
 	
-	if(parse_punct("@")) {
+	if(parse_punct(PN_ADDR)) {
 		Expr *ptr = parse_pointer();
 		
 		if(ptr == 0)
@@ -262,7 +262,7 @@ Expr *parse_pointer()
 		return address;
 	}
 	
-	if(parse_punct(">")) {
+	if(parse_punct(PN_GT)) {
 		Expr *target = parse_target();
 		
 		if(target == 0)
@@ -281,8 +281,8 @@ Expr *parse_prefix()
 {
 	Token *op = 0;
 	
-	(op = parse_punct("+")) ||
-	(op = parse_punct("-")) ||
+	(op = parse_punct(PN_PLUS)) ||
+	(op = parse_punct(PN_MINUS)) ||
 	0 ;
 	
 	if(op) {

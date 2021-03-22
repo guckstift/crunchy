@@ -261,7 +261,7 @@ void analyze_expr(Expr *expr)
 		analyze_expr(expr->child);
 		expr->type = expr->child->type;
 		
-		if(strcmp(expr->op->text, "-") == 0)
+		if(expr->op->punct == PN_MINUS)
 			expr->iconst = - expr->child->iconst;
 	}
 	else if(expr->kind == ARRAY) {
@@ -373,32 +373,47 @@ void analyze_expr(Expr *expr)
 		
 		expr->type = expr->left->type;
 		
-		if(strcmp(expr->op->text, "+") == 0)
+		switch(expr->op->punct) {
+		case PN_PLUS:
 			expr->iconst = expr->left->iconst + expr->right->iconst;
-		else if(strcmp(expr->op->text, "-") == 0)
+			break;
+		case PN_MINUS:
 			expr->iconst = expr->left->iconst - expr->right->iconst;
-		else if(strcmp(expr->op->text, "*") == 0)
+			break;
+		case PN_MUL:
 			expr->iconst = expr->left->iconst * expr->right->iconst;
-		else if(strcmp(expr->op->text, "/") == 0)
+			break;
+		case PN_DIV:
 			expr->iconst = expr->left->iconst / expr->right->iconst;
-		else if(strcmp(expr->op->text, "%") == 0)
+			break;
+		case PN_MOD:
 			expr->iconst = expr->left->iconst % expr->right->iconst;
-		else if(strcmp(expr->op->text, "&&") == 0)
+			break;
+		case PN_AND:
 			expr->iconst = expr->left->iconst && expr->right->iconst;
-		else if(strcmp(expr->op->text, "||") == 0)
+			break;
+		case PN_OR:
 			expr->iconst = expr->left->iconst || expr->right->iconst;
-		else if(strcmp(expr->op->text, "==") == 0)
+			break;
+		case PN_EQU:
 			expr->iconst = expr->left->iconst == expr->right->iconst;
-		else if(strcmp(expr->op->text, "!=") == 0)
+			break;
+		case PN_NEQU:
 			expr->iconst = expr->left->iconst != expr->right->iconst;
-		else if(strcmp(expr->op->text, "<=") == 0)
+			break;
+		case PN_LTEQU:
 			expr->iconst = expr->left->iconst <= expr->right->iconst;
-		else if(strcmp(expr->op->text, ">=") == 0)
+			break;
+		case PN_GTEQU:
 			expr->iconst = expr->left->iconst >= expr->right->iconst;
-		else if(strcmp(expr->op->text, "<") == 0)
+			break;
+		case PN_LT:
 			expr->iconst = expr->left->iconst < expr->right->iconst;
-		else if(strcmp(expr->op->text, ">") == 0)
+			break;
+		case PN_GT:
 			expr->iconst = expr->left->iconst > expr->right->iconst;
+			break;
+		}
 	}
 	else if(expr->kind == SUBSCRIPT) {
 		analyze_expr(expr->left);
@@ -529,10 +544,10 @@ void analyze_stmt(Stmt *stmt)
 		analyze_expr(stmt->target);
 		analyze_expr(stmt->expr);
 		
-		if(strcmp(stmt->op->text, "=") != 0)
-			stmt->target = unwrap_pointer(stmt->target);
-		else
+		if(stmt->op->punct == PN_ASSIGN)
 			stmt->target = adjust_assign_target(stmt->target, stmt->expr->type);
+		else
+			stmt->target = unwrap_pointer(stmt->target);
 		
 		stmt->expr = adjust_assign_value(stmt->expr, stmt->target->type);
 		
