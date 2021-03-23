@@ -185,6 +185,7 @@ Unit *do_import(char *path)
 		size_t line_bak = line;
 		size_t pos_bak = pos;
 		Scope *scope_bak = scope;
+		Scope *global_bak = global;
 		
 		build_unit(abspath);
 		
@@ -196,6 +197,7 @@ Unit *do_import(char *path)
 		line = line_bak;
 		pos = pos_bak;
 		scope = scope_bak;
+		global = global_bak;
 		
 		chdir_in(unit->abspath);
 	}

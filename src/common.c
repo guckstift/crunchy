@@ -22,6 +22,7 @@ String *str_pool = 0;
 size_t pool_count = 0;
 Token *token = 0;
 Scope *scope = 0;
+Scope *global = 0;
 int level = 0;
 FILE *cfile = 0;
 

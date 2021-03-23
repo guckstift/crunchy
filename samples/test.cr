@@ -1,16 +1,20 @@
 
-ar := [23,42,666,-1,-2,-66,4,8]
+x := 0
+y := 0.0
+p := >x
+q := p
 
-sl : []int
+a := [1,2,3]
+sl := a[0:3]
+sl2 := sl[0:3]
 
-sl = ar[1:2]
-print sl[0]
+struct Foo {
+	x : int
+}
 
-sl = sl[1:2]
-print sl[0]
+foo : Foo
 
-sl = sl[1:2]
-print sl[0]
-
-sl = sl[1:2]
-print sl[0]
+func myfunc()
+{
+	var := >a
+}

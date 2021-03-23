@@ -4,6 +4,7 @@ int inloop = 0;
 Block *parse_block(Stmt *funchost);
 Expr *parse_expr();
 Stmt *parse_vardecl();
+Type *record_type(Type *type);
 
 Token *next_token()
 {
@@ -143,6 +144,7 @@ Type *parse_primtype()
 	else if(is_kind(IDENT)) {
 		Type *type = create_type(NAMEDTYPE);
 		type->name = next_token()->text;
+		record_type(type);
 		return type;
 	}
 	else
@@ -150,6 +152,7 @@ Type *parse_primtype()
 
 	Type *type = create_type(PRIMTYPE);
 	type->primtype = primtype;
+	record_type(type);
 	next_token();
 	return type;
 }
@@ -164,6 +167,7 @@ Type *parse_type()
 			error("expected pointer base type");
 		
 		ptrtype->child = type;
+		record_type(ptrtype);
 		return ptrtype;
 	}
 	else if(parse_punct(PN_LBRACK)) {
@@ -185,6 +189,7 @@ Type *parse_type()
 			type->count = count->val;
 		
 		type->child = child;
+		record_type(type);
 		return type;
 	}
 	
@@ -574,6 +579,9 @@ Stmt *parse_structdecl()
 	if(parse_keyword(kw_struct) == 0)
 		return 0;
 	
+	if(scope->parent)
+		error("structures can be only declared globally");
+	
 	Stmt *stmt = create_stmt(STRUCTDECL);
 	Token *ident = parse_kind(IDENT);
 	
@@ -624,6 +632,9 @@ Block *parse_block(Stmt *funchost)
 	blockscope->parent = scope;
 	scope = blockscope;
 	
+	if(global == 0)
+		global = scope;
+	
 	scope->funchost = funchost
 		? funchost
 		: scope->parent
@@ -665,6 +676,7 @@ void parse_unit()
 	line = token->line;
 	pos = token->pos;
 	scope = 0;
+	global = 0;
 	inloop = 0;
 	unit->ast = parse_block(0);
 	

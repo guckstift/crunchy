@@ -2,6 +2,8 @@
 void gen_block(Block *block);
 void gen_vardecl(Stmt *stmt);
 void gen_type(Type *type);
+void gen_typename(Type *type);
+void gen_typedefs(Scope *scope);
 
 void gen_indent()
 {
@@ -125,7 +127,9 @@ void gen_expr(Expr *expr)
 	}
 	else if(expr->kind == SLICE) {
 		if(expr->left->type->kind == ARRAYTYPE) {
-			fprintf(cfile, "(slice){");
+			fprintf(cfile, "(");
+			gen_typename(expr->type);
+			fprintf(cfile, "){");
 			gen_expr(expr->left);
 			fprintf(cfile, "+");
 			gen_expr(expr->right);
@@ -136,9 +140,9 @@ void gen_expr(Expr *expr)
 			fprintf(cfile, "}");
 		}
 		else if(expr->left->type->kind == SLICETYPE) {
-			fprintf(cfile, "(slice){(");
-			gen_type(expr->left->type->child);
-			fprintf(cfile, "*)");
+			fprintf(cfile, "(");
+			gen_typename(expr->left->type);
+			fprintf(cfile, "){");
 			gen_expr(expr->left);
 			fprintf(cfile, ".items+");
 			gen_expr(expr->right);
@@ -176,8 +180,11 @@ void gen_type(Type *type)
 	}
 	else if(type->kind == ARRAYTYPE)
 		gen_type(type->child);
-	else if(type->kind == SLICETYPE)
-		fprintf(cfile, "slice");
+	else if(type->kind == SLICETYPE) {
+		fprintf(cfile, "struct {");
+		gen_type(type->child);
+		fprintf(cfile, "*items;size_t length;}");
+	}
 	else if(type->kind == STRUCTTYPE) {
 		fprintf(cfile, "struct ");
 		gen_ident(type->name);
@@ -254,10 +261,9 @@ void gen_proto(Stmt *stmt)
 void gen_extern_var(Stmt *decl)
 {
 	fprintf(cfile, "extern ");
-	gen_type(decl->type);
+	gen_typename(decl->type);
 	fprintf(cfile, " ");
 	gen_ident(decl->name);
-	gen_type_post(decl->type);
 	fprintf(cfile, ";\n");
 }
 
@@ -266,10 +272,9 @@ void gen_vardecl(Stmt *stmt)
 	if(!stmt->exported && scope->parent == 0)
 		fprintf(cfile, "static ");
 	
-	gen_type(stmt->type);
+	gen_typename(stmt->type);
 	fprintf(cfile, " ");
 	gen_ident(stmt->name);
-	gen_type_post(stmt->type);
 	
 	if(stmt->expr && stmt->expr->isconst) {
 		fprintf(cfile, " = ");
@@ -280,10 +285,9 @@ void gen_vardecl(Stmt *stmt)
 void gen_struct_member(Stmt *stmt)
 {
 	gen_indent();
-	gen_type(stmt->type);
+	gen_typename(stmt->type);
 	fprintf(cfile, " ");
 	gen_ident(stmt->name);
-	gen_type_post(stmt->type);
 	fprintf(cfile, ";\n");
 }
 
@@ -487,10 +491,67 @@ void gen_func_protos(Symbol *symbols)
 	}
 }
 
+void gen_typename(Type *type)
+{
+	if(type == 0)
+		fprintf(cfile, "void");
+	else if(type->kind == PTRTYPE) {
+		fprintf(cfile, "p_");
+		gen_typename(type->child);
+	}
+	else if(type->kind == ARRAYTYPE) {
+		fprintf(cfile, "a_%lu_", type->count);
+		gen_typename(type->child);
+	}
+	else if(type->kind == SLICETYPE) {
+		fprintf(cfile, "sl_");
+		gen_typename(type->child);
+	}
+	else if(type->kind == STRUCTTYPE) {
+		fprintf(cfile, "st_%s", type->name);
+	}
+	else if(type->kind == PRIMTYPE) {
+		if(type->primtype == U8)
+			fprintf(cfile, "u8");
+		else if(type->primtype == U16)
+			fprintf(cfile, "u16");
+		else if(type->primtype == U32)
+			fprintf(cfile, "u32");
+		else if(type->primtype == U64)
+			fprintf(cfile, "u64");
+		else if(type->primtype == I8)
+			fprintf(cfile, "i8");
+		else if(type->primtype == I16)
+			fprintf(cfile, "i16");
+		else if(type->primtype == I32)
+			fprintf(cfile, "i32");
+		else if(type->primtype == I64)
+			fprintf(cfile, "i64");
+		else if(type->primtype == F32)
+			fprintf(cfile, "f32");
+		else if(type->primtype == F64)
+			fprintf(cfile, "f64");
+	}
+}
+
+void gen_typedefs(Scope *scope)
+{
+	for(Type *type = scope->types; type; type = type->next) {
+		gen_indent();
+		fprintf(cfile, "typedef ");
+		gen_type(type);
+		fprintf(cfile, " ");
+		gen_typename(type);
+		gen_type_post(type);
+		fprintf(cfile, ";\n");
+	}
+}
+
 void gen_scope(Scope *scope)
 {
 	gen_export_defines(scope->first_import);
 	gen_export_defines(scope->first);
+	gen_typedefs(scope);
 	
 	for(Symbol *symbol = scope->first; symbol; symbol = symbol->next) {
 		Stmt *decl = symbol->decl;
@@ -536,7 +597,6 @@ void gen_unit(Unit *unit)
 	scope = block->scope;
 	fprintf(cfile, "#include <stdio.h>\n");
 	fprintf(cfile, "#include <stdint.h>\n");
-	fprintf(cfile, "typedef struct {void *items;size_t length;} slice;\n");
 	
 	gen_scope(block->scope);
 	fprintf(cfile, "int main_%lx(int argc, char *argv[]) {\n", unit->hash);

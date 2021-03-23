@@ -168,6 +168,25 @@ int types_equal(Type *t1, Type *t2)
 	return 0;
 }
 
+Type *record_type(Type *type)
+{
+	for(Type *t = global->types; t; t = t->next) {
+		if(types_equal(t, type))
+			return t;
+	}
+	
+	if(global->types) {
+		global->last_type->next = type;
+		global->last_type = type;
+	}
+	else {
+		global->types = type;
+		global->last_type = type;
+	}
+	
+	return type;
+}
+
 Type *analyze_var_name(char *name)
 {
 	assert(name);
@@ -247,11 +266,13 @@ void analyze_expr(Expr *expr)
 		if(prim == INTEGER) {
 			expr->type = create_type(PRIMTYPE);
 			expr->type->primtype = I64;
+			record_type(expr->type);
 			expr->iconst = expr->val;
 		}
 		else if(prim == FLOAT) {
 			expr->type = create_type(PRIMTYPE);
 			expr->type->primtype = F64;
+			record_type(expr->type);
 		}
 		else if(prim == IDENT) {
 			Type *type = analyze_var_name(expr->name);
@@ -282,6 +303,7 @@ void analyze_expr(Expr *expr)
 		Type *type = create_type(ARRAYTYPE);
 		type->count = expr->length;
 		type->child = itemtype;
+		record_type(type);
 		expr->type = type;
 	}
 	else if(expr->kind == CALL) {
@@ -335,6 +357,7 @@ void analyze_expr(Expr *expr)
 		analyze_expr(expr->child);
 		Type *type = create_type(PTRTYPE);
 		type->child = expr->child->type;
+		record_type(type);
 		expr->type = type;
 	}
 	else if(expr->kind == DEREF) {
@@ -357,6 +380,7 @@ void analyze_expr(Expr *expr)
 		
 		expr->type = create_type(PRIMTYPE);
 		expr->type->primtype = U64;
+		record_type(expr->type);
 	}
 	else if(expr->kind == CHAIN) {
 		analyze_expr(expr->left);
@@ -476,6 +500,7 @@ void analyze_expr(Expr *expr)
 			
 			expr->type = create_type(SLICETYPE);
 			expr->type->child = expr->left->type->child;
+			record_type(expr->type);
 		}
 		else {
 			expr->type = expr->left->type;
@@ -490,6 +515,7 @@ void analyze_expr(Expr *expr)
 			if(expr->right->name == kw_length) {
 				expr->type = create_type(PRIMTYPE);
 				expr->type->primtype = U64;
+				record_type(expr->type);
 			}
 			else
 				error_expr(expr->left, "slice has no such member");
@@ -555,6 +581,7 @@ Expr *adjust_assign_value(Expr *expr, Type *target_type)
 		if(types_equal(target_type->child, expr->type) && expr->islvalue) {
 			Type *new_expr_type = create_type(PTRTYPE);
 			new_expr_type->child = expr->type;
+			record_type(new_expr_type);
 			Expr *new_expr = create_expr_wrap(PTR, expr);
 			new_expr->type = new_expr_type;
 			return new_expr;
@@ -722,6 +749,9 @@ void analyze_block(Block *block)
 	Scope *oldscope = scope;
 	scope = block->scope;
 	
+	if(global == 0)
+		global = scope;
+	
 	for(Stmt *stmt = block->first; stmt; stmt = stmt->next)
 		analyze_stmt(stmt);
 	
@@ -734,6 +764,7 @@ void analyze_unit()
 	line = 1;
 	pos = 1;
 	scope = 0;
+	global = 0;
 	scan_decls();
 	line = 1;
 	pos = 1;

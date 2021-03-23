@@ -73,10 +73,10 @@ typedef struct Type {
 	size_t pos;
 	PrimType primtype;
 	struct Type *child;
-	//Token *ident;
 	char *name;
 	struct Stmt *typedecl;
 	size_t count;
+	struct Type *next;
 } Type;
 
 typedef enum {
@@ -91,8 +91,6 @@ typedef struct Expr {
 	Kind kind;
 	size_t line;
 	size_t pos;
-	//Token *prim;
-	//Token *ident;
 	Kind prim;
 	char *name;
 	int op;
@@ -104,7 +102,6 @@ typedef struct Expr {
 	struct Expr *child;
 	struct Expr *next;
 	size_t length;
-	//Token *op;
 	OpTier tier;
 	Type *type;
 	int isconst;
@@ -127,11 +124,8 @@ typedef struct Stmt {
 	struct Stmt *param;
 	size_t param_count;
 	int isparam;
-	//Token *ident;
 	char *name;
-	//Token *string;
 	char *text;
-	//Token *op;
 	int op;
 	Expr *target;
 	Expr *expr;
@@ -146,7 +140,6 @@ typedef struct Stmt {
 typedef struct Symbol {
 	struct Symbol *next;
 	Stmt *decl;
-	//Token *ident;
 	char *name;
 } Symbol;
 
@@ -159,6 +152,8 @@ typedef struct Scope {
 	Symbol *first_import;
 	Symbol *last_import;
 	size_t import_count;
+	Type *types;
+	Type *last_type;
 } Scope;
 
 typedef struct Block {
