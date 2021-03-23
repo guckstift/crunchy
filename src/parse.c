@@ -142,12 +142,12 @@ Type *parse_primtype()
 		primtype = F32;
 	else if(is_kind(IDENT)) {
 		Type *type = create_type(NAMEDTYPE);
-		type->ident = next_token();
+		type->name = next_token()->text;
 		return type;
 	}
 	else
 		return 0;
-	
+
 	Type *type = create_type(PRIMTYPE);
 	type->primtype = primtype;
 	next_token();
@@ -206,7 +206,7 @@ Stmt *parse_import()
 	if(name == 0)
 		error("expected string after 'import'");
 	
-	import->string = name;
+	import->text = name->text;
 	return import;
 }
 
@@ -278,7 +278,7 @@ Stmt *parse_funcdecl()
 	if(parse_punct(PN_RCURLY) == 0)
 		error("expected '}' after function statements");
 	
-	funcdecl->ident = ident;
+	funcdecl->name = ident->text;
 	funcdecl->type = type;
 	funcdecl->body = body;
 	funcdecl->param = first;
@@ -313,7 +313,7 @@ Stmt *parse_assign()
 	
 	assign->target = target;
 	assign->expr = expr;
-	assign->op = op;
+	assign->op = op->punct;
 	return assign;
 }
 
@@ -354,7 +354,7 @@ Stmt *parse_vardecl()
 		return 0;
 	}
 	
-	vardecl->ident = ident;
+	vardecl->name = ident->text;
 	vardecl->type = type;
 	vardecl->expr = expr;
 	return vardecl;
@@ -588,7 +588,7 @@ Stmt *parse_structdecl()
 	if(parse_punct(PN_RCURLY) == 0)
 		error("expected '}' after structure definition");
 	
-	stmt->ident = ident;
+	stmt->name = ident->text;
 	stmt->body = body;
 	return stmt;
 }

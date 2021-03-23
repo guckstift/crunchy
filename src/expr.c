@@ -10,10 +10,14 @@ char *optable[] = {
 Expr *parse_prim()
 {
 	if(is_kind(INTEGER) || is_kind(FLOAT) || is_kind(IDENT)) {
+		Token *t = next_token();
 		Expr *prim = create_expr(PRIM);
-		prim->prim = next_token();
-		prim->isconst = prim->prim->kind != IDENT;
-		prim->islvalue = prim->prim->kind == IDENT;
+		prim->prim = t->kind;
+		prim->name = t->text;
+		prim->val = t->val;
+		prim->fval = t->fval;
+		prim->isconst = prim->prim != IDENT;
+		prim->islvalue = prim->prim == IDENT;
 		return prim;
 	}
 	
@@ -22,24 +26,16 @@ Expr *parse_prim()
 
 Expr *parse_ident_prim()
 {
-	if(is_kind(IDENT)) {
-		Expr *prim = create_expr(PRIM);
-		prim->prim = next_token();
-		prim->islvalue = 1;
-		return prim;
-	}
+	if(is_kind(IDENT))
+		return parse_prim();
 	
 	return 0;
 }
 
 Expr *parse_literal_prim()
 {
-	if(is_kind(INTEGER) || is_kind(FLOAT)) {
-		Expr *prim = create_expr(PRIM);
-		prim->prim = next_token();
-		prim->isconst = 1;
-		return prim;
-	}
+	if(is_kind(INTEGER) || is_kind(FLOAT))
+		return parse_prim();
 	
 	return 0;
 }
@@ -134,7 +130,7 @@ Expr *parse_call()
 	if(parse_punct(PN_RPAREN) == 0)
 		error("expected ')' after argument list");
 	
-	call->ident = ident;
+	call->name = ident->text;
 	call->child = first;
 	call->length = arg_count;
 	return call;
@@ -291,7 +287,7 @@ Expr *parse_prefix()
 			error("expected expression after unary operator '%s'", op->text);
 		
 		unary->child = child;
-		unary->op = op;
+		unary->op = op->punct;
 		unary->isconst = child->isconst;
 		return unary;
 	}
@@ -335,7 +331,7 @@ Expr *parse_chain(int tier)
 		
 		chain->left = left;
 		chain->right = right;
-		chain->op = op;
+		chain->op = op->punct;
 		chain->tier = tier;
 		chain->isconst = left->isconst && right->isconst;
 		left = chain;

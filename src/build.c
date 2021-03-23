@@ -4,7 +4,7 @@ void analyze_unit();
 void generate_code();
 void dump_tokens();
 void dump_ast();
-Symbol *lookup(Token *ident);
+Symbol *lookup(char *name);
 void declare_import(Stmt *decl);
 
 void mkdir_p(char *path)
@@ -206,10 +206,10 @@ Unit *do_import(char *path)
 		Stmt *decl = sym->decl;
 		
 		if(decl->exported) {
-			if(lookup(sym->ident))
+			if(lookup(sym->name))
 				error(
 					"imported symbol '%s' is already declared\n",
-					sym->ident->text
+					sym->name
 				);
 			
 			declare_import(decl);

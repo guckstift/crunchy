@@ -9,6 +9,11 @@ void gen_indent()
 		fprintf(cfile, "  ");
 }
 
+void gen_ident(char *name)
+{
+	fprintf(cfile, "i_%s", name);
+}
+
 void gen_token(Token *token)
 {
 	if(token->kind == INTEGER)
@@ -16,7 +21,17 @@ void gen_token(Token *token)
 	else if(token->kind == FLOAT)
 		fprintf(cfile, "%s", d2s(token->fval, 0));
 	else if(token->kind == IDENT)
-		fprintf(cfile, "i_%s", token->text);
+		gen_ident(token->text);
+}
+
+void gen_prim(Expr *expr)
+{
+	if(expr->prim == INTEGER)
+		fprintf(cfile, "%luL", expr->val);
+	else if(expr->prim == FLOAT)
+		fprintf(cfile, "%s", d2s(expr->fval, 0));
+	else if(expr->prim == IDENT)
+		gen_ident(expr->name);
 }
 
 void gen_expr(Expr *expr)
@@ -24,13 +39,13 @@ void gen_expr(Expr *expr)
 	if(expr == 0)
 		fprintf(cfile, "0");
 	else if(expr->kind == PRIM)
-		gen_token(expr->prim);
+		gen_prim(expr);
 	else if(expr->kind == UNARY) {
-		fprintf(cfile, "%s", expr->op->text);
+		fprintf(cfile, "%s", puncts[expr->op]);
 		gen_expr(expr->child);
 	}
 	else if(expr->kind == CALL) {
-		gen_token(expr->ident);
+		gen_ident(expr->name);
 		fprintf(cfile, "(");
 	
 		for(Expr *arg = expr->child; arg; arg = arg->next) {
@@ -75,18 +90,18 @@ void gen_expr(Expr *expr)
 			if(expr->left->kind == CHAIN && expr->left->tier == RELATIONAL) {
 				fprintf(cfile, " && ");
 				gen_expr(expr->left->right);
-				fprintf(cfile, " %s ", expr->op->text);
+				fprintf(cfile, " %s ", puncts[expr->op]);
 				gen_expr(expr->right);
 			}
 			else {
-				fprintf(cfile, " %s ", expr->op->text);
+				fprintf(cfile, " %s ", puncts[expr->op]);
 				gen_expr(expr->right);
 			}
 		}
 		else {
 			fprintf(cfile, "(");
 			gen_expr(expr->left);
-			fprintf(cfile, " %s ", expr->op->text);
+			fprintf(cfile, " %s ", puncts[expr->op]);
 			gen_expr(expr->right);
 			fprintf(cfile, ")");
 		}
@@ -139,7 +154,7 @@ void gen_expr(Expr *expr)
 		
 		if(
 			expr->left->type->kind == SLICETYPE &&
-			expr->right->prim->text == kw_length
+			expr->right->name == kw_length
 		) {
 			fprintf(cfile, ".length");
 		}
@@ -165,7 +180,7 @@ void gen_type(Type *type)
 		fprintf(cfile, "slice");
 	else if(type->kind == STRUCTTYPE) {
 		fprintf(cfile, "struct ");
-		gen_token(type->ident);
+		gen_ident(type->name);
 	}
 	else if(type->kind == PRIMTYPE) {
 		if(type->primtype == U8)
@@ -215,7 +230,7 @@ void gen_func_head(Stmt *stmt)
 	
 	gen_type(stmt->type);
 	fprintf(cfile, " ");
-	gen_token(stmt->ident);
+	gen_ident(stmt->name);
 	fprintf(cfile, "(");
 	scope = stmt->body->scope;
 	
@@ -243,7 +258,7 @@ void gen_extern_var(Stmt *decl)
 	fprintf(cfile, "extern ");
 	gen_type(decl->type);
 	fprintf(cfile, " ");
-	gen_token(decl->ident);
+	gen_ident(decl->name);
 	gen_type_post(decl->type);
 	fprintf(cfile, ";\n");
 }
@@ -255,7 +270,7 @@ void gen_vardecl(Stmt *stmt)
 	
 	gen_type(stmt->type);
 	fprintf(cfile, " ");
-	gen_token(stmt->ident);
+	gen_ident(stmt->name);
 	gen_type_post(stmt->type);
 	
 	if(stmt->expr && stmt->expr->isconst) {
@@ -269,7 +284,7 @@ void gen_struct_member(Stmt *stmt)
 	gen_indent();
 	gen_type(stmt->type);
 	fprintf(cfile, " ");
-	gen_token(stmt->ident);
+	gen_ident(stmt->name);
 	gen_type_post(stmt->type);
 	fprintf(cfile, ";\n");
 }
@@ -304,7 +319,7 @@ void gen_decl(Stmt *stmt)
 	}
 	else if(stmt->kind == STRUCTDECL) {
 		fprintf(cfile, "struct ");
-		gen_token(stmt->ident);
+		gen_ident(stmt->name);
 		fprintf(cfile, " {\n");
 		gen_struct_block(stmt->body);
 		gen_indent();
@@ -345,14 +360,14 @@ void gen_stmt(Stmt *stmt)
 	if(stmt->kind == ASSIGN) {
 		gen_indent();
 		gen_expr(stmt->target);
-		fprintf(cfile, " %s ", stmt->op->text);
+		fprintf(cfile, " %s ", puncts[stmt->op]);
 		gen_expr(stmt->expr);
 		fprintf(cfile, ";\n");
 	}
 	else if(stmt->kind == VARDECL) {
 		if(stmt->expr && !stmt->expr->isconst) {
 			gen_indent();
-			gen_token(stmt->ident);
+			gen_ident(stmt->name);
 			fprintf(cfile, " = ");
 			gen_expr(stmt->expr);
 			fprintf(cfile, ";\n");
@@ -448,10 +463,10 @@ void gen_export_define(Stmt *decl)
 {
 	gen_indent();
 	fprintf(cfile, "#define ");
-	gen_token(decl->ident);
+	gen_ident(decl->name);
 	fprintf(cfile, " x_");
 	fprintf(cfile, "%lx_", decl->exporthash);
-	fprintf(cfile, "%s", decl->ident->text);
+	gen_ident(decl->name);
 	fprintf(cfile, "\n");
 }
 

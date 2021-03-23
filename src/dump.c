@@ -29,6 +29,16 @@ void dump_token(Token *token)
 		printf("END");
 }
 
+void dump_prim(Expr *expr)
+{
+	if(expr->prim == INTEGER)
+		printf("%lu", expr->val);
+	else if(expr->prim == FLOAT)
+		printf("%s", d2s(expr->fval, 0));
+	else if(expr->prim == IDENT)
+		printf("%s", expr->name);
+}
+
 void dump_chain(Expr *chain, int braced)
 {
 	if(braced) printf("(");
@@ -38,7 +48,7 @@ void dump_chain(Expr *chain, int braced)
 	else
 		dump_expr(chain->left);
 	
-	printf(" %s ", chain->op->text);
+	printf(" %s ", puncts[chain->op]);
 	dump_expr(chain->right);
 	if(braced) printf(")");
 }
@@ -48,15 +58,15 @@ void dump_expr(Expr *expr)
 	if(expr == 0)
 		printf("<null>");
 	else if(expr->kind == PRIM)
-		dump_token(expr->prim);
+		dump_prim(expr);
 	else if(expr->kind == UNARY) {
 		printf("(");
-		dump_token(expr->op);
+		printf("%s", puncts[expr->op]);
 		dump_expr(expr->child);
 		printf(")");
 	}
 	else if(expr->kind == CALL) {
-		dump_token(expr->ident);
+		printf("%s", expr->name);
 		printf("(");
 		
 		for(Expr *arg = expr->child; arg; arg = arg->next) {
@@ -124,10 +134,10 @@ void dump_type(Type *type)
 	else if(type->kind == PRIMTYPE)
 		printf("%s", primtype_names[type->primtype]);
 	else if(type->kind == NAMEDTYPE)
-		dump_token(type->ident);
+		printf("%s", type->name);
 	else if(type->kind == STRUCTTYPE) {
 		printf("struct<");
-		dump_token(type->ident);
+		printf("%s", type->name);
 		printf(">");
 	}
 	else if(type->kind == PTRTYPE) {
@@ -152,14 +162,14 @@ void dump_stmt(Stmt *stmt)
 	
 	if(stmt->kind == ASSIGN) {
 		dump_expr(stmt->target);
-		printf(" %s ", stmt->op->text);
+		printf(" %s ", puncts[stmt->op]);
 		dump_expr(stmt->expr);
 	}
 	else if(stmt->kind == VARDECL) {
 		if(stmt->exported)
 			printf("export ");
 		
-		dump_token(stmt->ident);
+		printf("%s", stmt->name);
 		printf(" : ");
 		dump_type(stmt->type);
 		
@@ -173,7 +183,7 @@ void dump_stmt(Stmt *stmt)
 			printf("export ");
 		
 		printf("func ");
-		dump_token(stmt->ident);
+		printf("%s", stmt->name);
 		printf("(");
 		
 		for(Stmt *param = stmt->param; param; param = param->next) {
@@ -199,7 +209,7 @@ void dump_stmt(Stmt *stmt)
 	}
 	else if(stmt->kind == STRUCTDECL) {
 		printf("struct ");
-		dump_token(stmt->ident);
+		printf("%s", stmt->name);
 		printf(" {\n");
 		level ++;
 		dump_block(stmt->body);
@@ -226,7 +236,7 @@ void dump_stmt(Stmt *stmt)
 	}
 	else if(stmt->kind == IMPORT) {
 		printf("import ");
-		dump_token(stmt->string);
+		printf("%s", stmt->name);
 	}
 	else if(stmt->kind == BREAK)
 		printf("break");
@@ -263,7 +273,7 @@ void dump_scope(Scope *scope)
 		for(
 			Symbol *symbol = scope->first_import; symbol; symbol = symbol->next
 		) {
-			dump_token(symbol->decl->ident);
+			printf("%s", symbol->decl->name);
 			printf(" ");
 		}
 		
@@ -275,7 +285,7 @@ void dump_scope(Scope *scope)
 		printf("scope: ");
 		
 		for(Symbol *symbol = scope->first; symbol; symbol = symbol->next) {
-			dump_token(symbol->decl->ident);
+			printf("%s", symbol->decl->name);
 			printf(" ");
 		}
 		

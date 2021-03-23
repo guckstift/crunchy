@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 typedef enum {
+	INVALID = 0,
 	// tokens
 	INTEGER,
 	FLOAT,
@@ -72,7 +73,8 @@ typedef struct Type {
 	size_t pos;
 	PrimType primtype;
 	struct Type *child;
-	Token *ident;
+	//Token *ident;
+	char *name;
 	struct Stmt *typedecl;
 	size_t count;
 } Type;
@@ -89,15 +91,20 @@ typedef struct Expr {
 	Kind kind;
 	size_t line;
 	size_t pos;
-	Token *prim;
-	Token *ident;
+	//Token *prim;
+	//Token *ident;
+	Kind prim;
+	char *name;
+	int op;
+	size_t val;
+	double fval;
 	struct Expr *left;
 	struct Expr *right;
 	struct Expr *slice_end;
 	struct Expr *child;
 	struct Expr *next;
 	size_t length;
-	Token *op;
+	//Token *op;
 	OpTier tier;
 	Type *type;
 	int isconst;
@@ -120,9 +127,12 @@ typedef struct Stmt {
 	struct Stmt *param;
 	size_t param_count;
 	int isparam;
-	Token *ident;
-	Token *string;
-	Token *op;
+	//Token *ident;
+	char *name;
+	//Token *string;
+	char *text;
+	//Token *op;
+	int op;
 	Expr *target;
 	Expr *expr;
 	Type *type;
@@ -136,7 +146,8 @@ typedef struct Stmt {
 typedef struct Symbol {
 	struct Symbol *next;
 	Stmt *decl;
-	Token *ident;
+	//Token *ident;
+	char *name;
 } Symbol;
 
 typedef struct Scope {

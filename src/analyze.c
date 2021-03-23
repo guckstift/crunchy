@@ -4,18 +4,18 @@ void analyze_block(Block *block);
 void analyze_stmt(Stmt *stmt);
 Expr *adjust_assign_value(Expr *expr, Type *target_type);
 
-Symbol *lookup(Token *ident)
+Symbol *lookup(char *name)
 {
-	assert(ident);
+	assert(name);
 	
 	for(Symbol *symbol = scope->first; symbol; symbol = symbol->next) {
-		if(symbol->ident->text == ident->text) {
+		if(symbol->name == name) {
 			return symbol;
 		}
 	}
 	
 	for(Symbol *symbol = scope->first_import; symbol; symbol = symbol->next) {
-		if(symbol->ident->text == ident->text) {
+		if(symbol->name == name) {
 			return symbol;
 		}
 	}
@@ -23,10 +23,10 @@ Symbol *lookup(Token *ident)
 	return 0;
 }
 
-Symbol *lookup_rec(Token *ident)
+Symbol *lookup_rec(char *name)
 {
-	assert(ident);
-	Symbol *symbol = lookup(ident);
+	assert(name);
+	Symbol *symbol = lookup(name);
 	
 	if(symbol) {
 		return symbol;
@@ -35,7 +35,7 @@ Symbol *lookup_rec(Token *ident)
 	if(scope->parent) {
 		Scope *backup = scope;
 		scope = scope->parent;
-		symbol = lookup_rec(ident);
+		symbol = lookup_rec(name);
 		scope = backup;
 	}
 	
@@ -47,7 +47,7 @@ void declare(Stmt *decl)
 	assert(decl);
 	Symbol *symbol = create(Symbol);
 	symbol->decl = decl;
-	symbol->ident = decl->ident;
+	symbol->name = decl->name;
 	
 	if(scope->count) {
 		scope->last->next = symbol;
@@ -66,7 +66,7 @@ void declare_import(Stmt *decl)
 	assert(decl);
 	Symbol *symbol = create(Symbol);
 	symbol->decl = decl;
-	symbol->ident = decl->ident;
+	symbol->name = decl->name;
 	
 	if(scope->import_count) {
 		scope->last_import->next = symbol;
@@ -95,10 +95,10 @@ void scan_stmt_decls(Stmt *stmt)
 		stmt->kind == VARDECL || stmt->kind == FUNCDECL ||
 		stmt->kind == STRUCTDECL
 	) {
-		Token *ident = stmt->ident;
+		char *name = stmt->name;
 		
-		if(lookup(ident))
-			error_at(ident, "'%s' is already declared", ident->text);
+		if(lookup(name))
+			error_stmt(stmt, "'%s' is already declared", name);
 		
 		declare(stmt);
 	}
@@ -120,7 +120,7 @@ void scan_stmt_decls(Stmt *stmt)
 	else if(stmt->kind == STRUCTDECL)
 		scan_block_decls(stmt->body);
 	else if(stmt->kind == IMPORT)
-		stmt->unit = do_import(stmt->string->text);
+		stmt->unit = do_import(stmt->name);
 	else if(stmt->kind == IFSTMT)
 		scan_block_decls(stmt->body);
 	else if(stmt->kind == WHILESTMT)
@@ -160,7 +160,7 @@ int types_equal(Type *t1, Type *t2)
 		return types_equal(t1->child, t2->child);
 	
 	if(t1->kind == SLICETYPE && t2->kind == SLICETYPE)
-		return t1->count == t2->count && types_equal(t1->child, t2->child);
+		return types_equal(t1->child, t2->child);
 	
 	if(t1->kind == ARRAYTYPE && t2->kind == ARRAYTYPE)
 		return t1->count == t2->count && types_equal(t1->child, t2->child);
@@ -168,21 +168,21 @@ int types_equal(Type *t1, Type *t2)
 	return 0;
 }
 
-Type *analyze_var_ident(Token *ident)
+Type *analyze_var_name(char *name)
 {
-	assert(ident);
-	Symbol *symbol = lookup_rec(ident);
+	assert(name);
+	Symbol *symbol = lookup_rec(name);
 	
 	if(symbol == 0)
-		error_at(ident, "'%s' is not defined", ident->text);
+		error("'%s' is not defined", name);
 	
 	Stmt *decl = symbol->decl;
 	
 	if(decl->kind != VARDECL)
-		error_at(ident, "'%s' is not a variable", ident->text);
+		error("'%s' is not a variable", name);
 	
 	if(decl->state != RESOLVED)
-		error_at(ident, "'%s' is not initialized yet", ident->text);
+		error("'%s' is not initialized yet", name);
 	
 	return decl->type;
 }
@@ -242,19 +242,19 @@ void analyze_expr(Expr *expr)
 	assert(expr);
 	
 	if(expr->kind == PRIM) {
-		Token *prim = expr->prim;
+		Kind prim = expr->prim;
 		
-		if(prim->kind == INTEGER) {
+		if(prim == INTEGER) {
 			expr->type = create_type(PRIMTYPE);
 			expr->type->primtype = I64;
-			expr->iconst = prim->val;
+			expr->iconst = expr->val;
 		}
-		else if(prim->kind == FLOAT) {
+		else if(prim == FLOAT) {
 			expr->type = create_type(PRIMTYPE);
 			expr->type->primtype = F64;
 		}
-		else if(prim->kind == IDENT) {
-			Type *type = analyze_var_ident(prim);
+		else if(prim == IDENT) {
+			Type *type = analyze_var_name(expr->name);
 			expr->type = type;
 		}
 	}
@@ -262,7 +262,7 @@ void analyze_expr(Expr *expr)
 		analyze_expr(expr->child);
 		expr->type = expr->child->type;
 		
-		if(expr->op->punct == PN_MINUS)
+		if(expr->op == PN_MINUS)
 			expr->iconst = - expr->child->iconst;
 	}
 	else if(expr->kind == ARRAY) {
@@ -285,16 +285,16 @@ void analyze_expr(Expr *expr)
 		expr->type = type;
 	}
 	else if(expr->kind == CALL) {
-		Token *ident = expr->ident;
-		Symbol *symbol = lookup_rec(ident);
+		char *name = expr->name;
+		Symbol *symbol = lookup_rec(name);
 		
 		if(symbol == 0)
-			error_at(ident, "'%s' is not defined", ident->text);
+			error_expr(expr, "'%s' is not defined", name);
 		
 		Stmt *decl = symbol->decl;
 		
 		if(decl->kind != FUNCDECL)
-			error_at(ident, "'%s' is not a function", ident->text);
+			error_expr(expr, "'%s' is not a function", name);
 		
 		expr->type = decl->type;
 		analyze_stmt(decl);
@@ -365,18 +365,18 @@ void analyze_expr(Expr *expr)
 		if(expr->left->type->kind == PTRTYPE)
 			error_expr(
 				expr->left,
-				"left side of '%s' is a pointer", expr->op->text
+				"left side of '%s' is a pointer", puncts[expr->op]
 			);
 		
 		if(expr->right->type->kind == PTRTYPE)
 			error_expr(
 				expr->right,
-				"right side of '%s' is a pointer", expr->op->text
+				"right side of '%s' is a pointer", puncts[expr->op]
 			);
 		
 		expr->type = expr->left->type;
 		
-		switch(expr->op->punct) {
+		switch(expr->op) {
 		case PN_PLUS:
 			expr->iconst = expr->left->iconst + expr->right->iconst;
 			break;
@@ -487,7 +487,7 @@ void analyze_expr(Expr *expr)
 		Type *left_type = expr->left->type;
 		
 		if(left_type->kind == SLICETYPE) {
-			if(expr->right->prim->text == kw_length) {
+			if(expr->right->name == kw_length) {
 				expr->type = create_type(PRIMTYPE);
 				expr->type->primtype = U64;
 			}
@@ -592,7 +592,7 @@ void analyze_stmt(Stmt *stmt)
 		analyze_expr(stmt->target);
 		analyze_expr(stmt->expr);
 		
-		if(stmt->op->punct == PN_ASSIGN)
+		if(stmt->op == PN_ASSIGN)
 			stmt->target = adjust_assign_target(stmt->target, stmt->expr->type);
 		else
 			stmt->target = unwrap_pointer(stmt->target);
@@ -608,21 +608,21 @@ void analyze_stmt(Stmt *stmt)
 	else if(stmt->kind == VARDECL) {
 		if(stmt->type) {
 			if(stmt->type->kind == NAMEDTYPE) {
-				Token *ident = stmt->type->ident;
-				Symbol *sym = lookup_rec(ident);
+				char *name = stmt->type->name;
+				Symbol *sym = lookup_rec(name);
 				
 				if(sym == 0)
-					error_at(
-						ident,
-						"'%s' is an unknown type name", ident->text
+					error_stmt(
+						stmt,
+						"'%s' is an unknown type name", name
 					);
 				
 				Stmt *decl = sym->decl;
 				
 				if(decl->kind != STRUCTDECL)
-					error_at(
-						ident,
-						"'%s' is not a struct type name", ident->text
+					error_stmt(
+						stmt,
+						"'%s' is not a struct type name", name
 					);
 				
 				stmt->type->kind = STRUCTTYPE;
