@@ -127,7 +127,7 @@ void load_unit()
 void compile_unit()
 {
 	char *cc_cmd = 0;
-	cc_cmd = append_str(cc_cmd, "gcc -c -ansi -pedantic-errors -o ");
+	cc_cmd = append_str(cc_cmd, "gcc -c -std=c99 -pedantic-errors -o ");
 	cc_cmd = append_str(cc_cmd, unit->opath);
 	
 	if(unit == project->main)

@@ -1,5 +1,6 @@
 # todo
 
+* gen typedefs
 * ~ structs
 * enums
 * shared lib import

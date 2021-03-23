@@ -102,6 +102,14 @@ void dump_expr(Expr *expr)
 		dump_expr(expr->right);
 		printf("]");
 	}
+	else if(expr->kind == SLICE) {
+		dump_expr(expr->left);
+		printf("[");
+		dump_expr(expr->right);
+		printf(":");
+		dump_expr(expr->slice_end);
+		printf("]");
+	}
 	else if(expr->kind == MEMBER) {
 		dump_expr(expr->left);
 		printf(".");
@@ -130,6 +138,10 @@ void dump_type(Type *type)
 		printf("[");
 		printf("%lu", type->count);
 		printf("]");
+		dump_type(type->child);
+	}
+	else if(type->kind == SLICETYPE) {
+		printf("[]");
 		dump_type(type->child);
 	}
 }

@@ -196,15 +196,25 @@ Expr *parse_postfix()
 		if(parse_punct(PN_LBRACK)) {
 			Expr *subscript = create_expr(SUBSCRIPT);
 			Expr *index = parse_expr();
+			Expr *slice_end = 0;
 			
 			if(index == 0)
 				error("expected index of subscript");
+			
+			if(parse_punct(PN_COLON)) {
+				subscript->kind = SLICE;
+				slice_end = parse_expr();
+				
+				if(slice_end == 0)
+					error("expected slice end after ':'");
+			}
 			
 			if(parse_punct(PN_RBRACK) == 0)
 				error("expected ']' after index");
 			
 			subscript->left = expr;
 			subscript->right = index;
+			subscript->slice_end = slice_end;
 			subscript->islvalue = expr->islvalue;
 			expr = subscript;
 		}
@@ -282,6 +292,7 @@ Expr *parse_prefix()
 		
 		unary->child = child;
 		unary->op = op;
+		unary->isconst = child->isconst;
 		return unary;
 	}
 	

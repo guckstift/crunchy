@@ -14,6 +14,7 @@ typedef enum {
 	PRIM,
 	UNARY,
 	SUBSCRIPT,
+	SLICE,
 	ARRAY,
 	PTR,
 	CALL,
@@ -27,6 +28,7 @@ typedef enum {
 	ARRAYTYPE,
 	NAMEDTYPE,
 	STRUCTTYPE,
+	SLICETYPE,
 	// statements
 	ASSIGN,
 	VARDECL,
@@ -91,6 +93,7 @@ typedef struct Expr {
 	Token *ident;
 	struct Expr *left;
 	struct Expr *right;
+	struct Expr *slice_end;
 	struct Expr *child;
 	struct Expr *next;
 	size_t length;

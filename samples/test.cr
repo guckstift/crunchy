@@ -1,31 +1,15 @@
-struct Foo {
- x : int
- y : float
-}
 
-struct Foo2 {
- x : int
- y : float
-}
+ar := [23,42,666,-1,-2,-66,4,8]
+sl : []int
 
-func far(x : >[2] int)
-{
-}
+sl = ar[1:2]
+print sl[0]
 
-a : int
+sl = sl[1:2]
+print sl[0]
 
-foo : Foo
+sl = sl[1:2]
+print sl[0]
 
-#foo.y = fz + 3.1415
-
-ar : >[2]int
-
-#ar[0] = foo.x
-
-#Foo : int
-
-print foo.y
-
-
-a = 0
-
+sl = sl[1:2]
+print sl[0]

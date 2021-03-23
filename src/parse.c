@@ -78,12 +78,10 @@ Token *parse_op(char *ops)
 		char op_buf[op_len + 1];
 		memcpy(op_buf, start, op_len);
 		op_buf[op_len] = 0;
-		
-		if(strcmp(token->text, op_buf) == 0) {
-			return next_token();
-		}
-		
 		ops ++;
+		
+		if(strcmp(token->text, op_buf) == 0)
+			return next_token();
 	}
 	
 	return 0;
@@ -159,31 +157,33 @@ Type *parse_primtype()
 Type *parse_type()
 {
 	if(parse_punct(PN_GT)) {
+		Type *ptrtype = create_type(PTRTYPE);
 		Type *type = parse_type();
 		
 		if(type == 0)
 			error("expected pointer base type");
 		
-		Type *ptrtype = create_type(PTRTYPE);
 		ptrtype->child = type;
 		return ptrtype;
 	}
 	else if(parse_punct(PN_LBRACK)) {
+		Type *type = create_type(ARRAYTYPE);
 		Token *count = parse_kind(INTEGER);
 		
 		if(count == 0)
-			error("expected integer after '['");
+			type->kind = SLICETYPE;
 		
 		if(parse_punct(PN_RBRACK) == 0)
-			error("expected ']' after integer");
+			error("expected ']'");
 		
 		Type *child = parse_type();
 		
 		if(child == 0)
 			error("expected base type after array dimension");
 		
-		Type *type = create_type(ARRAYTYPE);
-		type->count = count->val;
+		if(count)
+			type->count = count->val;
+		
 		type->child = child;
 		return type;
 	}

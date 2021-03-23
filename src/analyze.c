@@ -159,6 +159,9 @@ int types_equal(Type *t1, Type *t2)
 	if(t1->kind == PTRTYPE && t2->kind == PTRTYPE)
 		return types_equal(t1->child, t2->child);
 	
+	if(t1->kind == SLICETYPE && t2->kind == SLICETYPE)
+		return t1->count == t2->count && types_equal(t1->child, t2->child);
+	
 	if(t1->kind == ARRAYTYPE && t2->kind == ARRAYTYPE)
 		return t1->count == t2->count && types_equal(t1->child, t2->child);
 	
@@ -419,34 +422,88 @@ void analyze_expr(Expr *expr)
 		analyze_expr(expr->left);
 		analyze_expr(expr->right);
 		expr->left = unwrap_ptr_to_array(expr->left);
+		Expr *left = expr->left;
+		Expr *index = expr->right;
+		Expr *slend = expr->slice_end;
 		
-		if(expr->left->type->kind != ARRAYTYPE)
-			error_expr(expr->left, "left side of subscript is not an array");
+		if(left->type->kind == ARRAYTYPE || left->type->kind == SLICETYPE) {
+			if(index->type->kind != PRIMTYPE)
+				error_expr(expr->right, "index type is not primitive");
+			
+			if(left->type->kind == ARRAYTYPE && expr->right->isconst) {
+				if(expr->right->iconst >= expr->left->type->count)
+					error_expr(expr->right, "array bounds exceeded");
+			}
+			
+			expr->type = expr->left->type->child;
+		}
+		else
+			error_expr(
+				expr->left, "left side of subscript is not an array or slice"
+			);
+	}
+	else if(expr->kind == SLICE) {
+		analyze_expr(expr->left);
+		analyze_expr(expr->right);
+		analyze_expr(expr->slice_end);
+		expr->left = unwrap_ptr_to_array(expr->left);
+		
+		if(
+			expr->left->type->kind != ARRAYTYPE &&
+			expr->left->type->kind != SLICETYPE
+		)
+			error_expr(expr->left, "left side of slice is not an array");
 		
 		if(expr->right->type->kind != PRIMTYPE)
-			error_expr(expr->right, "index type is not primitive");
+			error_expr(expr->right, "slice start type is not primitive");
 		
-		if(expr->right->isconst) {
-			if(expr->right->iconst >= expr->left->type->count)
-				error_expr(expr->right, "array bounds exceeded");
+		if(expr->slice_end->type->kind != PRIMTYPE)
+			error_expr(expr->slice_end, "slice end type is not primitive");
+		
+		if(expr->left->type->kind == ARRAYTYPE) {
+			if(expr->right->isconst) {
+				if(
+					expr->right->iconst < 0 ||
+					expr->right->iconst >= expr->left->type->count
+				)
+					error_expr(expr->right, "slice start out of bounds");
+			}
+			
+			if(expr->slice_end->isconst) {
+				if(expr->slice_end->iconst > expr->left->type->count)
+					error_expr(expr->slice_end, "slice end out of bounds");
+			}
+			
+			expr->type = create_type(SLICETYPE);
+			expr->type->child = expr->left->type->child;
 		}
-		
-		expr->type = expr->left->type->child;
+		else {
+			expr->type = expr->left->type;
+		}
 	}
 	else if(expr->kind == MEMBER) {
 		analyze_expr(expr->left);
 		expr->left = unwrap_ptr_to_struct(expr->left);
 		Type *left_type = expr->left->type;
 		
-		if(left_type->kind != STRUCTTYPE)
+		if(left_type->kind == SLICETYPE) {
+			if(expr->right->prim->text == kw_length) {
+				expr->type = create_type(PRIMTYPE);
+				expr->type->primtype = U64;
+			}
+			else
+				error_expr(expr->left, "slice has no such member");
+		}
+		else if(left_type->kind == STRUCTTYPE) {
+			Stmt *structdecl = left_type->typedecl;
+			Scope *oldscope = scope;
+			scope = structdecl->body->scope;
+			analyze_expr(expr->right);
+			expr->type = expr->right->type;
+			scope = oldscope;
+		}
+		else
 			error_expr(expr->left, "left side of '.' is not a structure");
-		
-		Stmt *structdecl = left_type->typedecl;
-		Scope *oldscope = scope;
-		scope = structdecl->body->scope;
-		analyze_expr(expr->right);
-		expr->type = expr->right->type;
-		scope = oldscope;
 	}
 }
 

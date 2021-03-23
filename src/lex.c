@@ -7,6 +7,7 @@ char *kw_func = 0;
 char *kw_if = 0;
 char *kw_int = 0;
 char *kw_import = 0;
+char *kw_length = 0;
 char *kw_print = 0;
 char *kw_return = 0;
 char *kw_struct = 0;
@@ -106,14 +107,13 @@ size_t match_punct(Punct *punct_id)
 
 void emit_token(Kind kind)
 {
-	unit->tcount ++;
-	unit->tokens = realloc(unit->tokens, sizeof(Token) * unit->tcount);
-	token = &unit->tokens[unit->tcount - 1];
+	token = unit->tokens + unit->tcount;
 	token->kind = kind;
 	token->line = line;
 	token->pos = pos;
 	token->text = start;
 	token->length = src - start;
+	unit->tcount ++;
 }
 
 void lex_unit()
@@ -128,6 +128,7 @@ void lex_unit()
 		kw_if = pool_insert("if");
 		kw_int = pool_insert("int");
 		kw_import = pool_insert("import");
+		kw_length = pool_insert("length");
 		kw_print = pool_insert("print");
 		kw_return = pool_insert("return");
 		kw_struct = pool_insert("struct");
@@ -138,6 +139,7 @@ void lex_unit()
 	line = 1;
 	pos = 1;
 	src = unit->source;
+	unit->tokens = malloc(sizeof(Token) * (unit->length + 1));
 	
 	while(*src) {
 		start = src;
@@ -194,9 +196,11 @@ void lex_unit()
 					src ++;
 				}
 				
-				char *fval_text = clone_strpart(start, src - start);
-				double fval = strtod(fval_text, 0);
-				free(fval_text);
+				size_t len = src - start;
+				char buf[len + 1];
+				memcpy(buf, start, len);
+				buf[len] = 0;
+				double fval = strtod(buf, 0);
 				emit_token(FLOAT);
 				token->fval = fval;
 			}
@@ -236,6 +240,7 @@ void lex_unit()
 				src += punctlen;
 				emit_token(PUNCT);
 				token->punct = punct;
+				token->text = puncts[token->punct];
 				pos += src - start;
 			}
 			else
@@ -244,16 +249,12 @@ void lex_unit()
 	}
 	
 	emit_token(END);
+	unit->tokens = realloc(unit->tokens, sizeof(Token) * unit->tcount);
 	
 	for(Token *token = unit->tokens; token->kind != END; token ++) {
-		if(token->kind == IDENT) {
+		if(token->kind == IDENT)
 			token->text = pool_str(token->text, token->length);
-		}
-		else if(token->kind == STRING) {
+		else if(token->kind == STRING)
 			token->text = clone_strpart(token->text, token->length);
-		}
-		else if(token->kind == PUNCT) {
-			token->text = puncts[token->punct];
-		}
 	}
 }

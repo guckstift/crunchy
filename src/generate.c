@@ -1,6 +1,7 @@
 
 void gen_block(Block *block);
 void gen_vardecl(Stmt *stmt);
+void gen_type(Type *type);
 
 void gen_indent()
 {
@@ -91,15 +92,62 @@ void gen_expr(Expr *expr)
 		}
 	}
 	else if(expr->kind == SUBSCRIPT) {
-		gen_expr(expr->left);
-		fprintf(cfile, "[");
-		gen_expr(expr->right);
-		fprintf(cfile, "]");
+		if(expr->left->type->kind == ARRAYTYPE) {
+			gen_expr(expr->left);
+			fprintf(cfile, "[");
+			gen_expr(expr->right);
+			fprintf(cfile, "]");
+		}
+		else if(expr->left->type->kind == SLICETYPE) {
+			fprintf(cfile, "((");
+			gen_type(expr->type);
+			fprintf(cfile, "*)");
+			gen_expr(expr->left);
+			fprintf(cfile, ".items)[");
+			gen_expr(expr->right);
+			fprintf(cfile, "]");
+		}
+	}
+	else if(expr->kind == SLICE) {
+		if(expr->left->type->kind == ARRAYTYPE) {
+			fprintf(cfile, "(slice){");
+			gen_expr(expr->left);
+			fprintf(cfile, "+");
+			gen_expr(expr->right);
+			fprintf(cfile, ",");
+			gen_expr(expr->slice_end);
+			fprintf(cfile, "-");
+			gen_expr(expr->right);
+			fprintf(cfile, "}");
+		}
+		else if(expr->left->type->kind == SLICETYPE) {
+			fprintf(cfile, "(slice){(");
+			gen_type(expr->left->type->child);
+			fprintf(cfile, "*)");
+			gen_expr(expr->left);
+			fprintf(cfile, ".items+");
+			gen_expr(expr->right);
+			fprintf(cfile, ",");
+			gen_expr(expr->slice_end);
+			fprintf(cfile, "-");
+			gen_expr(expr->right);
+			fprintf(cfile, "}");
+		}
 	}
 	else if(expr->kind == MEMBER) {
 		gen_expr(expr->left);
-		fprintf(cfile, ".");
-		gen_expr(expr->right);
+		
+		if(
+			expr->left->type->kind == SLICETYPE &&
+			expr->right->prim->text == kw_length
+		) {
+			fprintf(cfile, ".length");
+		}
+		else {
+			gen_expr(expr->left);
+			fprintf(cfile, ".");
+			gen_expr(expr->right);
+		}
 	}
 }
 
@@ -113,6 +161,8 @@ void gen_type(Type *type)
 	}
 	else if(type->kind == ARRAYTYPE)
 		gen_type(type->child);
+	else if(type->kind == SLICETYPE)
+		fprintf(cfile, "slice");
 	else if(type->kind == STRUCTTYPE) {
 		fprintf(cfile, "struct ");
 		gen_token(type->ident);
@@ -474,6 +524,7 @@ void gen_unit(Unit *unit)
 	scope = block->scope;
 	fprintf(cfile, "#include <stdio.h>\n");
 	fprintf(cfile, "#include <stdint.h>\n");
+	fprintf(cfile, "typedef struct {void *items;size_t length;} slice;\n");
 	
 	gen_scope(block->scope);
 	fprintf(cfile, "int main_%lx(int argc, char *argv[]) {\n", unit->hash);
