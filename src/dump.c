@@ -60,14 +60,12 @@ void dump_expr(Expr *expr)
 	else if(expr->kind == PRIM)
 		dump_prim(expr);
 	else if(expr->kind == UNARY) {
-		printf("(");
-		printf("%s", puncts[expr->op]);
+		printf("(%s", puncts[expr->op]);
 		dump_expr(expr->child);
 		printf(")");
 	}
 	else if(expr->kind == CALL) {
-		printf("%s", expr->name);
-		printf("(");
+		printf("%s(", expr->name);
 		
 		for(Expr *arg = expr->child; arg; arg = arg->next) {
 			dump_expr(arg);
@@ -135,19 +133,14 @@ void dump_type(Type *type)
 		printf("%s", primtype_names[type->primtype]);
 	else if(type->kind == NAMEDTYPE)
 		printf("%s", type->name);
-	else if(type->kind == STRUCTTYPE) {
-		printf("struct<");
-		printf("%s", type->name);
-		printf(">");
-	}
+	else if(type->kind == STRUCTTYPE)
+		printf("struct<%s>", type->name);
 	else if(type->kind == PTRTYPE) {
 		printf(">");
 		dump_type(type->child);
 	}
 	else if(type->kind == ARRAYTYPE) {
-		printf("[");
-		printf("%lu", type->count);
-		printf("]");
+		printf("[%lu]", type->count);
 		dump_type(type->child);
 	}
 	else if(type->kind == SLICETYPE) {
@@ -169,8 +162,7 @@ void dump_stmt(Stmt *stmt)
 		if(stmt->exported)
 			printf("export ");
 		
-		printf("%s", stmt->name);
-		printf(" : ");
+		printf("%s : ", stmt->name);
 		dump_type(stmt->type);
 		
 		if(stmt->expr) {
@@ -182,9 +174,7 @@ void dump_stmt(Stmt *stmt)
 		if(stmt->exported)
 			printf("export ");
 		
-		printf("func ");
-		printf("%s", stmt->name);
-		printf("(");
+		printf("func %s(", stmt->name);
 		
 		for(Stmt *param = stmt->param; param; param = param->next) {
 			dump_stmt(param);
@@ -208,18 +198,15 @@ void dump_stmt(Stmt *stmt)
 		printf("}");
 	}
 	else if(stmt->kind == STRUCTDECL) {
-		printf("struct ");
-		printf("%s", stmt->name);
-		printf(" {\n");
+		printf("struct %s {\n", stmt->name);
 		level ++;
 		dump_block(stmt->body);
 		level --;
 		dump_indent();
 		printf("}");
 	}
-	else if(stmt->kind == CALLSTMT) {
+	else if(stmt->kind == CALLSTMT)
 		dump_expr(stmt->expr);
-	}
 	else if(stmt->kind == PRINT) {
 		printf("print ");
 		
@@ -234,10 +221,8 @@ void dump_stmt(Stmt *stmt)
 		printf("return ");
 		dump_expr(stmt->expr);
 	}
-	else if(stmt->kind == IMPORT) {
-		printf("import ");
-		printf("%s", stmt->name);
-	}
+	else if(stmt->kind == IMPORT)
+		printf("import '%s'", stmt->name);
 	else if(stmt->kind == BREAK)
 		printf("break");
 	else if(stmt->kind == CONTINUE)
@@ -272,10 +257,8 @@ void dump_scope(Scope *scope)
 		
 		for(
 			Symbol *symbol = scope->first_import; symbol; symbol = symbol->next
-		) {
-			printf("%s", symbol->decl->name);
-			printf(" ");
-		}
+		)
+			printf("%s ", symbol->decl->name);
 		
 		printf("\n");
 	}
@@ -284,10 +267,8 @@ void dump_scope(Scope *scope)
 		dump_indent();
 		printf("scope: ");
 		
-		for(Symbol *symbol = scope->first; symbol; symbol = symbol->next) {
-			printf("%s", symbol->decl->name);
-			printf(" ");
-		}
+		for(Symbol *symbol = scope->first; symbol; symbol = symbol->next)
+			printf("%s ", symbol->decl->name);
 		
 		printf("\n");
 	}

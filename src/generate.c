@@ -212,9 +212,7 @@ void gen_type_post(Type *type)
 		return;
 	
 	if(type->kind == ARRAYTYPE) {
-		fprintf(cfile, "[");
-		fprintf(cfile, "%lu", type->count);
-		fprintf(cfile, "]");
+		fprintf(cfile, "[%lu]", type->count);
 		gen_type_post(type->child);
 	}
 	else if(type->kind == PTRTYPE) {
@@ -464,8 +462,7 @@ void gen_export_define(Stmt *decl)
 	gen_indent();
 	fprintf(cfile, "#define ");
 	gen_ident(decl->name);
-	fprintf(cfile, " x_");
-	fprintf(cfile, "%lx_", decl->exporthash);
+	fprintf(cfile, " x_%lx_", decl->exporthash);
 	gen_ident(decl->name);
 	fprintf(cfile, "\n");
 }
