@@ -1,20 +1,17 @@
 
-x := 0
-y := 0.0
-p := >x
-q := p
+print "Hello\nWorld"
 
-a := [1,2,3]
-sl := a[0:3]
-sl2 := sl[0:3]
+a := "LOLo"
 
-struct Foo {
-	x : int
-}
+print a
 
-foo : Foo
+a = "jkjkj"
 
-func myfunc()
-{
-	var := >a
-}
+b : string = "jjj"
+
+print a
+
+a = b
+
+print a
+

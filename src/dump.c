@@ -21,8 +21,12 @@ void dump_token(Token *token)
 		printf("%s", d2s(token->fval, 0));
 	else if(token->kind == IDENT)
 		printf("%s", token->text);
-	else if(token->kind == STRING)
-		printf("\"%s\"", token->text);
+	else if(token->kind == STRING) {
+		printf("\"");
+		fwrite(token->text, 1, token->length, stdout);
+		printf("\"");
+		//printf("\"%s\"", token->text);
+	}
 	else if(token->kind == PUNCT)
 		printf("%s", token->text);
 	else if(token->kind == END)
@@ -37,6 +41,12 @@ void dump_prim(Expr *expr)
 		printf("%s", d2s(expr->fval, 0));
 	else if(expr->prim == IDENT)
 		printf("%s", expr->name);
+	else if(expr->prim == STRING) {
+		printf("\"");
+		fwrite(expr->name, 1, expr->name_length, stdout);
+		printf("\"");
+	}
+		//printf("\"%s\"", expr->text);
 }
 
 void dump_chain(Expr *chain, int braced)
@@ -131,6 +141,8 @@ void dump_type(Type *type)
 		printf("<null>");
 	else if(type->kind == PRIMTYPE)
 		printf("%s", primtype_names[type->primtype]);
+	else if(type->kind == STRINGTYPE)
+		printf("string");
 	else if(type->kind == NAMEDTYPE)
 		printf("%s", type->name);
 	else if(type->kind == STRUCTTYPE)

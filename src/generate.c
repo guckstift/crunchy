@@ -26,6 +26,25 @@ void gen_token(Token *token)
 		gen_ident(token->text);
 }
 
+void gen_str_init_expr(Expr *expr)
+{
+	fprintf(cfile, "{%lu,\"", expr->length);
+	
+	for(char *c = expr->text; c < expr->text + expr->length; c++) {
+		if(*c == '\n') {
+			fprintf(cfile, "\\n");
+		}
+		else if(*c == '\t') {
+			fprintf(cfile, "\\t");
+		}
+		else {
+			fprintf(cfile, "%c", *c);
+		}
+	}
+	
+	fprintf(cfile, "\"}");
+}
+
 void gen_prim(Expr *expr)
 {
 	if(expr->prim == INTEGER)
@@ -34,6 +53,10 @@ void gen_prim(Expr *expr)
 		fprintf(cfile, "%s", d2s(expr->fval, 0));
 	else if(expr->prim == IDENT)
 		gen_ident(expr->name);
+	else if(expr->prim == STRING) {
+		fprintf(cfile, "(String)");
+		gen_str_init_expr(expr);
+	}
 }
 
 void gen_expr(Expr *expr)
@@ -87,17 +110,23 @@ void gen_expr(Expr *expr)
 	}
 	else if(expr->kind == CHAIN) {
 		if(expr->tier == RELATIONAL) {
-			gen_expr(expr->left);
-			
-			if(expr->left->kind == CHAIN && expr->left->tier == RELATIONAL) {
-				fprintf(cfile, " && ");
-				gen_expr(expr->left->right);
-				fprintf(cfile, " %s ", puncts[expr->op]);
-				gen_expr(expr->right);
+			if(expr->left->type->kind == STRINGTYPE) {
 			}
 			else {
-				fprintf(cfile, " %s ", puncts[expr->op]);
-				gen_expr(expr->right);
+				gen_expr(expr->left);
+				
+				if(
+					expr->left->kind == CHAIN && expr->left->tier == RELATIONAL
+				) {
+					fprintf(cfile, " && ");
+					gen_expr(expr->left->right);
+					fprintf(cfile, " %s ", puncts[expr->op]);
+					gen_expr(expr->right);
+				}
+				else {
+					fprintf(cfile, " %s ", puncts[expr->op]);
+					gen_expr(expr->right);
+				}
 			}
 		}
 		else {
@@ -189,6 +218,9 @@ void gen_type(Type *type)
 		fprintf(cfile, "struct ");
 		gen_ident(type->name);
 	}
+	else if(type->kind == STRINGTYPE) {
+		fprintf(cfile, "struct String");
+	}
 	else if(type->kind == PRIMTYPE) {
 		if(type->primtype == U8)
 			fprintf(cfile, "uint8_t");
@@ -278,7 +310,13 @@ void gen_vardecl(Stmt *stmt)
 	
 	if(stmt->expr && stmt->expr->isconst) {
 		fprintf(cfile, " = ");
-		gen_expr(stmt->expr);
+		
+		if(stmt->expr->type->kind == STRINGTYPE) {
+			gen_str_init_expr(stmt->expr);
+		}
+		else {
+			gen_expr(stmt->expr);
+		}
 	}
 }
 
@@ -355,6 +393,9 @@ void gen_printf_format_spec(Type *type)
 		else if(type->primtype == F64)
 			fprintf(cfile, "f");
 	}
+	else if(type->kind == STRINGTYPE) {
+		fprintf(cfile, "s");
+	}
 }
 
 void gen_stmt(Stmt *stmt)
@@ -396,6 +437,9 @@ void gen_stmt(Stmt *stmt)
 		
 		for(Expr *item = stmt->expr; item; item = item->next) {
 			gen_expr(item);
+			
+			if(item->type->kind == STRINGTYPE)
+				fprintf(cfile, ".text");
 			
 			if(item->next)
 				fprintf(cfile, ", ");
@@ -510,6 +554,9 @@ void gen_typename(Type *type)
 	else if(type->kind == STRUCTTYPE) {
 		fprintf(cfile, "st_%s", type->name);
 	}
+	else if(type->kind == STRINGTYPE) {
+		fprintf(cfile, "String");
+	}
 	else if(type->kind == PRIMTYPE) {
 		if(type->primtype == U8)
 			fprintf(cfile, "u8");
@@ -597,6 +644,8 @@ void gen_unit(Unit *unit)
 	scope = block->scope;
 	fprintf(cfile, "#include <stdio.h>\n");
 	fprintf(cfile, "#include <stdint.h>\n");
+	fprintf(cfile, "#include <string.h>\n");
+	fprintf(cfile, "struct String {size_t length;char *text;};\n");
 	
 	gen_scope(block->scope);
 	fprintf(cfile, "int main_%lx(int argc, char *argv[]) {\n", unit->hash);

@@ -25,6 +25,7 @@ typedef enum {
 	CHAIN,
 	// types
 	PRIMTYPE,
+	STRINGTYPE,
 	PTRTYPE,
 	ARRAYTYPE,
 	NAMEDTYPE,
@@ -45,6 +46,11 @@ typedef enum {
 	CONTINUE,
 } Kind;
 
+typedef struct {
+	Kind kind;
+	uint64_t val;
+} Integer;
+
 typedef enum {
 	U8, U16, U32, U64,
 	I8, I16, I32, I64,
@@ -62,8 +68,10 @@ typedef struct Token {
 	size_t pos;
 	size_t val;
 	double fval;
+	char *tval;
 	char *text;
 	size_t length;
+	size_t tval_len;
 	int punct;
 } Token;
 
@@ -93,6 +101,7 @@ typedef struct Expr {
 	size_t pos;
 	Kind prim;
 	char *name;
+	char *text;
 	int op;
 	size_t val;
 	double fval;
@@ -102,6 +111,7 @@ typedef struct Expr {
 	struct Expr *child;
 	struct Expr *next;
 	size_t length;
+	size_t name_length;
 	OpTier tier;
 	Type *type;
 	int isconst;

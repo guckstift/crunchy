@@ -254,7 +254,29 @@ void lex_unit()
 	for(Token *token = unit->tokens; token->kind != END; token ++) {
 		if(token->kind == IDENT)
 			token->text = pool_str(token->text, token->length);
-		else if(token->kind == STRING)
-			token->text = clone_strpart(token->text, token->length);
+		else if(token->kind == STRING) {
+			size_t real_strlen = 0;
+			char *decoded_str = malloc(token->length + 1);
+			char *coded_str = token->text;
+			
+			while(coded_str < token->text + token->length) {
+				if(*coded_str == '\\') {
+					coded_str ++;
+					
+					if(*coded_str == 'n') {
+						decoded_str[real_strlen++] = '\n';
+					}
+				}
+				else {
+					decoded_str[real_strlen++] = *coded_str;
+				}
+				
+				coded_str ++;
+			}
+			
+			token->tval = decoded_str;
+			token->tval_len = real_strlen;
+			decoded_str[real_strlen++] = 0;
+		}
 	}
 }

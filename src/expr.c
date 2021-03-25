@@ -9,11 +9,16 @@ char *optable[] = {
 
 Expr *parse_prim()
 {
-	if(is_kind(INTEGER) || is_kind(FLOAT) || is_kind(IDENT)) {
+	if(
+		is_kind(INTEGER) || is_kind(FLOAT) || is_kind(IDENT) || is_kind(STRING)
+	) {
 		Token *t = next_token();
 		Expr *prim = create_expr(PRIM);
 		prim->prim = t->kind;
 		prim->name = t->text;
+		prim->name_length = t->length;
+		prim->text = t->tval;
+		prim->length = t->tval_len;
 		prim->val = t->val;
 		prim->fval = t->fval;
 		prim->isconst = prim->prim != IDENT;
@@ -34,7 +39,7 @@ Expr *parse_ident_prim()
 
 Expr *parse_literal_prim()
 {
-	if(is_kind(INTEGER) || is_kind(FLOAT))
+	if(is_kind(INTEGER) || is_kind(FLOAT) || is_kind(STRING))
 		return parse_prim();
 	
 	return 0;

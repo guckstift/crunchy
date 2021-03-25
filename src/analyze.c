@@ -150,6 +150,9 @@ int types_equal(Type *t1, Type *t2)
 	assert(t1);
 	assert(t2);
 	
+	if(t1->kind == STRINGTYPE && t2->kind == STRINGTYPE)
+		return 1;
+	
 	if(t1->kind == PRIMTYPE && t2->kind == PRIMTYPE)
 		return t1->primtype == t2->primtype;
 	
@@ -274,6 +277,10 @@ void analyze_expr(Expr *expr)
 			expr->type->primtype = F64;
 			record_type(expr->type);
 		}
+		else if(prim == STRING) {
+			expr->type = create_type(STRINGTYPE);
+			record_type(expr->type);
+		}
 		else if(prim == IDENT) {
 			Type *type = analyze_var_name(expr->name);
 			expr->type = type;
@@ -386,16 +393,16 @@ void analyze_expr(Expr *expr)
 		analyze_expr(expr->left);
 		analyze_expr(expr->right);
 		
-		if(expr->left->type->kind == PTRTYPE)
+		if(expr->left->type->kind != PRIMTYPE)
 			error_expr(
 				expr->left,
-				"left side of '%s' is a pointer", puncts[expr->op]
+				"left side of '%s' is not a primitive", puncts[expr->op]
 			);
 		
-		if(expr->right->type->kind == PTRTYPE)
+		if(expr->right->type->kind != PRIMTYPE)
 			error_expr(
 				expr->right,
-				"right side of '%s' is a pointer", puncts[expr->op]
+				"right side of '%s' is not a primitive", puncts[expr->op]
 			);
 		
 		expr->type = expr->left->type;
@@ -690,10 +697,14 @@ void analyze_stmt(Stmt *stmt)
 	}
 	else if(stmt->kind == STRUCTDECL)
 		analyze_block(stmt->body);
-	else if(stmt->kind == IFSTMT)
+	else if(stmt->kind == IFSTMT) {
+		analyze_expr(stmt->expr);
 		analyze_block(stmt->body);
-	else if(stmt->kind == WHILESTMT)
+	}
+	else if(stmt->kind == WHILESTMT) {
+		analyze_expr(stmt->expr);
 		analyze_block(stmt->body);
+	}
 	else if(stmt->kind == CALLSTMT)
 		analyze_expr(stmt->expr);
 	else if(stmt->kind == PRINT) {
@@ -713,7 +724,7 @@ void analyze_stmt(Stmt *stmt)
 				item = unwrapped;
 			}
 			
-			if(item->type->kind != PRIMTYPE)
+			if(item->type->kind != PRIMTYPE && item->type->kind != STRINGTYPE)
 				error_expr(item, "can only print primitive types");
 			
 			last = item;
