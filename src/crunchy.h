@@ -1,7 +1,10 @@
 #include <stdint.h>
 
 #define KEYWORDS \
+	_(bool) \
+	_(false) \
 	_(int) \
+	_(true) \
 	_(var) \
 
 #define PUNCTS \
@@ -36,6 +39,7 @@ typedef enum : uint8_t {
 	TY_INVALID,
 
 	TY_INT,
+	TY_BOOL,
 } TypeKind;
 
 typedef struct {
@@ -46,6 +50,7 @@ typedef enum : uint8_t {
 	EX_INVALID,
 
 	EX_INT,
+	EX_BOOL,
 } ExprKind;
 
 typedef struct {

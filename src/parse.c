@@ -14,28 +14,48 @@ Token *eat(TokenKind kind)
 
 Type *p_type()
 {
-	Token *keyword = eat(KW_int);
+	Token *keyword = 0;
+	TypeKind kind = TY_INVALID;
 
-	if(!keyword) {
+	if(eat(KW_int)) {
+		kind = TY_INT;
+	}
+	else if(eat(KW_bool)) {
+		kind = TY_BOOL;
+	}
+	else {
 		return 0;
 	}
 
 	Type *type = malloc(sizeof(Type));
-	type->kind = TY_INT;
+	type->kind = kind;
 	return type;
 }
 
 Expr *p_expr()
 {
-	Token *int_literal = eat(TK_INT);
+	Token *literal = 0;
+	Expr *expr = 0;
 
-	if(!int_literal) {
+	if(literal = eat(TK_INT)) {
+		expr = malloc(sizeof(Expr));
+		expr->kind = EX_INT;
+		expr->ival = literal->ival;
+	}
+	else if(literal = eat(KW_true)) {
+		expr = malloc(sizeof(Expr));
+		expr->kind = EX_BOOL;
+		expr->ival = 1;
+	}
+	else if(literal = eat(KW_false)) {
+		expr = malloc(sizeof(Expr));
+		expr->kind = EX_BOOL;
+		expr->ival = 0;
+	}
+	else {
 		return 0;
 	}
 
-	Expr *expr = malloc(sizeof(Expr));
-	expr->kind = EX_INT;
-	expr->ival = int_literal->ival;
 	return expr;
 }
 

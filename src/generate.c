@@ -9,6 +9,11 @@ void gen_type(Type *type)
 		case TY_INT:
 			fprintf(ofs, "int64_t");
 			break;
+		case TY_BOOL:
+			fprintf(ofs, "uint8_t");
+			break;
+		default:
+			fprintf(ofs, "/* INTERNAL: unknown type to generate */");
 	}
 }
 
@@ -18,6 +23,11 @@ void gen_expr(Expr *expr)
 		case EX_INT:
 			fprintf(ofs, "%li", expr->ival);
 			break;
+		case EX_BOOL:
+			fprintf(ofs, "%li", expr->ival);
+			break;
+		default:
+			fprintf(ofs, "/* INTERNAL: unknown expression to generate */");
 	}
 }
 
@@ -32,6 +42,8 @@ void gen_stmt(Stmt *stmt)
 			gen_expr(stmt->init);
 			fprintf(ofs, ";\n");
 			break;
+		default:
+			fprintf(ofs, "/* INTERNAL: unknown statement to generate */");
 	}
 }
 

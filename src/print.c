@@ -32,6 +32,12 @@ void print_type(Type *type)
 		case TY_INT:
 			printf("int");
 			break;
+		case TY_BOOL:
+			printf("bool");
+			break;
+		default:
+			printf("<invalid-type>");
+			break;
 	}
 }
 
@@ -40,6 +46,12 @@ void print_expr(Expr *expr)
 	switch(expr->kind) {
 		case EX_INT:
 			printf("%li", expr->ival);
+			break;
+		case EX_BOOL:
+			printf("%s", expr->ival ? "true" : "false");
+			break;
+		default:
+			printf("<invalid-expr>");
 			break;
 	}
 }
@@ -62,6 +74,9 @@ void print_stmt(Stmt *stmt)
 			}
 
 			printf(";\n");
+			break;
+		default:
+			printf("<invalid-stmt>");
 			break;
 	}
 }
