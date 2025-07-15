@@ -1,1 +1,2 @@
-var x20 = 010;
+var x : int;
+var y = 90;

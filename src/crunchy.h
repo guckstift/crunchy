@@ -1,5 +1,14 @@
 #include <stdint.h>
 
+#define KEYWORDS \
+	_(int) \
+	_(var) \
+
+#define PUNCTS \
+	_('=', EQUALS) \
+	_(';', SEMICOLON) \
+	_(':', COLON) \
+
 typedef enum : uint8_t {
 	TK_INVALID,
 	TK_EOF,
@@ -7,12 +16,13 @@ typedef enum : uint8_t {
 	TK_INT,
 	TK_IDENT,
 
-	KW_var,
-	KW_int,
+	#define _(a) KW_ ## a,
+	KEYWORDS
+	#undef _
 
-	PT_EQUALS,
-	PT_SEMICOLON,
-	PT_COLON,
+	#define _(a, b) PT_ ## b,
+	PUNCTS
+	#undef _
 } TokenKind;
 
 typedef struct {
@@ -59,7 +69,8 @@ typedef struct {
 } Stmt;
 
 void error(char *msg);
-void print(Stmt *stmts);
+void print_tokens(Token *tokens);
+void print_stmts(Stmt *stmts);
 int64_t lex(char *src, Token **tokens_out);
 Stmt *parse(Token *tokens);
 void analyse(Stmt *stmts);

@@ -1,6 +1,31 @@
 #include <stdio.h>
 #include "crunchy.h"
 
+void print_tokens(Token *tokens)
+{
+	for(Token *token = tokens; token->kind != TK_EOF; token ++) {
+		printf("%s ",
+			token->kind == TK_INT   ? "<INT>     " :
+			token->kind == TK_IDENT ? "<IDENT>   " :
+
+			#define _(a) \
+			token->kind == KW_ ## a ? "<KEYWORD> " :
+			KEYWORDS
+			#undef _
+
+			#define _(a, b) \
+			token->kind == PT_ ## b ? "<PUNCT>   " :
+			PUNCTS
+			#undef _
+
+			"<invalid-token>"
+		);
+
+		fwrite(token->start, 1, token->end - token->start, stdout);
+		printf("\n");
+	}
+}
+
 void print_type(Type *type)
 {
 	switch(type->kind) {
@@ -41,7 +66,7 @@ void print_stmt(Stmt *stmt)
 	}
 }
 
-void print(Stmt *stmts)
+void print_stmts(Stmt *stmts)
 {
 	for(Stmt *stmt = stmts; stmt; stmt = stmt->next) {
 		print_stmt(stmt);

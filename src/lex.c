@@ -32,29 +32,17 @@ int64_t lex(char *src, Token **tokens_out)
 			}
 
 			int64_t length = src - start;
+			kind = TK_IDENT;
 
-			if(length == 3 && memcmp(start, "var", length) == 0) {
-				kind = KW_var;
-			}
-			else if(length == 3 && memcmp(start, "int", length) == 0) {
-				kind = KW_int;
-			}
-			else {
-				kind = TK_IDENT;
-			}
+			#define _(a) if(length == sizeof(#a)-1 && memcmp(start, #a, sizeof(#a)-1) == 0) { kind = KW_ ## a ; } else
+			KEYWORDS;
+			#undef _
 		}
-		else if(*src == '=') {
-			kind = PT_EQUALS;
-			src ++;
-		}
-		else if(*src == ';') {
-			kind = PT_SEMICOLON;
-			src ++;
-		}
-		else if(*src == ':') {
-			kind = PT_COLON;
-			src ++;
-		}
+
+		#define _(a, b) else if(*src == a) { kind = PT_ ## b ; src ++; }
+		PUNCTS
+		#undef _
+
 		else {
 			printf("(%i) %c\n", *src, *src);
 			error("unrecognized token");

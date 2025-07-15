@@ -35,31 +35,20 @@ int main(int argc, char **argv)
 
 	char *input_file = argv[1];
 	char *src = load_text_file(input_file);
-
-	printf("content: %s \n", src);
+	printf("# SOURCE\n");
+	printf("%s\n", src);
 
 	Token *tokens = 0;
 	int64_t token_count = lex(src, &tokens);
-
-	for(Token *token = tokens; token->kind != TK_EOF; token ++) {
-		printf("%s ",
-			token->kind == TK_INT       ? "<INT>       " :
-			token->kind == TK_IDENT     ? "<IDENT>     " :
-			token->kind == KW_var       ? "<KEYWORD>   " :
-			token->kind == PT_EQUALS    ? "<EQUALS>    " :
-			token->kind == PT_SEMICOLON ? "<SEMICOLON> " :
-			token->kind == PT_COLON     ? "<COLON>     " :
-			"<invalid-token>"
-		);
-
-		fwrite(token->start, 1, token->end - token->start, stdout);
-		printf("\n");
-	}
+	printf("# TOKENS\n");
+	print_tokens(tokens);
 
 	Stmt *stmts = parse(tokens);
-	print(stmts);
+	printf("# AST\n");
+	print_stmts(stmts);
 	analyse(stmts);
-	print(stmts);
+	printf("# AST (analysed)\n");
+	print_stmts(stmts);
 
 	int64_t input_filename_length = strlen(input_file);
 	char *output_file = malloc(input_filename_length + 2 + 1);
