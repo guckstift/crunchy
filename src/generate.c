@@ -26,6 +26,9 @@ void gen_expr(Expr *expr)
 		case EX_BOOL:
 			fprintf(ofs, "%li", expr->ival);
 			break;
+		case EX_VAR:
+			fwrite(expr->ident->start, 1, expr->ident->length, ofs);
+			break;
 		default:
 			fprintf(ofs, "/* INTERNAL: unknown expression to generate */");
 	}
@@ -37,7 +40,7 @@ void gen_stmt(Stmt *stmt)
 
 	switch(stmt->kind) {
 		case ST_VARDECL:
-			fwrite(stmt->ident->start, 1, stmt->ident->end - stmt->ident->start, ofs);
+			fwrite(stmt->ident->start, 1, stmt->ident->length, ofs);
 			fprintf(ofs, " = ");
 			gen_expr(stmt->init);
 			fprintf(ofs, ";\n");
@@ -47,8 +50,9 @@ void gen_stmt(Stmt *stmt)
 	}
 }
 
-void generate(Stmt *stmts, char *output_file)
+void generate(Block *block, char *output_file)
 {
+	Stmt *stmts = block->stmts;
 	ofs = fopen(output_file, "wb");
 	fprintf(ofs, "#include <stdint.h>\n");
 
@@ -56,7 +60,7 @@ void generate(Stmt *stmts, char *output_file)
 		if(stmt->kind == ST_VARDECL) {
 			gen_type(stmt->type);
 			fprintf(ofs, " ");
-			fwrite(stmt->ident->start, 1, stmt->ident->end - stmt->ident->start, ofs);
+			fwrite(stmt->ident->start, 1, stmt->ident->length, ofs);
 			fprintf(ofs, ";\n");
 		}
 	}

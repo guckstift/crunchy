@@ -1,7 +1,54 @@
 #include <stdlib.h>
+#include <string.h>
 #include "crunchy.h"
 
-Token *cur_token = 0;
+static Token *cur_token = 0;
+static Block *cur_block = 0;
+
+Type *new_type(TypeKind kind)
+{
+	Type *type = calloc(1, sizeof(Type));
+	type->kind = kind;
+	return type;
+}
+
+Expr *new_expr(ExprKind kind, Token *start)
+{
+	Expr *expr = calloc(1, sizeof(Expr));
+	expr->kind = kind;
+	expr->start = start;
+	return expr;
+}
+
+Stmt *new_stmt(StmtKind kind, Token *start, Token *end)
+{
+	Stmt *stmt = calloc(1, sizeof(Stmt));
+	stmt->kind = kind;
+	stmt->next = 0;
+	stmt->start = start;
+	stmt->end = end;
+	return stmt;
+}
+
+int declare(Stmt *decl)
+{
+	for(Stmt *d = cur_block->decls; d; d = d->next_decl) {
+		if(d->ident->length == decl->ident->length && memcmp(d->ident->start, decl->ident->start, d->ident->length) == 0) {
+			return 0;
+		}
+	}
+
+	if(cur_block->decls) {
+		cur_block->last_decl->next_decl = decl;
+		cur_block->last_decl = decl;
+	}
+	else {
+		cur_block->decls = decl;
+		cur_block->last_decl = decl;
+	}
+
+	return 1;
+}
 
 Token *eat(TokenKind kind)
 {
@@ -27,9 +74,7 @@ Type *p_type()
 		return 0;
 	}
 
-	Type *type = malloc(sizeof(Type));
-	type->kind = kind;
-	return type;
+	return new_type(kind);
 }
 
 Expr *p_expr()
@@ -38,22 +83,20 @@ Expr *p_expr()
 	Expr *expr = 0;
 
 	if(literal = eat(TK_INT)) {
-		expr = malloc(sizeof(Expr));
-		expr->kind = EX_INT;
+		expr = new_expr(EX_INT, literal);
 		expr->ival = literal->ival;
 	}
 	else if(literal = eat(KW_true)) {
-		expr = malloc(sizeof(Expr));
-		expr->kind = EX_BOOL;
+		expr = new_expr(EX_BOOL, literal);
 		expr->ival = 1;
 	}
 	else if(literal = eat(KW_false)) {
-		expr = malloc(sizeof(Expr));
-		expr->kind = EX_BOOL;
+		expr = new_expr(EX_BOOL, literal);
 		expr->ival = 0;
 	}
-	else {
-		return 0;
+	else if(literal = eat(TK_IDENT)) {
+		expr = new_expr(EX_VAR, literal);
+		expr->ident = literal;
 	}
 
 	return expr;
@@ -61,6 +104,8 @@ Expr *p_expr()
 
 Stmt *p_stmt()
 {
+	Token *start = cur_token;
+
 	if(!eat(KW_var)) {
 		return 0;
 	}
@@ -99,18 +144,23 @@ Stmt *p_stmt()
 		error("missing semicolon after variable declaration");
 	}
 
-	Stmt *stmt = malloc(sizeof(Stmt));
-	stmt->kind = ST_VARDECL;
-	stmt->next = 0;
+	Stmt *stmt = new_stmt(ST_VARDECL, start, cur_token);
 	stmt->ident = ident;
 	stmt->type = type;
 	stmt->init = init;
+	stmt->next_decl = 0;
+
+	if(!declare(stmt)) {
+		error("variable is already declared");
+	}
+
 	return stmt;
 }
 
-Stmt *parse(Token *tokens)
+Block *parse(Token *tokens)
 {
 	cur_token = tokens;
+	cur_block = calloc(1, sizeof(Block));
 
 	Stmt *first = 0;
 	Stmt *last = 0;
@@ -123,6 +173,7 @@ Stmt *parse(Token *tokens)
 		}
 
 		if(!first) {
+			cur_block->stmts = stmt;
 			first = stmt;
 			last = stmt;
 		}
@@ -136,5 +187,5 @@ Stmt *parse(Token *tokens)
 		error("invalid statement");
 	}
 
-	return first;
+	return cur_block;
 }

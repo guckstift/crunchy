@@ -31,7 +31,7 @@ typedef enum : uint8_t {
 typedef struct {
 	TokenKind kind;
 	char *start;
-	char *end;
+	int64_t length;
 	int64_t ival;
 } Token;
 
@@ -51,12 +51,20 @@ typedef enum : uint8_t {
 
 	EX_INT,
 	EX_BOOL,
+	EX_VAR,
 } ExprKind;
 
 typedef struct {
 	ExprKind kind;
+	Token *start;
 	Type *type;
-	int64_t ival;
+
+	union {
+		int64_t ival; // int, bool
+		Token *ident; // var
+	};
+
+	struct Stmt *decl; // var
 } Expr;
 
 typedef enum : uint8_t {
@@ -65,18 +73,30 @@ typedef enum : uint8_t {
 	ST_VARDECL,
 } StmtKind;
 
-typedef struct {
+typedef struct Stmt {
 	StmtKind kind;
 	void *next;
-	Token *ident;
-	Type *type;
-	Expr *init;
+	Token *start;
+	Token *end;
+	Token *ident; // vardecl
+	Type *type; // vardecl
+	Expr *init; // vardecl
+	void *next_decl; // vardecl
 } Stmt;
+
+typedef struct {
+	Stmt *stmts;
+	Stmt *decls;
+	Stmt *last_decl;
+} Block;
 
 void error(char *msg);
 void print_tokens(Token *tokens);
-void print_stmts(Stmt *stmts);
+void print_block(Block *block);
 int64_t lex(char *src, Token **tokens_out);
-Stmt *parse(Token *tokens);
-void analyse(Stmt *stmts);
-void generate(Stmt *stmts, char *output_file);
+Type *new_type(TypeKind kind);
+Expr *new_expr(ExprKind kind, Token *start);
+Stmt *new_stmt(StmtKind kind, Token *start, Token *end);
+Block *parse(Token *tokens);
+void analyse(Block *block);
+void generate(Block *block, char *output_file);

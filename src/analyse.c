@@ -1,5 +1,8 @@
 #include <stdlib.h>
+#include <string.h>
 #include "crunchy.h"
+
+static Block *cur_block = 0;
 
 Expr *get_default_value(Type *type)
 {
@@ -7,14 +10,12 @@ Expr *get_default_value(Type *type)
 
 	switch(type->kind) {
 		case TY_INT:
-			expr = malloc(sizeof(Expr));
-			expr->kind = EX_INT;
+			expr = new_expr(EX_INT, 0);
 			expr->type = type;
 			expr->ival = 0;
 			break;
 		case TY_BOOL:
-			expr = malloc(sizeof(Expr));
-			expr->kind = EX_BOOL;
+			expr = new_expr(EX_BOOL, 0);
 			expr->type = type;
 			expr->ival = 0;
 			break;
@@ -27,6 +28,10 @@ Expr *adjust_expr_to_type(Expr *expr, Type *type)
 {
 	if(expr->type->kind == type->kind) {
 		return expr;
+	}
+
+	if(expr->kind == EX_VAR) {
+		error("converting variables is not implemented yet");
 	}
 
 	switch(type->kind) {
@@ -44,16 +49,38 @@ Expr *adjust_expr_to_type(Expr *expr, Type *type)
 	return expr;
 }
 
+Stmt *lookup(Token *ident)
+{
+	for(Stmt *d = cur_block->decls; d; d = d->next_decl) {
+		if(d->ident->length == ident->length && memcmp(d->ident->start, ident->start, d->ident->length) == 0) {
+			return d;
+		}
+	}
+
+	return 0;
+}
+
 void a_expr(Expr *expr)
 {
 	switch(expr->kind) {
 		case EX_INT:
-			expr->type = malloc(sizeof(Type));
-			expr->type->kind = TY_INT;
+			expr->type = new_type(TY_INT);
 			break;
 		case EX_BOOL:
-			expr->type = malloc(sizeof(Type));
-			expr->type->kind = TY_BOOL;
+			expr->type = new_type(TY_BOOL);
+			break;
+		case EX_VAR:
+			expr->decl = lookup(expr->ident);
+
+			if(!expr->decl) {
+				error("could not find variable");
+			}
+
+			if(expr->start < expr->decl->end) {
+				error("variable used before its declaration");
+			}
+
+			expr->type = expr->decl->type;
 			break;
 		default:
 			error("INTERNAL: unknown expression to analyse");
@@ -88,9 +115,11 @@ void a_stmt(Stmt *stmt)
 	}
 }
 
-void analyse(Stmt *stmts)
+void analyse(Block *block)
 {
-	for(Stmt *stmt = stmts; stmt; stmt = stmt->next) {
+	cur_block = block;
+
+	for(Stmt *stmt = block->stmts; stmt; stmt = stmt->next) {
 		a_stmt(stmt);
 	}
 }

@@ -18,10 +18,10 @@ void print_tokens(Token *tokens)
 			PUNCTS
 			#undef _
 
-			"<invalid-token>"
+			"<unknown-token>"
 		);
 
-		fwrite(token->start, 1, token->end - token->start, stdout);
+		fwrite(token->start, 1, token->length, stdout);
 		printf("\n");
 	}
 }
@@ -36,7 +36,7 @@ void print_type(Type *type)
 			printf("bool");
 			break;
 		default:
-			printf("<invalid-type>");
+			printf("<unknown-type>");
 			break;
 	}
 }
@@ -50,8 +50,11 @@ void print_expr(Expr *expr)
 		case EX_BOOL:
 			printf("%s", expr->ival ? "true" : "false");
 			break;
+		case EX_VAR:
+			fwrite(expr->ident->start, 1, expr->ident->length, stdout);
+			break;
 		default:
-			printf("<invalid-expr>");
+			printf("<unknown-expr>");
 			break;
 	}
 }
@@ -61,7 +64,7 @@ void print_stmt(Stmt *stmt)
 	switch(stmt->kind) {
 		case ST_VARDECL:
 			printf("var ");
-			fwrite(stmt->ident->start, 1, stmt->ident->end - stmt->ident->start, stdout);
+			fwrite(stmt->ident->start, 1, stmt->ident->length, stdout);
 
 			if(stmt->type) {
 				printf(" : ");
@@ -76,7 +79,7 @@ void print_stmt(Stmt *stmt)
 			printf(";\n");
 			break;
 		default:
-			printf("<invalid-stmt>");
+			printf("<unknown-stmt>");
 			break;
 	}
 }
@@ -86,4 +89,17 @@ void print_stmts(Stmt *stmts)
 	for(Stmt *stmt = stmts; stmt; stmt = stmt->next) {
 		print_stmt(stmt);
 	}
+}
+
+void print_block(Block *block)
+{
+	printf("# scope: ");
+
+	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
+		fwrite(decl->ident->start, 1, decl->ident->length, stdout);
+		printf("; ");
+	}
+
+	printf("\n");
+	print_stmts(block->stmts);
 }

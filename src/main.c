@@ -43,12 +43,13 @@ int main(int argc, char **argv)
 	printf("# TOKENS\n");
 	print_tokens(tokens);
 
-	Stmt *stmts = parse(tokens);
+	Block *block = parse(tokens);
 	printf("# AST\n");
-	print_stmts(stmts);
-	analyse(stmts);
+	print_block(block);
+
+	analyse(block);
 	printf("# AST (analysed)\n");
-	print_stmts(stmts);
+	print_block(block);
 
 	int64_t input_filename_length = strlen(input_file);
 	char *output_file = malloc(input_filename_length + 2 + 1);
@@ -56,7 +57,7 @@ int main(int argc, char **argv)
 	memcpy(output_file + input_filename_length, ".c", 2);
 	output_file[input_filename_length + 2] = 0;
 
-	generate(stmts, output_file);
+	generate(block, output_file);
 
 	return 0;
 }

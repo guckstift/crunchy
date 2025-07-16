@@ -50,12 +50,12 @@ int64_t lex(char *src, Token **tokens_out)
 
 		count ++;
 		tokens = realloc(tokens, sizeof(Token) * count);
-		tokens[count - 1] = (Token){.kind = kind, .start = start, .end = src, .ival = ival};
+		tokens[count - 1] = (Token){.kind = kind, .start = start, .length = src - start, .ival = ival};
 	}
 
 	count ++;
 	tokens = realloc(tokens, sizeof(Token) * count);
-	tokens[count - 1] = (Token){.kind = TK_EOF, .start = src, .end = src};
+	tokens[count - 1] = (Token){.kind = TK_EOF, .start = src, .length = 0};
 
 	*tokens_out = tokens;
 	return count;
