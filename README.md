@@ -34,9 +34,13 @@ Here I document every feature implemented so far. This list should grow with eac
   * `var` IDENTIFIER `=` expression `;`
     * the variable type is inferred from the initializer expression
   * `var` IDENTIFIER `:` type `=` expression `;`
+    * the expression is possibly converted implicitly
 * types
   * `int` : 64 bit signed integer
   * `bool` : boolean value, `true` or `false`
 * expressions
   * decimal integer literal : `[0-9]+`
   * boolean literal : `true` or `false`
+* conversion
+  * `int` to `bool` : x = 0 => `false`, otherwise `true`
+  * `bool` to `int` : x = `false` => 0, x = `true` => 1
