@@ -3,6 +3,13 @@
 
 FILE *ofs = 0;
 
+void gen_expr(Expr *expr);
+
+void gen_token(Token *token)
+{
+	fwrite(token->start, 1, token->length, ofs);
+}
+
 void gen_type(Type *type)
 {
 	switch(type->kind) {
@@ -17,6 +24,22 @@ void gen_type(Type *type)
 	}
 }
 
+void gen_cast(Type *type, Expr *expr)
+{
+	switch(type->kind) {
+		case TY_INT:
+			gen_expr(expr);
+			break;
+		case TY_BOOL:
+			fprintf(ofs, "(");
+			gen_expr(expr);
+			fprintf(ofs, " != 0)");
+			break;
+		default:
+			fprintf(ofs, "/* INTERNAL: unknown expression to generate cast for */");
+	}
+}
+
 void gen_expr(Expr *expr)
 {
 	switch(expr->kind) {
@@ -27,7 +50,10 @@ void gen_expr(Expr *expr)
 			fprintf(ofs, "%li", expr->ival);
 			break;
 		case EX_VAR:
-			fwrite(expr->ident->start, 1, expr->ident->length, ofs);
+			gen_token(expr->ident);
+			break;
+		case EX_CAST:
+			gen_cast(expr->type, expr->subexpr);
 			break;
 		default:
 			fprintf(ofs, "/* INTERNAL: unknown expression to generate */");
@@ -40,7 +66,7 @@ void gen_stmt(Stmt *stmt)
 
 	switch(stmt->kind) {
 		case ST_VARDECL:
-			fwrite(stmt->ident->start, 1, stmt->ident->length, ofs);
+			gen_token(stmt->ident);
 			fprintf(ofs, " = ");
 			gen_expr(stmt->init);
 			fprintf(ofs, ";\n");
@@ -60,7 +86,7 @@ void generate(Block *block, char *output_file)
 		if(stmt->kind == ST_VARDECL) {
 			gen_type(stmt->type);
 			fprintf(ofs, " ");
-			fwrite(stmt->ident->start, 1, stmt->ident->length, ofs);
+			gen_token(stmt->ident);
 			fprintf(ofs, ";\n");
 		}
 	}

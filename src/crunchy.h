@@ -54,6 +54,7 @@ typedef enum : uint8_t {
 	EX_INT,
 	EX_BOOL,
 	EX_VAR,
+	EX_CAST,
 } ExprKind;
 
 typedef struct {
@@ -64,6 +65,7 @@ typedef struct {
 	union {
 		int64_t ival; // int, bool
 		Token *ident; // var
+		void *subexpr; // cast
 	};
 
 	struct Stmt *decl; // var

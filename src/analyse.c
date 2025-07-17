@@ -53,6 +53,8 @@ Expr *get_default_value(Type *type)
 		default:
 			error("INTERNAL: unknown type to get default value for");
 	}
+
+	return expr;
 }
 
 Expr *adjust_expr_to_type(Expr *expr, Type *type)
@@ -62,7 +64,10 @@ Expr *adjust_expr_to_type(Expr *expr, Type *type)
 	}
 
 	if(expr->kind == EX_VAR) {
-		error_at(expr->start, "converting variables is not implemented yet");
+		Expr *cast = new_expr(EX_CAST, expr->start);
+		cast->type = type;
+		cast->subexpr = expr;
+		return cast;
 	}
 
 	switch(type->kind) {

@@ -1,6 +1,11 @@
 #include <stdio.h>
 #include "crunchy.h"
 
+void print_token(Token *token)
+{
+	fwrite(token->start, 1, token->length, stdout);
+}
+
 void print_tokens(Token *tokens)
 {
 	for(Token *token = tokens; token->kind != TK_EOF; token ++) {
@@ -21,7 +26,7 @@ void print_tokens(Token *tokens)
 			"<unknown-token>"
 		);
 
-		fwrite(token->start, 1, token->length, stdout);
+		print_token(token);
 		printf("\n");
 	}
 }
@@ -51,7 +56,13 @@ void print_expr(Expr *expr)
 			printf("%s", expr->ival ? "true" : "false");
 			break;
 		case EX_VAR:
-			fwrite(expr->ident->start, 1, expr->ident->length, stdout);
+			print_token(expr->ident);
+			break;
+		case EX_CAST:
+			print_type(expr->type);
+			printf("(");
+			print_expr(expr->subexpr);
+			printf(")");
 			break;
 		default:
 			printf("<unknown-expr>");
@@ -64,7 +75,7 @@ void print_stmt(Stmt *stmt)
 	switch(stmt->kind) {
 		case ST_VARDECL:
 			printf("var ");
-			fwrite(stmt->ident->start, 1, stmt->ident->length, stdout);
+			print_token(stmt->ident);
 
 			if(stmt->type) {
 				printf(" : ");
@@ -96,7 +107,7 @@ void print_block(Block *block)
 	printf("# scope: ");
 
 	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
-		fwrite(decl->ident->start, 1, decl->ident->length, stdout);
+		print_token(decl->ident);
 		printf("; ");
 	}
 
