@@ -1,3 +1,3 @@
 var x = false;
-var y = x;
-var z;
+var y : int = 0;
+var z = u;

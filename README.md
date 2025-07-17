@@ -24,6 +24,12 @@ Example:
 ./build/crunchy ./test.cr
 ```
 
+The generated C file `./test.cr.c` can then be compiled via e.g. `gcc`.
+
+```
+gcc -o test ./test.cr.c
+```
+
 ## Current language status
 
 Here I document every feature implemented so far. This list should grow with each new commit.

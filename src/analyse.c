@@ -1,8 +1,39 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include "crunchy.h"
 
 static Block *cur_block = 0;
+
+void error_at(Token *at, char *msg)
+{
+	printf("error: %s\n", msg);
+	Token *bof = at;
+
+	if(!at) {
+		exit(EXIT_FAILURE);
+	}
+
+	while(bof->kind != TK_BOF) {
+		bof --;
+	}
+
+	char *src_file_start = bof->start;
+	printf("%li: ", at->line);
+	char *p = at->start;
+
+	while(p > src_file_start && p[-1] != '\n') {
+		p --;
+	}
+
+	while(*p && *p != '\n') {
+		fputc(*p, stdout);
+		p ++;
+	}
+
+	printf("\n");
+	exit(EXIT_FAILURE);
+}
 
 Expr *get_default_value(Type *type)
 {
@@ -31,7 +62,7 @@ Expr *adjust_expr_to_type(Expr *expr, Type *type)
 	}
 
 	if(expr->kind == EX_VAR) {
-		error("converting variables is not implemented yet");
+		error_at(expr->start, "converting variables is not implemented yet");
 	}
 
 	switch(type->kind) {
@@ -43,7 +74,7 @@ Expr *adjust_expr_to_type(Expr *expr, Type *type)
 			expr->ival = expr->ival != 0;
 			break;
 		default:
-			error("INTERNAL: unknown type to adjust expression to");
+			error_at(expr->start, "INTERNAL: unknown type to adjust expression to");
 	}
 
 	return expr;
@@ -73,17 +104,17 @@ void a_expr(Expr *expr)
 			expr->decl = lookup(expr->ident);
 
 			if(!expr->decl) {
-				error("could not find variable");
+				error_at(expr->start, "could not find variable");
 			}
 
 			if(expr->start < expr->decl->end) {
-				error("variable used before its declaration");
+				error_at(expr->start, "variable used before its declaration");
 			}
 
 			expr->type = expr->decl->type;
 			break;
 		default:
-			error("INTERNAL: unknown expression to analyse");
+			error_at(expr->start, "INTERNAL: unknown expression to analyse");
 	}
 }
 
@@ -106,12 +137,12 @@ void a_stmt(Stmt *stmt)
 			}
 
 			if(!stmt->type) {
-				error("could not find out the type for this variable declaration");
+				error_at(stmt->start, "could not find out the type for this variable declaration");
 			}
 
 			break;
 		default:
-			error("INTERNAL: unknown statement to analyse");
+			error_at(stmt->start, "INTERNAL: unknown statement to analyse");
 	}
 }
 
