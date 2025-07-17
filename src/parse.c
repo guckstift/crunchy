@@ -1,9 +1,37 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include "crunchy.h"
 
+#define error(...) parse_error(__VA_ARGS__)
+
+static char *src_file_start = 0;
 static Token *cur_token = 0;
 static Block *cur_block = 0;
+
+void parse_error(char *msg)
+{
+	printf("error: %s\n", msg);
+
+	if(!src_file_start) {
+		exit(EXIT_FAILURE);
+	}
+
+	printf("%li: ", cur_token->line);
+	char *p = cur_token->start;
+
+	while(p > src_file_start && p[-1] != '\n') {
+		p --;
+	}
+
+	while(*p && *p != '\n') {
+		fputc(*p, stdout);
+		p ++;
+	}
+
+	printf("\n");
+	exit(EXIT_FAILURE);
+}
 
 Type *new_type(TypeKind kind)
 {
@@ -140,10 +168,6 @@ Stmt *p_stmt()
 		error("a variable declaration must have at least either a type specification or an initializer expression");
 	}
 
-	if(!eat(PT_SEMICOLON)) {
-		error("missing semicolon after variable declaration");
-	}
-
 	Stmt *stmt = new_stmt(ST_VARDECL, start, cur_token);
 	stmt->ident = ident;
 	stmt->type = type;
@@ -154,6 +178,10 @@ Stmt *p_stmt()
 		error("variable is already declared");
 	}
 
+	if(!eat(PT_SEMICOLON)) {
+		error("missing semicolon after variable declaration");
+	}
+
 	return stmt;
 }
 
@@ -161,6 +189,13 @@ Block *parse(Token *tokens)
 {
 	cur_token = tokens;
 	cur_block = calloc(1, sizeof(Block));
+
+	if(eat(TK_BOF)) {
+		src_file_start = tokens[0].start;
+	}
+	else {
+		error("INTERNAL: no BOF (beginning of file) present");
+	}
 
 	Stmt *first = 0;
 	Stmt *last = 0;

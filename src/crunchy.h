@@ -14,6 +14,7 @@
 
 typedef enum : uint8_t {
 	TK_INVALID,
+	TK_BOF,
 	TK_EOF,
 
 	TK_INT,
@@ -32,6 +33,7 @@ typedef struct {
 	TokenKind kind;
 	char *start;
 	int64_t length;
+	int64_t line;
 	int64_t ival;
 } Token;
 
@@ -90,13 +92,24 @@ typedef struct {
 	Stmt *last_decl;
 } Block;
 
+// main
 void error(char *msg);
+
+// print
 void print_tokens(Token *tokens);
 void print_block(Block *block);
+
+// lex
 int64_t lex(char *src, Token **tokens_out);
+
+// parse
 Type *new_type(TypeKind kind);
 Expr *new_expr(ExprKind kind, Token *start);
 Stmt *new_stmt(StmtKind kind, Token *start, Token *end);
 Block *parse(Token *tokens);
+
+// analyse
 void analyse(Block *block);
+
+// generate
 void generate(Block *block, char *output_file);

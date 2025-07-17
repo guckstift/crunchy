@@ -8,6 +8,11 @@ int64_t lex(char *src, Token **tokens_out)
 {
 	Token *tokens = 0;
 	int64_t count = 0;
+	int64_t line = 1;
+
+	count ++;
+	tokens = realloc(tokens, sizeof(Token) * count);
+	tokens[count - 1] = (Token){.kind = TK_BOF, .start = src, .length = 0, .line = 1};
 
 	while(*src) {
 		TokenKind kind = TK_INVALID;
@@ -15,6 +20,10 @@ int64_t lex(char *src, Token **tokens_out)
 		int64_t ival = 0;
 
 		if(isspace(*src)) {
+			if(*src == '\n') {
+				line ++;
+			}
+
 			src ++;
 			continue;
 		}
@@ -50,12 +59,12 @@ int64_t lex(char *src, Token **tokens_out)
 
 		count ++;
 		tokens = realloc(tokens, sizeof(Token) * count);
-		tokens[count - 1] = (Token){.kind = kind, .start = start, .length = src - start, .ival = ival};
+		tokens[count - 1] = (Token){.kind = kind, .start = start, .length = src - start, .line = line, .ival = ival};
 	}
 
 	count ++;
 	tokens = realloc(tokens, sizeof(Token) * count);
-	tokens[count - 1] = (Token){.kind = TK_EOF, .start = src, .length = 0};
+	tokens[count - 1] = (Token){.kind = TK_EOF, .start = src, .length = 0, .line = line};
 
 	*tokens_out = tokens;
 	return count;

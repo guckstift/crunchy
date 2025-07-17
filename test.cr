@@ -1,3 +1,3 @@
 var x = false;
 var y = x;
-var z : bool = y;
+var z;
