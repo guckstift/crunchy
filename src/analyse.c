@@ -146,6 +146,9 @@ void a_stmt(Stmt *stmt)
 			}
 
 			break;
+		case ST_PRINT:
+			a_expr(stmt->value);
+			break;
 		case ST_ASSIGN:
 			a_expr(stmt->target);
 

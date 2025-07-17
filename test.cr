@@ -1,9 +1,7 @@
-var x : int;
-x = true;
-x = 90;
+var x = 8470;
+var y = true;
 
-var y : bool;
-y = 10;
-y = false;
-y = x;
-x = y;
+print 209;
+print x;
+print false;
+print y;

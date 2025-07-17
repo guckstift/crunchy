@@ -4,6 +4,7 @@
 	_(bool) \
 	_(false) \
 	_(int) \
+	_(print) \
 	_(true) \
 	_(var) \
 
@@ -76,6 +77,7 @@ typedef enum : uint8_t {
 	ST_INVALID,
 
 	ST_VARDECL,
+	ST_PRINT,
 	ST_ASSIGN,
 } StmtKind;
 
@@ -92,7 +94,7 @@ typedef struct Stmt {
 
 	union {
 		Type *type; // vardecl
-		Expr *value; // assign
+		Expr *value; // assign, print
 	};
 
 	Expr *init; // vardecl

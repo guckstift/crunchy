@@ -44,7 +44,7 @@ void gen_expr(Expr *expr)
 {
 	switch(expr->kind) {
 		case EX_INT:
-			fprintf(ofs, "%li", expr->ival);
+			fprintf(ofs, "%liL", expr->ival);
 			break;
 		case EX_BOOL:
 			fprintf(ofs, "%li", expr->ival);
@@ -57,6 +57,30 @@ void gen_expr(Expr *expr)
 			break;
 		default:
 			fprintf(ofs, "/* INTERNAL: unknown expression to generate */");
+	}
+}
+
+void gen_print(Expr *value)
+{
+	switch(value->type->kind) {
+		case TY_INT:
+			fprintf(ofs, "printf(\"%%li\\n\", ");
+			break;
+		case TY_BOOL:
+			fprintf(ofs, "printf(\"%%s\\n\", ");
+			break;
+		default:
+			fprintf(ofs, "// INTERNAL: unknown value type to generate print for\n");
+			return;
+	}
+
+	gen_expr(value);
+
+	if(value->type->kind == TY_BOOL) {
+		fprintf(ofs, " ? \"true\" : \"false\");\n");
+	}
+	else {
+		fprintf(ofs, ");\n");
 	}
 }
 
@@ -77,6 +101,9 @@ void gen_stmt(Stmt *stmt)
 			gen_expr(stmt->value);
 			fprintf(ofs, ";\n");
 			break;
+		case ST_PRINT:
+			gen_print(stmt->value);
+			break;
 		default:
 			fprintf(ofs, "// INTERNAL: unknown statement to generate\n");
 	}
@@ -87,6 +114,7 @@ void generate(Block *block, char *output_file)
 	Stmt *stmts = block->stmts;
 	ofs = fopen(output_file, "wb");
 	fprintf(ofs, "#include <stdint.h>\n");
+	fprintf(ofs, "#include <stdio.h>\n");
 
 	for(Stmt *stmt = stmts; stmt; stmt = stmt->next) {
 		if(stmt->kind == ST_VARDECL) {

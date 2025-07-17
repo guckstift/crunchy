@@ -89,6 +89,11 @@ void print_stmt(Stmt *stmt)
 
 			printf(";\n");
 			break;
+		case ST_PRINT:
+			printf("print ");
+			print_expr(stmt->value);
+			printf(";\n");
+			break;
 		case ST_ASSIGN:
 			print_expr(stmt->target);
 			printf(" = ");

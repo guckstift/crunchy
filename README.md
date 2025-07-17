@@ -1,3 +1,4 @@
+
 # crunchy
 
 *crunchy* is my work-in-progress programming language. It aims to be a natively compiled, statically typed but also garbage collected language that feels familiar to JavaScript/TypeScript or Python developers but compiles to plain C code.
@@ -42,8 +43,11 @@ Here I document every feature implemented so far. This list should grow with eac
   * `var` IDENTIFIER `:` type `=` expression `;`
     * the expression is possibly converted implicitly
 * assignments
-  * `expr`<sub>target</sub> = `expr`<sub>value</sub> `;`
+  * expression<sub>target</sub> = expression<sub>value</sub> `;`
     * the target must be an L-value
+* print statements
+  * `print` expression `;`
+    * prints the value of expression on a separate line
 * types
   * `int` : 64 bit signed integer
   * `bool` : boolean value, `true` or `false`

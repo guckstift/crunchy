@@ -183,6 +183,32 @@ Stmt *p_vardecl()
 		error("missing semicolon after variable declaration");
 	}
 
+	stmt->end = cur_token;
+	return stmt;
+}
+
+Stmt *p_print()
+{
+	Token *start = cur_token;
+
+	if(!eat(KW_print)) {
+		return 0;
+	}
+
+	Expr *value = p_expr();
+
+	if(!value) {
+		error("missing expression to print");
+	}
+
+	Stmt *stmt = new_stmt(ST_PRINT, start, cur_token);
+	stmt->value = value;
+
+	if(!eat(PT_SEMICOLON)) {
+		error("missing semicolon after print statement");
+	}
+
+	stmt->end = cur_token;
 	return stmt;
 }
 
@@ -218,6 +244,7 @@ Stmt *p_stmt()
 {
 	Stmt *stmt = 0;
 	(stmt = p_vardecl()) ||
+	(stmt = p_print()) ||
 	(stmt = p_assign()) ;
 	return stmt;
 }
