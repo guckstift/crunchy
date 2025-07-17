@@ -71,8 +71,14 @@ void gen_stmt(Stmt *stmt)
 			gen_expr(stmt->init);
 			fprintf(ofs, ";\n");
 			break;
+		case ST_ASSIGN:
+			gen_expr(stmt->target);
+			fprintf(ofs, " = ");
+			gen_expr(stmt->value);
+			fprintf(ofs, ";\n");
+			break;
 		default:
-			fprintf(ofs, "/* INTERNAL: unknown statement to generate */");
+			fprintf(ofs, "// INTERNAL: unknown statement to generate\n");
 	}
 }
 

@@ -41,12 +41,12 @@ Expr *get_default_value(Type *type)
 
 	switch(type->kind) {
 		case TY_INT:
-			expr = new_expr(EX_INT, 0);
+			expr = new_expr(EX_INT, 0, 0);
 			expr->type = type;
 			expr->ival = 0;
 			break;
 		case TY_BOOL:
-			expr = new_expr(EX_BOOL, 0);
+			expr = new_expr(EX_BOOL, 0, 0);
 			expr->type = type;
 			expr->ival = 0;
 			break;
@@ -64,7 +64,7 @@ Expr *adjust_expr_to_type(Expr *expr, Type *type)
 	}
 
 	if(expr->kind == EX_VAR) {
-		Expr *cast = new_expr(EX_CAST, expr->start);
+		Expr *cast = new_expr(EX_CAST, expr->start, 0);
 		cast->type = type;
 		cast->subexpr = expr;
 		return cast;
@@ -145,6 +145,16 @@ void a_stmt(Stmt *stmt)
 				error_at(stmt->start, "could not find out the type for this variable declaration");
 			}
 
+			break;
+		case ST_ASSIGN:
+			a_expr(stmt->target);
+
+			if(!stmt->target->is_lvalue) {
+				error_at(stmt->target->start, "target is not assignable");
+			}
+
+			a_expr(stmt->value);
+			stmt->value = adjust_expr_to_type(stmt->value, stmt->target->type);
 			break;
 		default:
 			error_at(stmt->start, "INTERNAL: unknown statement to analyse");

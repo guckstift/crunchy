@@ -40,11 +40,12 @@ Type *new_type(TypeKind kind)
 	return type;
 }
 
-Expr *new_expr(ExprKind kind, Token *start)
+Expr *new_expr(ExprKind kind, Token *start, uint8_t is_lvalue)
 {
 	Expr *expr = calloc(1, sizeof(Expr));
 	expr->kind = kind;
 	expr->start = start;
+	expr->is_lvalue = is_lvalue;
 	return expr;
 }
 
@@ -111,26 +112,26 @@ Expr *p_expr()
 	Expr *expr = 0;
 
 	if(literal = eat(TK_INT)) {
-		expr = new_expr(EX_INT, literal);
+		expr = new_expr(EX_INT, literal, 0);
 		expr->ival = literal->ival;
 	}
 	else if(literal = eat(KW_true)) {
-		expr = new_expr(EX_BOOL, literal);
+		expr = new_expr(EX_BOOL, literal, 0);
 		expr->ival = 1;
 	}
 	else if(literal = eat(KW_false)) {
-		expr = new_expr(EX_BOOL, literal);
+		expr = new_expr(EX_BOOL, literal, 0);
 		expr->ival = 0;
 	}
 	else if(literal = eat(TK_IDENT)) {
-		expr = new_expr(EX_VAR, literal);
+		expr = new_expr(EX_VAR, literal, 1);
 		expr->ident = literal;
 	}
 
 	return expr;
 }
 
-Stmt *p_stmt()
+Stmt *p_vardecl()
 {
 	Token *start = cur_token;
 
@@ -182,6 +183,42 @@ Stmt *p_stmt()
 		error("missing semicolon after variable declaration");
 	}
 
+	return stmt;
+}
+
+Stmt *p_assign()
+{
+	Expr *target = p_expr();
+
+	if(!target) {
+		return 0;
+	}
+
+	if(!eat(PT_EQUALS)) {
+		error("expected '=' after assignment target");
+	}
+
+	Expr *value = p_expr();
+
+	if(!value) {
+		error("expected assignment value after '='");
+	}
+
+	if(!eat(PT_SEMICOLON)) {
+		error("missing semicolon after variable declaration");
+	}
+
+	Stmt *stmt = new_stmt(ST_ASSIGN, target->start, cur_token);
+	stmt->target = target;
+	stmt->value = value;
+	return stmt;
+}
+
+Stmt *p_stmt()
+{
+	Stmt *stmt = 0;
+	(stmt = p_vardecl()) ||
+	(stmt = p_assign()) ;
 	return stmt;
 }
 

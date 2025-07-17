@@ -1,4 +1,9 @@
 var x : int;
-var y : bool = x;
+x = true;
+x = 90;
 
-var z : int = y;
+var y : bool;
+y = 10;
+y = false;
+y = x;
+x = y;

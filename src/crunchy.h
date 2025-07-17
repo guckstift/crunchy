@@ -60,6 +60,7 @@ typedef enum : uint8_t {
 typedef struct {
 	ExprKind kind;
 	Token *start;
+	uint8_t is_lvalue : 1;
 	Type *type;
 
 	union {
@@ -75,6 +76,7 @@ typedef enum : uint8_t {
 	ST_INVALID,
 
 	ST_VARDECL,
+	ST_ASSIGN,
 } StmtKind;
 
 typedef struct Stmt {
@@ -82,8 +84,17 @@ typedef struct Stmt {
 	void *next;
 	Token *start;
 	Token *end;
-	Token *ident; // vardecl
-	Type *type; // vardecl
+
+	union {
+		Token *ident; // vardecl
+		Expr *target; // assign
+	};
+
+	union {
+		Type *type; // vardecl
+		Expr *value; // assign
+	};
+
 	Expr *init; // vardecl
 	void *next_decl; // vardecl
 } Stmt;
@@ -106,7 +117,7 @@ int64_t lex(char *src, Token **tokens_out);
 
 // parse
 Type *new_type(TypeKind kind);
-Expr *new_expr(ExprKind kind, Token *start);
+Expr *new_expr(ExprKind kind, Token *start, uint8_t is_lvalue);
 Stmt *new_stmt(StmtKind kind, Token *start, Token *end);
 Block *parse(Token *tokens);
 
