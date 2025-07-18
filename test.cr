@@ -1,7 +1,6 @@
-var x = 8470;
-var y = true;
+var x = 90;
 
-print 209;
-print x;
-print false;
-print y;
+if x {
+	var x = true;
+	print x;
+}

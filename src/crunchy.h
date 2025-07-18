@@ -3,6 +3,7 @@
 #define KEYWORDS \
 	_(bool) \
 	_(false) \
+	_(if) \
 	_(int) \
 	_(print) \
 	_(true) \
@@ -12,6 +13,8 @@
 	_('=', EQUALS) \
 	_(';', SEMICOLON) \
 	_(':', COLON) \
+	_('{', LCURLY) \
+	_('}', RCURLY) \
 
 typedef enum : uint8_t {
 	TK_INVALID,
@@ -79,6 +82,7 @@ typedef enum : uint8_t {
 	ST_VARDECL,
 	ST_PRINT,
 	ST_ASSIGN,
+	ST_IF,
 } StmtKind;
 
 typedef struct Stmt {
@@ -90,11 +94,13 @@ typedef struct Stmt {
 	union {
 		Token *ident; // vardecl
 		Expr *target; // assign
+		Expr *cond; // if
 	};
 
 	union {
 		Type *type; // vardecl
 		Expr *value; // assign, print
+		void *body; // if
 	};
 
 	Expr *init; // vardecl
@@ -102,6 +108,7 @@ typedef struct Stmt {
 } Stmt;
 
 typedef struct {
+	void *parent;
 	Stmt *stmts;
 	Stmt *decls;
 	Stmt *last_decl;

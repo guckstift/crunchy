@@ -41,13 +41,15 @@ Here I document every feature implemented so far. This list should grow with eac
   * `var` IDENTIFIER `=` expression `;`
     * the variable type is inferred from the initializer expression
   * `var` IDENTIFIER `:` type `=` expression `;`
-    * the expression is possibly converted implicitly
+    * the initializer expression is possibly converted to the specified type
 * assignments
   * expression<sub>target</sub> = expression<sub>value</sub> `;`
     * the target must be an L-value
 * print statements
   * `print` expression `;`
     * prints the value of expression on a separate line
+* if statements
+  * `if` expression `{` statement* `}`
 * types
   * `int` : 64 bit signed integer
   * `bool` : boolean value, `true` or `false`

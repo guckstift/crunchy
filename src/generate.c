@@ -2,8 +2,17 @@
 #include "crunchy.h"
 
 FILE *ofs = 0;
+static int level = 0;
 
 void gen_expr(Expr *expr);
+void gen_local_block(Block *block);
+
+void gen_indent()
+{
+	for(int i=0; i<level; i++) {
+		fprintf(ofs, "\t");
+	}
+}
 
 void gen_token(Token *token)
 {
@@ -86,7 +95,7 @@ void gen_print(Expr *value)
 
 void gen_stmt(Stmt *stmt)
 {
-	fprintf(ofs, "\t");
+	gen_indent();
 
 	switch(stmt->kind) {
 		case ST_VARDECL:
@@ -104,9 +113,51 @@ void gen_stmt(Stmt *stmt)
 		case ST_PRINT:
 			gen_print(stmt->value);
 			break;
+		case ST_IF:
+			fprintf(ofs, "if(");
+			gen_expr(stmt->cond);
+			fprintf(ofs, ") {\n");
+			gen_local_block(stmt->body);
+			gen_indent();
+			fprintf(ofs, "}\n");
+			break;
 		default:
 			fprintf(ofs, "// INTERNAL: unknown statement to generate\n");
 	}
+}
+
+void gen_decls(Block *block)
+{
+	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
+		gen_indent();
+		gen_type(decl->type);
+		fprintf(ofs, " ");
+		gen_token(decl->ident);
+		fprintf(ofs, ";\n");
+	}
+}
+
+void gen_local_block(Block *block)
+{
+	level ++;
+	gen_decls(block);
+
+	for(Stmt *stmt = block->stmts; stmt; stmt = stmt->next) {
+		gen_stmt(stmt);
+	}
+
+	level --;
+}
+
+void gen_block(Block *block)
+{
+	level ++;
+
+	for(Stmt *stmt = block->stmts; stmt; stmt = stmt->next) {
+		gen_stmt(stmt);
+	}
+
+	level --;
 }
 
 void generate(Block *block, char *output_file)
@@ -115,22 +166,9 @@ void generate(Block *block, char *output_file)
 	ofs = fopen(output_file, "wb");
 	fprintf(ofs, "#include <stdint.h>\n");
 	fprintf(ofs, "#include <stdio.h>\n");
-
-	for(Stmt *stmt = stmts; stmt; stmt = stmt->next) {
-		if(stmt->kind == ST_VARDECL) {
-			gen_type(stmt->type);
-			fprintf(ofs, " ");
-			gen_token(stmt->ident);
-			fprintf(ofs, ";\n");
-		}
-	}
-
+	gen_decls(block);
 	fprintf(ofs, "int main(int argc, char **argv) {\n");
-
-	for(Stmt *stmt = stmts; stmt; stmt = stmt->next) {
-		gen_stmt(stmt);
-	}
-
+	gen_block(block);
 	fprintf(ofs, "\treturn 0;\n");
 	fprintf(ofs, "}\n");
 	fclose(ofs);

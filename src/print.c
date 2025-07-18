@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include "crunchy.h"
 
+static int level = 0;
+
 void print_token(Token *token)
 {
 	fwrite(token->start, 1, token->length, stdout);
@@ -28,6 +30,13 @@ void print_tokens(Token *tokens)
 
 		print_token(token);
 		printf("\n");
+	}
+}
+
+void print_indent()
+{
+	for(int i=0; i<level; i++) {
+		printf("  ");
 	}
 }
 
@@ -72,6 +81,8 @@ void print_expr(Expr *expr)
 
 void print_stmt(Stmt *stmt)
 {
+	print_indent();
+
 	switch(stmt->kind) {
 		case ST_VARDECL:
 			printf("var ");
@@ -100,6 +111,16 @@ void print_stmt(Stmt *stmt)
 			print_expr(stmt->value);
 			printf(";\n");
 			break;
+		case ST_IF:
+			printf("if ");
+			print_expr(stmt->cond);
+			printf(" {\n");
+			level ++;
+			print_block(stmt->body);
+			level --;
+			print_indent();
+			printf("}\n");
+			break;
 		default:
 			printf("<unknown-stmt>\n");
 			break;
@@ -115,6 +136,7 @@ void print_stmts(Stmt *stmts)
 
 void print_block(Block *block)
 {
+	print_indent();
 	printf("# scope: ");
 
 	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {

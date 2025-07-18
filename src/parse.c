@@ -5,6 +5,8 @@
 
 #define error(...) parse_error(__VA_ARGS__)
 
+Block *p_block();
+
 static char *src_file_start = 0;
 static Token *cur_token = 0;
 static Block *cur_block = 0;
@@ -35,6 +37,15 @@ void parse_error(char *msg)
 
 Type *new_type(TypeKind kind)
 {
+	if(kind == TY_INT) {
+		static Type int_type = {.kind = TY_INT};
+		return &int_type;
+	}
+	else if(kind == TY_BOOL) {
+		static Type bool_type = {.kind = TY_BOOL};
+		return &bool_type;
+	}
+
 	Type *type = calloc(1, sizeof(Type));
 	type->kind = kind;
 	return type;
@@ -212,6 +223,36 @@ Stmt *p_print()
 	return stmt;
 }
 
+Stmt *p_if()
+{
+	Token *start = cur_token;
+
+	if(!eat(KW_if)) {
+		return 0;
+	}
+
+	Expr *cond = p_expr();
+
+	if(!cond) {
+		error("missing condition after if keyword");
+	}
+
+	if(!eat(PT_LCURLY)) {
+		error("expected '{' after if-condition");
+	}
+
+	Block *body = p_block();
+
+	if(!eat(PT_RCURLY)) {
+		error("expected '}' after if-body");
+	}
+
+	Stmt *stmt = new_stmt(ST_IF, start, cur_token);
+	stmt->cond = cond;
+	stmt->body = body;
+	return stmt;
+}
+
 Stmt *p_assign()
 {
 	Expr *target = p_expr();
@@ -245,24 +286,19 @@ Stmt *p_stmt()
 	Stmt *stmt = 0;
 	(stmt = p_vardecl()) ||
 	(stmt = p_print()) ||
+	(stmt = p_if()) ||
 	(stmt = p_assign()) ;
 	return stmt;
 }
 
-Block *parse(Token *tokens)
+Block *p_block()
 {
-	cur_token = tokens;
-	cur_block = calloc(1, sizeof(Block));
-
-	if(eat(TK_BOF)) {
-		src_file_start = tokens[0].start;
-	}
-	else {
-		error("INTERNAL: no BOF (beginning of file) present");
-	}
-
+	Block *old_block = cur_block;
+	Block *block = calloc(1, sizeof(Block));
 	Stmt *first = 0;
 	Stmt *last = 0;
+	cur_block = block;
+	cur_block->parent = old_block;
 
 	while(1) {
 		Stmt *stmt = p_stmt();
@@ -282,9 +318,26 @@ Block *parse(Token *tokens)
 		}
 	}
 
+	cur_block = old_block;
+	return block;
+}
+
+Block *parse(Token *tokens)
+{
+	cur_token = tokens;
+
+	if(eat(TK_BOF)) {
+		src_file_start = tokens[0].start;
+	}
+	else {
+		error("INTERNAL: no BOF (beginning of file) present");
+	}
+
+	Block *main_block = p_block();
+
 	if(!eat(TK_EOF)) {
 		error("invalid statement");
 	}
 
-	return cur_block;
+	return main_block;
 }

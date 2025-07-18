@@ -3,6 +3,8 @@
 #include <string.h>
 #include "crunchy.h"
 
+void a_block(Block *block);
+
 static Block *cur_block = 0;
 
 void error_at(Token *at, char *msg)
@@ -85,15 +87,24 @@ Expr *adjust_expr_to_type(Expr *expr, Type *type)
 	return expr;
 }
 
-Stmt *lookup(Token *ident)
+Stmt *lookup_in(Token *ident, Block *block)
 {
-	for(Stmt *d = cur_block->decls; d; d = d->next_decl) {
+	for(Stmt *d = block->decls; d; d = d->next_decl) {
 		if(d->ident->length == ident->length && memcmp(d->ident->start, ident->start, d->ident->length) == 0) {
 			return d;
 		}
 	}
 
+	if(block->parent) {
+		return lookup_in(ident, block->parent);
+	}
+
 	return 0;
+}
+
+Stmt *lookup(Token *ident)
+{
+	return lookup_in(ident, cur_block);
 }
 
 void a_expr(Expr *expr)
@@ -159,16 +170,29 @@ void a_stmt(Stmt *stmt)
 			a_expr(stmt->value);
 			stmt->value = adjust_expr_to_type(stmt->value, stmt->target->type);
 			break;
+		case ST_IF:
+			a_expr(stmt->cond);
+			stmt->cond = adjust_expr_to_type(stmt->cond, new_type(TY_BOOL));
+			a_block(stmt->body);
+			break;
 		default:
 			error_at(stmt->start, "INTERNAL: unknown statement to analyse");
 	}
 }
 
-void analyse(Block *block)
+void a_block(Block *block)
 {
+	Block *old_block = cur_block;
 	cur_block = block;
 
 	for(Stmt *stmt = block->stmts; stmt; stmt = stmt->next) {
 		a_stmt(stmt);
 	}
+
+	cur_block = old_block;
+}
+
+void analyse(Block *block)
+{
+	a_block(block);
 }

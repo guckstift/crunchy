@@ -35,20 +35,20 @@ int main(int argc, char **argv)
 
 	char *input_file = argv[1];
 	char *src = load_text_file(input_file);
-	printf("# SOURCE\n");
+	printf("\n# SOURCE\n");
 	printf("%s\n", src);
 
 	Token *tokens = 0;
 	int64_t token_count = lex(src, &tokens);
-	printf("# TOKENS\n");
+	printf("\n# TOKENS\n");
 	print_tokens(tokens);
 
 	Block *block = parse(tokens);
-	printf("# AST\n");
+	printf("\n# AST\n");
 	print_block(block);
 
 	analyse(block);
-	printf("# AST (analysed)\n");
+	printf("\n# AST (analysed)\n");
 	print_block(block);
 
 	int64_t input_filename_length = strlen(input_file);
