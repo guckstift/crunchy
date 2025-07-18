@@ -43,6 +43,10 @@ Type *new_type(TypeKind kind)
 		static Type bool_type = {.kind = TY_BOOL};
 		return &bool_type;
 	}
+	else if(kind == TY_STRING) {
+		static Type string_type = {.kind = TY_STRING};
+		return &string_type;
+	}
 
 	Type *type = calloc(1, sizeof(Type));
 	type->kind = kind;
@@ -104,6 +108,8 @@ Type *p_type()
 		kind = TY_INT;
 	else if(eat(KW_bool))
 		kind = TY_BOOL;
+	else if(eat(KW_string))
+		kind = TY_STRING;
 	else
 		return 0;
 
@@ -130,6 +136,11 @@ Expr *p_atom()
 	else if(literal = eat(TK_IDENT)) {
 		expr = new_expr(EX_VAR, literal, 1);
 		expr->ident = literal;
+	}
+	else if(literal = eat(TK_STRING)) {
+		expr = new_expr(EX_STRING, literal, 1);
+		expr->chars = literal->chars;
+		expr->length = literal->str_length;
 	}
 
 	return expr;

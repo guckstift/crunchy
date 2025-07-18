@@ -6,6 +6,7 @@
 	_(if) \
 	_(int) \
 	_(print) \
+	_(string) \
 	_(true) \
 	_(var) \
 
@@ -24,6 +25,7 @@ typedef enum : uint8_t {
 
 	TK_INT,
 	TK_IDENT,
+	TK_STRING,
 
 	#define _(a) KW_ ## a,
 	KEYWORDS
@@ -39,7 +41,13 @@ typedef struct {
 	char *start;
 	int64_t length;
 	int64_t line;
-	int64_t ival;
+
+	union {
+		int64_t ival;
+		char *chars;
+	};
+
+	int64_t str_length;
 } Token;
 
 typedef enum : uint8_t {
@@ -47,6 +55,7 @@ typedef enum : uint8_t {
 
 	TY_INT,
 	TY_BOOL,
+	TY_STRING,
 } TypeKind;
 
 typedef struct {
@@ -58,6 +67,7 @@ typedef enum : uint8_t {
 
 	EX_INT,
 	EX_BOOL,
+	EX_STRING,
 	EX_VAR,
 	EX_CAST,
 	EX_BINOP,
@@ -74,11 +84,13 @@ typedef struct {
 		Token *ident; // var
 		void *subexpr; // cast
 		void *left; // binop
+		char *chars; // string
 	};
 
 	union {
 		struct Stmt *decl; // var
 		void *right; // binop
+		int64_t length; // string
 	};
 
 	Token *op; // binop

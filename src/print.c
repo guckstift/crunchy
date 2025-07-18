@@ -12,8 +12,12 @@ void print_tokens(Token *tokens)
 {
 	for(Token *token = tokens; token->kind != TK_EOF; token ++) {
 		printf("%s ",
-			token->kind == TK_INT   ? "<INT>     " :
-			token->kind == TK_IDENT ? "<IDENT>   " :
+			token->kind == TK_INVALID ? "<INVALID> " :
+			token->kind == TK_BOF     ? "<BOF>     " :
+			token->kind == TK_EOF     ? "<EOF>     " :
+			token->kind == TK_INT     ? "<INT>     " :
+			token->kind == TK_IDENT   ? "<IDENT>   " :
+			token->kind == TK_STRING  ? "<STRING>  " :
 
 			#define _(a) \
 			token->kind == KW_ ## a ? "<KEYWORD> " :
@@ -49,6 +53,9 @@ void print_type(Type *type)
 		case TY_BOOL:
 			printf("bool");
 			break;
+		case TY_STRING:
+			printf("string");
+			break;
 		default:
 			printf("<unknown-type>");
 			break;
@@ -63,6 +70,20 @@ void print_expr(Expr *expr)
 			break;
 		case EX_BOOL:
 			printf("%s", expr->ival ? "true" : "false");
+			break;
+		case EX_STRING:
+			printf("\"");
+
+			for(int64_t i=0; i < expr->length; i++) {
+				if(expr->chars[i] == '"') {
+					printf("\\\"");
+				}
+				else {
+					fputc(expr->chars[i], stdout);
+				}
+			}
+
+			printf("\"");
 			break;
 		case EX_VAR:
 			print_token(expr->ident);

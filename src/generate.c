@@ -28,6 +28,9 @@ void gen_type(Type *type)
 		case TY_BOOL:
 			fprintf(ofs, "uint8_t");
 			break;
+		case TY_STRING:
+			fprintf(ofs, "String");
+			break;
 		default:
 			fprintf(ofs, "/* INTERNAL: unknown type to generate */");
 	}
@@ -58,6 +61,20 @@ void gen_expr(Expr *expr)
 		case EX_BOOL:
 			fprintf(ofs, "%li", expr->ival);
 			break;
+		case EX_STRING:
+			fprintf(ofs, "(String){.length = %liL, .chars = \"", expr->length);
+
+			for(int64_t i=0; i < expr->length; i++) {
+				if(expr->chars[i] == '"') {
+					fprintf(ofs, "\\\"");
+				}
+				else {
+					fputc(expr->chars[i], ofs);
+				}
+			}
+
+			fprintf(ofs, "\"}");
+			break;
 		case EX_VAR:
 			gen_token(expr->ident);
 			break;
@@ -84,6 +101,9 @@ void gen_print(Expr *value)
 			break;
 		case TY_BOOL:
 			fprintf(ofs, "printf(\"%%s\\n\", ");
+			break;
+		case TY_STRING:
+			fprintf(ofs, "print_string(");
 			break;
 		default:
 			fprintf(ofs, "// INTERNAL: unknown value type to generate print for\n");
@@ -173,6 +193,8 @@ void generate(Block *block, char *output_file)
 	ofs = fopen(output_file, "wb");
 	fprintf(ofs, "#include <stdint.h>\n");
 	fprintf(ofs, "#include <stdio.h>\n");
+	fprintf(ofs, "typedef struct { char *chars; int64_t length; } String;\n");
+	fprintf(ofs, "static void print_string(String str) { fwrite(str.chars, 1, str.length, stdout); printf(\"\\n\"); }\n");
 	gen_decls(block);
 	fprintf(ofs, "int main(int argc, char **argv) {\n");
 	gen_block(block);

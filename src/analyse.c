@@ -52,6 +52,12 @@ Expr *get_default_value(Type *type)
 			expr->type = type;
 			expr->ival = 0;
 			break;
+		case TY_STRING:
+			expr = new_expr(EX_STRING, 0, 0);
+			expr->type = type;
+			expr->chars = "";
+			expr->length = 0;
+			break;
 		default:
 			error("INTERNAL: unknown type to get default value for");
 	}
@@ -63,6 +69,10 @@ Expr *adjust_expr_to_type(Expr *expr, Type *type)
 {
 	if(expr->type->kind == type->kind) {
 		return expr;
+	}
+
+	if(expr->type->kind == TY_STRING) {
+		error_at(expr->start, "strings can not be converted to some other type");
 	}
 
 	if(expr->kind == EX_VAR) {
@@ -79,6 +89,9 @@ Expr *adjust_expr_to_type(Expr *expr, Type *type)
 		case TY_BOOL:
 			expr->kind = type->kind;
 			expr->ival = expr->ival != 0;
+			break;
+		case TY_STRING:
+			error_at(expr->start, "can not convert other types to string");
 			break;
 		default:
 			error_at(expr->start, "INTERNAL: unknown type to adjust expression to");
@@ -115,6 +128,9 @@ void a_expr(Expr *expr)
 			break;
 		case EX_BOOL:
 			expr->type = new_type(TY_BOOL);
+			break;
+		case EX_STRING:
+			expr->type = new_type(TY_STRING);
 			break;
 		case EX_VAR:
 			expr->decl = lookup(expr->ident);

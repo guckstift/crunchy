@@ -53,14 +53,20 @@ Here I document every feature implemented so far. This list should grow with eac
 * types
   * `int` : 64 bit signed integer
   * `bool` : boolean value, `true` or `false`
+  * `string` : immutable array of byte characters
 * expressions
   * decimal integer literal : `[0-9]+`
   * boolean literal : `true` or `false`
+  * string literal : `"` string-characters `"`
+    * string-characters are all passing C's `isprint()` function except `"`
+    * escape sequence allowed: `\"`
   * variables
     * must be used not before the end of their own declaration
   * binary operators
     * expression<sub>left</sub> `+` expression<sub>right</sub>
       * => yields an `int` value
+      * left and right expressions can only be `int` or `bool`
 * conversion
   * `int` to `bool` : x = 0 => `false`, otherwise `true`
   * `bool` to `int` : x = `false` => 0, x = `true` => 1
+  * `string` can not be converted from or to
