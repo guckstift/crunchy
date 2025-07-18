@@ -73,6 +73,13 @@ void print_expr(Expr *expr)
 			print_expr(expr->subexpr);
 			printf(")");
 			break;
+		case EX_BINOP:
+			printf("(");
+			print_expr(expr->left);
+			print_token(expr->op);
+			print_expr(expr->right);
+			printf(")");
+			break;
 		default:
 			printf("<unknown-expr>");
 			break;

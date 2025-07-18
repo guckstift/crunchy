@@ -15,6 +15,7 @@
 	_(':', COLON) \
 	_('{', LCURLY) \
 	_('}', RCURLY) \
+	_('+', PLUS) \
 
 typedef enum : uint8_t {
 	TK_INVALID,
@@ -59,6 +60,7 @@ typedef enum : uint8_t {
 	EX_BOOL,
 	EX_VAR,
 	EX_CAST,
+	EX_BINOP,
 } ExprKind;
 
 typedef struct {
@@ -71,9 +73,15 @@ typedef struct {
 		int64_t ival; // int, bool
 		Token *ident; // var
 		void *subexpr; // cast
+		void *left; // binop
 	};
 
-	struct Stmt *decl; // var
+	union {
+		struct Stmt *decl; // var
+		void *right; // binop
+	};
+
+	Token *op; // binop
 } Expr;
 
 typedef enum : uint8_t {

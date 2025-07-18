@@ -1,6 +1,6 @@
-var x = 90;
+var x = 90 + 80;
+var y = true + 0;
+var z = false + true;
 
-if x {
-	var x = true;
-	print x;
-}
+var a = false;
+x = 1 + a;

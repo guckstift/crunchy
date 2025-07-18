@@ -129,6 +129,13 @@ void a_expr(Expr *expr)
 
 			expr->type = expr->decl->type;
 			break;
+		case EX_BINOP:
+			a_expr(expr->left);
+			a_expr(expr->right);
+			expr->left = adjust_expr_to_type(expr->left, new_type(TY_INT));
+			expr->right = adjust_expr_to_type(expr->right, new_type(TY_INT));
+			expr->type = new_type(TY_INT);
+			break;
 		default:
 			error_at(expr->start, "INTERNAL: unknown expression to analyse");
 	}

@@ -64,6 +64,13 @@ void gen_expr(Expr *expr)
 		case EX_CAST:
 			gen_cast(expr->type, expr->subexpr);
 			break;
+		case EX_BINOP:
+			fprintf(ofs, "(");
+			gen_expr(expr->left);
+			gen_token(expr->op);
+			gen_expr(expr->right);
+			fprintf(ofs, ")");
+			break;
 		default:
 			fprintf(ofs, "/* INTERNAL: unknown expression to generate */");
 	}

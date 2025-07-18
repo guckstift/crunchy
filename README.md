@@ -58,6 +58,9 @@ Here I document every feature implemented so far. This list should grow with eac
   * boolean literal : `true` or `false`
   * variables
     * must be used not before the end of their own declaration
+  * binary operators
+    * expression<sub>left</sub> `+` expression<sub>right</sub>
+      * => yields an `int` value
 * conversion
   * `int` to `bool` : x = 0 => `false`, otherwise `true`
   * `bool` to `int` : x = `false` => 0, x = `true` => 1
