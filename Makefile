@@ -2,8 +2,14 @@
 	gcc -o $@ $^
 
 ./build/%.o: ./src/%.c
-	gcc -c -o $@ $^
+	gcc -c -o $@ $<
+
+./build/generate.o: ./build/runtime.c.h
+
+./build/runtime.c.h: ./src/runtime.c
+	xxd -i > $@ < $^
 
 clean:
 	rm ./build/*.o
+	rm ./build/*.c.h
 	rm ./build/crunchy

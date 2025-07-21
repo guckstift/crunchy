@@ -1,4 +1,5 @@
 build/crunchy
 build/*.o
+build/*.c.h
 test.cr.c
 test

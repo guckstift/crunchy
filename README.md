@@ -43,7 +43,7 @@ Here I document every feature implemented so far. This list should grow with eac
   * `var` IDENTIFIER `:` type `=` expression `;`
     * the initializer expression is possibly converted to the specified type
 * assignments
-  * expression<sub>target</sub> = expression<sub>value</sub> `;`
+  * expression<sub>target</sub> `=` expression<sub>value</sub> `;`
     * the target must be an L-value
 * print statements
   * `print` expression `;`

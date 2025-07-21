@@ -1,6 +1,11 @@
 #include <stdio.h>
 #include "crunchy.h"
 
+char runtime_src[] = {
+	#include "../build/runtime.c.h"
+	, 0
+};
+
 FILE *ofs = 0;
 static int level = 0;
 
@@ -191,10 +196,7 @@ void generate(Block *block, char *output_file)
 {
 	Stmt *stmts = block->stmts;
 	ofs = fopen(output_file, "wb");
-	fprintf(ofs, "#include <stdint.h>\n");
-	fprintf(ofs, "#include <stdio.h>\n");
-	fprintf(ofs, "typedef struct { char *chars; int64_t length; } String;\n");
-	fprintf(ofs, "static void print_string(String str) { fwrite(str.chars, 1, str.length, stdout); printf(\"\\n\"); }\n");
+	fprintf(ofs, "%s\n\n", runtime_src);
 	gen_decls(block);
 	fprintf(ofs, "int main(int argc, char **argv) {\n");
 	gen_block(block);
