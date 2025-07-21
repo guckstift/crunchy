@@ -1,5 +1,6 @@
-var x : string;
-var y = "Hello \"World\"";
+var x = 90;
 
-print y;
-print "Foo Bar";
+if 1 {
+	var y = "Hello";
+	print y;
+}

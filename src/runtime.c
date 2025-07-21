@@ -9,5 +9,5 @@ typedef struct {
 void print_string(String str)
 {
 	fwrite(str.chars, 1, str.length, stdout);
-	printf("#\n");
+	printf("\n");
 }

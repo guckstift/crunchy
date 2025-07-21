@@ -24,6 +24,13 @@ void gen_token(Token *token)
 	fwrite(token->start, 1, token->length, ofs);
 }
 
+void gen_var(Token *ident, Block *parent_block)
+{
+	fprintf(ofs, "(frame%li.", parent_block->id);
+	gen_token(ident);
+	fprintf(ofs, ")");
+}
+
 void gen_type(Type *type)
 {
 	switch(type->kind) {
@@ -81,7 +88,7 @@ void gen_expr(Expr *expr)
 			fprintf(ofs, "\"}");
 			break;
 		case EX_VAR:
-			gen_token(expr->ident);
+			gen_var(expr->ident, expr->decl->parent_block);
 			break;
 		case EX_CAST:
 			gen_cast(expr->type, expr->subexpr);
@@ -131,7 +138,7 @@ void gen_stmt(Stmt *stmt)
 
 	switch(stmt->kind) {
 		case ST_VARDECL:
-			gen_token(stmt->ident);
+			gen_var(stmt->ident, stmt->parent_block);
 			fprintf(ofs, " = ");
 			gen_expr(stmt->init);
 			fprintf(ofs, ";\n");
@@ -160,6 +167,12 @@ void gen_stmt(Stmt *stmt)
 
 void gen_decls(Block *block)
 {
+	gen_indent();
+	fprintf(ofs, "struct {\n");
+	level ++;
+	gen_indent();
+	fprintf(ofs, "void *parent;\n");
+
 	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
 		gen_indent();
 		gen_type(decl->type);
@@ -167,6 +180,15 @@ void gen_decls(Block *block)
 		gen_token(decl->ident);
 		fprintf(ofs, ";\n");
 	}
+
+	level --;
+	gen_indent();
+	Block *parent_block = block->parent;
+
+	if(parent_block)
+		fprintf(ofs, "} frame%li = {.parent = &frame%li};\n", block->id, parent_block->id);
+	else
+		fprintf(ofs, "} frame%li = {.parent = 0};\n", block->id);
 }
 
 void gen_local_block(Block *block)

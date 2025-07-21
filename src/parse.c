@@ -10,6 +10,7 @@ Block *p_block();
 static char *src_file_start = 0;
 static Token *cur_token = 0;
 static Block *cur_block = 0;
+static int64_t next_block_id = 0;
 
 void parse_error(char *msg)
 {
@@ -222,6 +223,7 @@ Stmt *p_vardecl()
 	if(!eat(PT_SEMICOLON))
 		error("missing semicolon after variable declaration");
 
+	stmt->parent_block = cur_block;
 	stmt->end = cur_token;
 	return stmt;
 }
@@ -316,6 +318,8 @@ Block *p_block()
 	Stmt *last = 0;
 	cur_block = block;
 	cur_block->parent = old_block;
+	cur_block->id = next_block_id;
+	next_block_id ++;
 
 	while(1) {
 		Stmt *stmt = p_stmt();

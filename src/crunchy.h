@@ -125,10 +125,12 @@ typedef struct Stmt {
 
 	Expr *init; // vardecl
 	void *next_decl; // vardecl
+	void *parent_block; // vardecl
 } Stmt;
 
-typedef struct {
+typedef struct Block {
 	void *parent;
+	int64_t id;
 	Stmt *stmts;
 	Stmt *decls;
 	Stmt *last_decl;
