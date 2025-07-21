@@ -1,7 +1,7 @@
 ./build/crunchy: ./build/main.o ./build/print.o ./build/lex.o ./build/parse.o ./build/analyse.o ./build/generate.o
 	gcc -o $@ $^
 
-./build/%.o: ./src/%.c
+./build/%.o: ./src/%.c ./src/crunchy.h
 	gcc -c -o $@ $<
 
 ./build/generate.o: ./build/runtime.c.h

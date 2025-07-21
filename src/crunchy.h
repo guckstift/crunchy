@@ -19,7 +19,6 @@
 	_('+', PLUS) \
 
 typedef enum : uint8_t {
-	TK_INVALID,
 	TK_BOF,
 	TK_EOF,
 
@@ -51,8 +50,6 @@ typedef struct {
 } Token;
 
 typedef enum : uint8_t {
-	TY_INVALID,
-
 	TY_INT,
 	TY_BOOL,
 	TY_STRING,
@@ -63,8 +60,6 @@ typedef struct {
 } Type;
 
 typedef enum : uint8_t {
-	EX_INVALID,
-
 	EX_INT,
 	EX_BOOL,
 	EX_STRING,
@@ -97,8 +92,6 @@ typedef struct {
 } Expr;
 
 typedef enum : uint8_t {
-	ST_INVALID,
-
 	ST_VARDECL,
 	ST_PRINT,
 	ST_ASSIGN,

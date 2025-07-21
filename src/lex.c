@@ -20,7 +20,6 @@ int64_t lex(char *src, Token **tokens_out)
 	emit_token(TK_BOF);
 
 	while(*src) {
-		TokenKind kind = TK_INVALID;
 		start = src;
 		int64_t ival = 0;
 
@@ -55,7 +54,6 @@ int64_t lex(char *src, Token **tokens_out)
 		}
 		else if(*src == '"') {
 			int64_t str_length = 0;
-			kind = TK_STRING;
 			src ++;
 
 			while(isprint(*src) && *src != '"') {

@@ -12,7 +12,6 @@ void print_tokens(Token *tokens)
 {
 	for(Token *token = tokens; token->kind != TK_EOF; token ++) {
 		printf("%s ",
-			token->kind == TK_INVALID ? "<INVALID> " :
 			token->kind == TK_BOF     ? "<BOF>     " :
 			token->kind == TK_EOF     ? "<EOF>     " :
 			token->kind == TK_INT     ? "<INT>     " :

@@ -102,19 +102,14 @@ Token *eat(TokenKind kind)
 
 Type *p_type()
 {
-	Token *keyword = 0;
-	TypeKind kind = TY_INVALID;
-
 	if(eat(KW_int))
-		kind = TY_INT;
+		return new_type(TY_INT);
 	else if(eat(KW_bool))
-		kind = TY_BOOL;
+		return new_type(TY_BOOL);
 	else if(eat(KW_string))
-		kind = TY_STRING;
-	else
-		return 0;
+		return new_type(TY_STRING);
 
-	return new_type(kind);
+	return 0;
 }
 
 Expr *p_atom()
