@@ -84,10 +84,10 @@ Expr *adjust_expr_to_type(Expr *expr, Type *type)
 
 	switch(type->kind) {
 		case TY_INT:
-			expr->kind = type->kind;
+			expr->kind = EX_INT;
 			break;
 		case TY_BOOL:
-			expr->kind = type->kind;
+			expr->kind = EX_BOOL;
 			expr->ival = expr->ival != 0;
 			break;
 		case TY_STRING:

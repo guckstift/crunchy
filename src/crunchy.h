@@ -33,10 +33,26 @@ typedef enum : uint8_t {
 	#define _(a, b) PT_ ## b,
 	PUNCTS
 	#undef _
-} TokenKind;
+
+	TY_INT,
+	TY_BOOL,
+	TY_STRING,
+
+	EX_INT,
+	EX_BOOL,
+	EX_STRING,
+	EX_VAR,
+	EX_CAST,
+	EX_BINOP,
+
+	ST_VARDECL,
+	ST_PRINT,
+	ST_ASSIGN,
+	ST_IF,
+} Kind;
 
 typedef struct {
-	TokenKind kind;
+	Kind kind;
 	char *start;
 	int64_t length;
 	int64_t line;
@@ -49,27 +65,12 @@ typedef struct {
 	int64_t str_length;
 } Token;
 
-typedef enum : uint8_t {
-	TY_INT,
-	TY_BOOL,
-	TY_STRING,
-} TypeKind;
-
 typedef struct {
-	TypeKind kind;
+	Kind kind;
 } Type;
 
-typedef enum : uint8_t {
-	EX_INT,
-	EX_BOOL,
-	EX_STRING,
-	EX_VAR,
-	EX_CAST,
-	EX_BINOP,
-} ExprKind;
-
 typedef struct {
-	ExprKind kind;
+	Kind kind;
 	Token *start;
 	uint8_t is_lvalue : 1;
 	Type *type;
@@ -91,15 +92,8 @@ typedef struct {
 	Token *op; // binop
 } Expr;
 
-typedef enum : uint8_t {
-	ST_VARDECL,
-	ST_PRINT,
-	ST_ASSIGN,
-	ST_IF,
-} StmtKind;
-
 typedef struct Stmt {
-	StmtKind kind;
+	Kind kind;
 	void *next;
 	Token *start;
 	Token *end;
@@ -140,9 +134,9 @@ void print_block(Block *block);
 int64_t lex(char *src, Token **tokens_out);
 
 // parse
-Type *new_type(TypeKind kind);
-Expr *new_expr(ExprKind kind, Token *start, uint8_t is_lvalue);
-Stmt *new_stmt(StmtKind kind, Token *start, Token *end);
+Type *new_type(Kind kind);
+Expr *new_expr(Kind kind, Token *start, uint8_t is_lvalue);
+Stmt *new_stmt(Kind kind, Token *start, Token *end);
 Block *parse(Token *tokens);
 
 // analyse

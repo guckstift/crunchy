@@ -101,7 +101,7 @@ void print_expr(Expr *expr)
 			printf(")");
 			break;
 		default:
-			printf("<unknown-expr>");
+			printf("<unknown-expr:%i>", expr->kind);
 			break;
 	}
 }

@@ -44,7 +44,7 @@ int64_t lex(char *src, Token **tokens_out)
 			}
 
 			int64_t length = src - start;
-			TokenKind kind = TK_IDENT;
+			Kind kind = TK_IDENT;
 
 			#define _(a) if(length == sizeof(#a)-1 && memcmp(start, #a, sizeof(#a)-1) == 0) { kind = KW_ ## a ; } else
 			KEYWORDS;

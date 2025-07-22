@@ -34,7 +34,7 @@ void parse_error(char *msg)
 	exit(EXIT_FAILURE);
 }
 
-Type *new_type(TypeKind kind)
+Type *new_type(Kind kind)
 {
 	if(kind == TY_INT) {
 		static Type int_type = {.kind = TY_INT};
@@ -54,7 +54,7 @@ Type *new_type(TypeKind kind)
 	return type;
 }
 
-Expr *new_expr(ExprKind kind, Token *start, uint8_t is_lvalue)
+Expr *new_expr(Kind kind, Token *start, uint8_t is_lvalue)
 {
 	Expr *expr = calloc(1, sizeof(Expr));
 	expr->kind = kind;
@@ -63,7 +63,7 @@ Expr *new_expr(ExprKind kind, Token *start, uint8_t is_lvalue)
 	return expr;
 }
 
-Stmt *new_stmt(StmtKind kind, Token *start, Token *end)
+Stmt *new_stmt(Kind kind, Token *start, Token *end)
 {
 	Stmt *stmt = calloc(1, sizeof(Stmt));
 	stmt->kind = kind;
@@ -92,7 +92,7 @@ int declare(Stmt *decl)
 	return 1;
 }
 
-Token *eat(TokenKind kind)
+Token *eat(Kind kind)
 {
 	if(cur_token->kind == kind)
 		return cur_token ++;
