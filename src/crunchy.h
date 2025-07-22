@@ -34,9 +34,13 @@ typedef enum : uint8_t {
 	PUNCTS
 	#undef _
 
+	TYPE_KIND_START,
+
 	TY_INT,
 	TY_BOOL,
 	TY_STRING,
+
+	EXPR_KIND_START,
 
 	EX_INT,
 	EX_BOOL,
@@ -44,6 +48,8 @@ typedef enum : uint8_t {
 	EX_VAR,
 	EX_CAST,
 	EX_BINOP,
+
+	STMT_KIND_START,
 
 	ST_VARDECL,
 	ST_PRINT,
@@ -127,7 +133,7 @@ typedef struct Block {
 void error(char *msg);
 
 // print
-void print_tokens(Token *tokens);
+void print_token_list(Token *tokens);
 void print_block(Block *block);
 
 // lex

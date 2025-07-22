@@ -1,17 +1,81 @@
 #include <stdio.h>
+#include <stdarg.h>
 #include "crunchy.h"
 
+void print_token(Token *token);
+void print_type(Type *type);
+void print_expr(Expr *expr);
+void print_stmt(Stmt *stmt);
+
 static int level = 0;
+static FILE *fs = 0;
+
+void print(char *msg, ...)
+{
+	if(!fs) fs = stdout;
+	va_list args;
+	va_start(args, msg);
+
+	while(*msg) {
+		if(*msg == '%') {
+			msg ++;
+
+			if(*msg == 'i') {
+				fprintf(fs, "%li", va_arg(args, int64_t));
+			}
+			else if(*msg == 's') {
+				fprintf(fs, "%s", va_arg(args, char*));
+			}
+			else if(*msg == 'S') {
+				char *start = va_arg(args, char*);
+				int64_t length = va_arg(args, int64_t);
+				fwrite(start, 1, length, fs);
+			}
+			else if(*msg == 'c') {
+				fputc(va_arg(args, int), fs);
+			}
+			else if(*msg == '>') {
+				for(int i=0; i<level; i++) fprintf(fs, "\t");
+			}
+			else if(*msg == '+') {
+				level ++;
+			}
+			else if(*msg == '-') {
+				level --;
+			}
+			else if(*msg == 'n') {
+				void *node = va_arg(args, void*);
+				Kind *kind = node;
+
+				if(*kind > STMT_KIND_START)
+					print_stmt(node);
+				else if(*kind > EXPR_KIND_START)
+					print_expr(node);
+				else if(*kind > TYPE_KIND_START)
+					print_type(node);
+				else
+					print_token(node);
+			}
+		}
+		else {
+			fputc(*msg, fs);
+		}
+
+		msg ++;
+	}
+
+	va_end(args);
+}
 
 void print_token(Token *token)
 {
-	fwrite(token->start, 1, token->length, stdout);
+	print("%S", token->start, token->length);
 }
 
-void print_tokens(Token *tokens)
+void print_token_list(Token *tokens)
 {
 	for(Token *token = tokens; token->kind != TK_EOF; token ++) {
-		printf("%s ",
+		print("%s ",
 			token->kind == TK_BOF     ? "<BOF>     " :
 			token->kind == TK_EOF     ? "<EOF>     " :
 			token->kind == TK_INT     ? "<INT>     " :
@@ -31,15 +95,7 @@ void print_tokens(Token *tokens)
 			"<unknown-token>"
 		);
 
-		print_token(token);
-		printf("\n");
-	}
-}
-
-void print_indent()
-{
-	for(int i=0; i<level; i++) {
-		printf("  ");
+		print("%n\n", token);
 	}
 }
 
@@ -47,16 +103,16 @@ void print_type(Type *type)
 {
 	switch(type->kind) {
 		case TY_INT:
-			printf("int");
+			print("int");
 			break;
 		case TY_BOOL:
-			printf("bool");
+			print("bool");
 			break;
 		case TY_STRING:
-			printf("string");
+			print("string");
 			break;
 		default:
-			printf("<unknown-type>");
+			print("<unknown-type>");
 			break;
 	}
 }
@@ -65,112 +121,81 @@ void print_expr(Expr *expr)
 {
 	switch(expr->kind) {
 		case EX_INT:
-			printf("%li", expr->ival);
+			print("%i", expr->ival);
 			break;
 		case EX_BOOL:
-			printf("%s", expr->ival ? "true" : "false");
+			print("%s", expr->ival ? "true" : "false");
 			break;
 		case EX_STRING:
-			printf("\"");
+			print("\"");
 
 			for(int64_t i=0; i < expr->length; i++) {
 				if(expr->chars[i] == '"') {
-					printf("\\\"");
+					print("\\\"");
 				}
 				else {
-					fputc(expr->chars[i], stdout);
+					print("%c", expr->chars[i]);
 				}
 			}
 
-			printf("\"");
+			print("\"");
 			break;
 		case EX_VAR:
-			print_token(expr->ident);
+			print("%n", expr->ident);
 			break;
 		case EX_CAST:
-			print_type(expr->type);
-			printf("(");
-			print_expr(expr->subexpr);
-			printf(")");
+			print("%n(%n)", expr->type, expr->subexpr);
 			break;
 		case EX_BINOP:
-			printf("(");
-			print_expr(expr->left);
-			print_token(expr->op);
-			print_expr(expr->right);
-			printf(")");
+			print("(%n%n%n)", expr->left, expr->op, expr->right);
 			break;
 		default:
-			printf("<unknown-expr:%i>", expr->kind);
+			print("<unknown-expr:%i>", expr->kind);
 			break;
 	}
 }
 
 void print_stmt(Stmt *stmt)
 {
-	print_indent();
+	print("%>");
 
 	switch(stmt->kind) {
 		case ST_VARDECL:
-			printf("var ");
-			print_token(stmt->ident);
-
-			if(stmt->type) {
-				printf(" : ");
-				print_type(stmt->type);
-			}
-
-			if(stmt->init) {
-				printf(" = ");
-				print_expr(stmt->init);
-			}
-
-			printf(";\n");
+			print("var %n", stmt->ident);
+			if(stmt->type) print(" : %n", stmt->type);
+			if(stmt->init) print(" = %n", stmt->init);
+			print(";\n");
 			break;
 		case ST_PRINT:
-			printf("print ");
-			print_expr(stmt->value);
-			printf(";\n");
+			print("print %n;\n", stmt->value);
 			break;
 		case ST_ASSIGN:
-			print_expr(stmt->target);
-			printf(" = ");
-			print_expr(stmt->value);
-			printf(";\n");
+			print("%n = %n;\n", stmt->target, stmt->value);
 			break;
 		case ST_IF:
-			printf("if ");
-			print_expr(stmt->cond);
-			printf(" {\n");
-			level ++;
+			print("if %n {%+\n", stmt->cond);
 			print_block(stmt->body);
-			level --;
-			print_indent();
-			printf("}\n");
+			print("%-%>}\n");
 			break;
 		default:
-			printf("<unknown-stmt>\n");
+			print("<unknown-stmt>\n");
 			break;
 	}
 }
 
 void print_stmts(Stmt *stmts)
 {
-	for(Stmt *stmt = stmts; stmt; stmt = stmt->next) {
+	for(Stmt *stmt = stmts; stmt; stmt = stmt->next)
 		print_stmt(stmt);
-	}
 }
 
 void print_block(Block *block)
 {
-	print_indent();
-	printf("# scope: ");
+	print("%># scope: ");
 
-	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
-		print_token(decl->ident);
-		printf("; ");
-	}
+	for(Stmt *decl = block->decls; decl; decl = decl->next_decl)
+		print("%n; ", decl->ident);
 
-	printf("\n");
+	print("\n");
 	print_stmts(block->stmts);
 }

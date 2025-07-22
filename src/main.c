@@ -41,7 +41,7 @@ int main(int argc, char **argv)
 	Token *tokens = 0;
 	int64_t token_count = lex(src, &tokens);
 	printf("\n# TOKENS\n");
-	print_tokens(tokens);
+	print_token_list(tokens);
 
 	Block *block = parse(tokens);
 	printf("\n# AST\n");
