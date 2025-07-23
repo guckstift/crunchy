@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdarg.h>
 #include "crunchy.h"
 
@@ -10,6 +9,11 @@ void print_stmt(Stmt *stmt);
 static int level = 0;
 static FILE *fs = 0;
 
+void set_print_file(FILE *new_fs)
+{
+	fs = new_fs;
+}
+
 void print(char *msg, ...)
 {
 	if(!fs) fs = stdout;
@@ -20,7 +24,10 @@ void print(char *msg, ...)
 		if(*msg == '%') {
 			msg ++;
 
-			if(*msg == 'i') {
+			if(*msg == '%') {
+				fputc('%', fs);
+			}
+			else if(*msg == 'i') {
 				fprintf(fs, "%li", va_arg(args, int64_t));
 			}
 			else if(*msg == 's') {

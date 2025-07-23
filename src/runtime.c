@@ -47,7 +47,6 @@ void collect_garbage()
 			if(prev) prev->next = block->next;
 			else memory_blocks = block->next;
 			free(block);
-			printf("## removed block %p\n", block);
 		}
 		else {
 			block->marked = 0;
@@ -62,7 +61,6 @@ void *new_memory_block(Type type, int64_t size)
 {
 	collect_garbage();
 	MemoryBlock *block = malloc(size);
-	printf("## allocated block %p\n", block);
 	block->next = memory_blocks;
 	block->type = type;
 	block->marked = 0;

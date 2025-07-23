@@ -6,3 +6,5 @@ if 1 {
 }
 
 print "Hello";
+
+print 80;

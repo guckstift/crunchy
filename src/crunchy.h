@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdint.h>
 
 #define KEYWORDS \
@@ -134,6 +135,8 @@ typedef struct Block {
 void error(char *msg);
 
 // print
+void set_print_file(FILE *new_fs);
+void print(char *msg, ...);
 void print_token_list(Token *tokens);
 void print_block(Block *block);
 
