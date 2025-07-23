@@ -179,6 +179,10 @@ void a_stmt(Stmt *stmt)
 				error_at(stmt->start, "could not find out the type for this variable declaration");
 			}
 
+			if(stmt->type->kind == TY_STRING) {
+				cur_block->num_gc_decls ++;
+			}
+
 			break;
 		case ST_PRINT:
 			a_expr(stmt->value);

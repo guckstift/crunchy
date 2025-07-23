@@ -41,7 +41,7 @@ void gen_type(Type *type)
 			fprintf(ofs, "uint8_t");
 			break;
 		case TY_STRING:
-			fprintf(ofs, "String");
+			fprintf(ofs, "String*");
 			break;
 		default:
 			fprintf(ofs, "/* INTERNAL: unknown type to generate */");
@@ -74,7 +74,7 @@ void gen_expr(Expr *expr)
 			fprintf(ofs, "%li", expr->ival);
 			break;
 		case EX_STRING:
-			fprintf(ofs, "(String){.length = %liL, .chars = \"", expr->length);
+			fprintf(ofs, "new_string(%liL, \"", expr->length);
 
 			for(int64_t i=0; i < expr->length; i++) {
 				if(expr->chars[i] == '"') {
@@ -85,7 +85,7 @@ void gen_expr(Expr *expr)
 				}
 			}
 
-			fprintf(ofs, "\"}");
+			fprintf(ofs, "\")");
 			break;
 		case EX_VAR:
 			gen_var(expr->ident, expr->decl->parent_block);
@@ -159,6 +159,8 @@ void gen_stmt(Stmt *stmt)
 			gen_local_block(stmt->body);
 			gen_indent();
 			fprintf(ofs, "}\n");
+			gen_indent();
+			fprintf(ofs, "cur_frame = (Frame*)&frame%li;\n", stmt->parent_block->id);
 			break;
 		default:
 			fprintf(ofs, "// INTERNAL: unknown statement to generate\n");
@@ -172,13 +174,27 @@ void gen_decls(Block *block)
 	level ++;
 	gen_indent();
 	fprintf(ofs, "void *parent;\n");
+	gen_indent();
+	fprintf(ofs, "int64_t num_gc_decls;\n");
 
 	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
-		gen_indent();
-		gen_type(decl->type);
-		fprintf(ofs, " ");
-		gen_token(decl->ident);
-		fprintf(ofs, ";\n");
+		if(decl->type->kind == TY_STRING) {
+			gen_indent();
+			gen_type(decl->type);
+			fprintf(ofs, " ");
+			gen_token(decl->ident);
+			fprintf(ofs, ";\n");
+		}
+	}
+
+	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
+		if(decl->type->kind != TY_STRING) {
+			gen_indent();
+			gen_type(decl->type);
+			fprintf(ofs, " ");
+			gen_token(decl->ident);
+			fprintf(ofs, ";\n");
+		}
 	}
 
 	level --;
@@ -186,15 +202,19 @@ void gen_decls(Block *block)
 	Block *parent_block = block->parent;
 
 	if(parent_block)
-		fprintf(ofs, "} frame%li = {.parent = &frame%li};\n", block->id, parent_block->id);
+		fprintf(ofs, "} frame%li = {.parent = &frame%li", block->id, parent_block->id);
 	else
-		fprintf(ofs, "} frame%li = {.parent = 0};\n", block->id);
+		fprintf(ofs, "} frame%li = {.parent = 0", block->id);
+
+	fprintf(ofs, ", .num_gc_decls = %liL};\n", block->num_gc_decls);
 }
 
 void gen_local_block(Block *block)
 {
 	level ++;
 	gen_decls(block);
+	gen_indent();
+	fprintf(ofs, "cur_frame = (Frame*)&frame%li;\n", block->id);
 
 	for(Stmt *stmt = block->stmts; stmt; stmt = stmt->next) {
 		gen_stmt(stmt);
@@ -206,6 +226,8 @@ void gen_local_block(Block *block)
 void gen_block(Block *block)
 {
 	level ++;
+	gen_indent();
+	fprintf(ofs, "cur_frame = (Frame*)&frame%li;\n", block->id);
 
 	for(Stmt *stmt = block->stmts; stmt; stmt = stmt->next) {
 		gen_stmt(stmt);

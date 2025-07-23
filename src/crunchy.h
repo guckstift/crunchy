@@ -101,6 +101,7 @@ typedef struct {
 typedef struct Stmt {
 	Kind kind;
 	void *next;
+	struct Block *parent_block;
 	Token *start;
 	Token *end;
 
@@ -118,7 +119,6 @@ typedef struct Stmt {
 
 	Expr *init; // vardecl
 	void *next_decl; // vardecl
-	void *parent_block; // vardecl
 } Stmt;
 
 typedef struct Block {
@@ -127,6 +127,7 @@ typedef struct Block {
 	Stmt *stmts;
 	Stmt *decls;
 	Stmt *last_decl;
+	int64_t num_gc_decls;
 } Block;
 
 // main
@@ -142,7 +143,7 @@ int64_t lex(char *src, Token **tokens_out);
 // parse
 Type *new_type(Kind kind);
 Expr *new_expr(Kind kind, Token *start, uint8_t is_lvalue);
-Stmt *new_stmt(Kind kind, Token *start, Token *end);
+Stmt *new_stmt(Kind kind, Block *parent, Token *start, Token *end);
 Block *parse(Token *tokens);
 
 // analyse

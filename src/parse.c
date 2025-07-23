@@ -58,11 +58,12 @@ Expr *new_expr(Kind kind, Token *start, uint8_t is_lvalue)
 	return expr;
 }
 
-Stmt *new_stmt(Kind kind, Token *start, Token *end)
+Stmt *new_stmt(Kind kind, Block *parent, Token *start, Token *end)
 {
 	Stmt *stmt = calloc(1, sizeof(Stmt));
 	stmt->kind = kind;
 	stmt->next = 0;
+	stmt->parent_block = parent;
 	stmt->start = start;
 	stmt->end = end;
 	return stmt;
@@ -176,7 +177,7 @@ Stmt *p_vardecl()
 	if(!type && !init)
 		error("a variable declaration must have at least either a type specification or an initializer expression");
 
-	Stmt *stmt = new_stmt(ST_VARDECL, start, cur_token);
+	Stmt *stmt = new_stmt(ST_VARDECL, cur_block, start, cur_token);
 	stmt->ident = ident;
 	stmt->type = type;
 	stmt->init = init;
@@ -194,7 +195,7 @@ Stmt *p_print()
 	if(!eat(KW_print)) return 0;
 	Expr *value = p_expr();
 	if(!value) error("missing expression to print");
-	Stmt *stmt = new_stmt(ST_PRINT, start, cur_token);
+	Stmt *stmt = new_stmt(ST_PRINT, cur_block, start, cur_token);
 	stmt->value = value;
 	if(!eat(PT_SEMICOLON)) error("missing semicolon after print statement");
 	stmt->end = cur_token;
@@ -210,7 +211,7 @@ Stmt *p_if()
 	if(!eat(PT_LCURLY)) error("expected '{' after if-condition");
 	Block *body = p_block();
 	if(!eat(PT_RCURLY)) error("expected '}' after if-body");
-	Stmt *stmt = new_stmt(ST_IF, start, cur_token);
+	Stmt *stmt = new_stmt(ST_IF, cur_block, start, cur_token);
 	stmt->cond = cond;
 	stmt->body = body;
 	return stmt;
@@ -224,7 +225,7 @@ Stmt *p_assign()
 	Expr *value = p_expr();
 	if(!value) error("expected assignment value after '='");
 	if(!eat(PT_SEMICOLON)) error("missing semicolon after variable declaration");
-	Stmt *stmt = new_stmt(ST_ASSIGN, target->start, cur_token);
+	Stmt *stmt = new_stmt(ST_ASSIGN, cur_block, target->start, cur_token);
 	stmt->target = target;
 	stmt->value = value;
 	return stmt;
