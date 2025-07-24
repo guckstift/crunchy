@@ -8,3 +8,6 @@ if 1 {
 print "Hello";
 
 print 80;
+
+print 8 + 1;
+print true;

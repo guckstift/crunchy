@@ -8,10 +8,16 @@ void print_stmt(Stmt *stmt);
 
 static int level = 0;
 static FILE *fs = 0;
+static EscapeMod escape_mods[256] = {};
 
 void set_print_file(FILE *new_fs)
 {
 	fs = new_fs;
+}
+
+void set_escape_mod(char chr, EscapeMod mod)
+{
+	escape_mods[(uint8_t)chr] = mod;
 }
 
 void print(char *msg, ...)
@@ -23,8 +29,12 @@ void print(char *msg, ...)
 	while(*msg) {
 		if(*msg == '%') {
 			msg ++;
+			uint8_t index = *msg;
 
-			if(*msg == '%') {
+			if(escape_mods[index]) {
+				escape_mods[index](args);
+			}
+			else if(*msg == '%') {
 				fputc('%', fs);
 			}
 			else if(*msg == 'i') {

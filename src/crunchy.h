@@ -131,11 +131,14 @@ typedef struct Block {
 	int64_t num_gc_decls;
 } Block;
 
+typedef void (*EscapeMod)(va_list);
+
 // main
 void error(char *msg);
 
 // print
 void set_print_file(FILE *new_fs);
+void set_escape_mod(char chr, EscapeMod mod);
 void print(char *msg, ...);
 void print_token_list(Token *tokens);
 void print_block(Block *block);
