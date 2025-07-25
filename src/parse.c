@@ -103,6 +103,13 @@ Token *eat(Kind kind)
 	return 0;
 }
 
+Token *expect(Kind kind, char *error_msg)
+{
+	Token *token = eat(kind);
+	if(!token) error("missing semicolon after variable declaration");
+	return token;
+}
+
 Type *p_type()
 {
 	if(eat(KW_int)) return new_type(TY_INT);
@@ -168,8 +175,7 @@ Stmt *p_vardecl()
 {
 	Token *start = cur_token;
 	if(!eat(KW_var)) return 0;
-	Token *ident = eat(TK_IDENT);
-	if(!ident) error("missing variable name after var keyword");
+	Token *ident = expect(TK_IDENT, "missing variable name after var keyword");
 	Type *type = 0;
 	Expr *init = 0;
 
@@ -192,7 +198,7 @@ Stmt *p_vardecl()
 	stmt->init = init;
 	stmt->next_decl = 0;
 	if(!declare(stmt)) error("variable is already declared");
-	if(!eat(PT_SEMICOLON)) error("missing semicolon after variable declaration");
+	expect(PT_SEMICOLON, "missing semicolon after variable declaration");
 	stmt->parent_block = cur_block;
 	stmt->end = cur_token;
 	return stmt;
@@ -206,7 +212,7 @@ Stmt *p_print()
 	if(!value) error("missing expression to print");
 	Stmt *stmt = new_stmt(ST_PRINT, cur_block, start, cur_token);
 	stmt->value = value;
-	if(!eat(PT_SEMICOLON)) error("missing semicolon after print statement");
+	expect(PT_SEMICOLON, "missing semicolon after print statement");
 	stmt->end = cur_token;
 	return stmt;
 }
@@ -217,15 +223,15 @@ Stmt *p_if()
 	if(!eat(KW_if)) return 0;
 	Expr *cond = p_expr();
 	if(!cond) error("missing condition after if keyword");
-	if(!eat(PT_LCURLY)) error("expected '{' after if-condition");
+	expect(PT_LCURLY, "expected '{' after if-condition");
 	Block *body = p_block();
-	if(!eat(PT_RCURLY)) error("expected '}' after if-body");
+	expect(PT_RCURLY, "expected '}' after if-body");
 	Block *else_body = 0;
 
 	if(eat(KW_else)) {
-		if(!eat(PT_LCURLY)) error("expected '{' after else keyword");
+		expect(PT_LCURLY, "expected '{' after else keyword");
 		else_body = p_block();
-		if(!eat(PT_RCURLY)) error("expected '}' after else-body");
+		expect(PT_RCURLY, "expected '}' after else-body");
 	}
 
 	Stmt *stmt = new_stmt(ST_IF, cur_block, start, cur_token);
@@ -239,10 +245,10 @@ Stmt *p_assign()
 {
 	Expr *target = p_expr();
 	if(!target) return 0;
-	if(!eat(PT_EQUALS)) error("expected '=' after assignment target");
+	expect(PT_EQUALS, "expected '=' after assignment target");
 	Expr *value = p_expr();
 	if(!value) error("expected assignment value after '='");
-	if(!eat(PT_SEMICOLON)) error("missing semicolon after variable declaration");
+	expect(PT_SEMICOLON, "missing semicolon after variable declaration");
 	Stmt *stmt = new_stmt(ST_ASSIGN, cur_block, target->start, cur_token);
 	stmt->target = target;
 	stmt->value = value;
@@ -295,6 +301,6 @@ Block *parse(Token *tokens)
 	if(eat(TK_BOF)) src_file_start = tokens[0].start;
 	else error("INTERNAL: no BOF (beginning of file) present");
 	Block *main_block = p_block();
-	if(!eat(TK_EOF)) error("invalid statement");
+	expect(TK_EOF, "invalid statement");
 	return main_block;
 }
