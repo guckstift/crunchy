@@ -220,9 +220,18 @@ Stmt *p_if()
 	if(!eat(PT_LCURLY)) error("expected '{' after if-condition");
 	Block *body = p_block();
 	if(!eat(PT_RCURLY)) error("expected '}' after if-body");
+	Block *else_body = 0;
+
+	if(eat(KW_else)) {
+		if(!eat(PT_LCURLY)) error("expected '{' after else keyword");
+		else_body = p_block();
+		if(!eat(PT_RCURLY)) error("expected '}' after else-body");
+	}
+
 	Stmt *stmt = new_stmt(ST_IF, cur_block, start, cur_token);
 	stmt->cond = cond;
 	stmt->body = body;
+	stmt->else_body = else_body;
 	return stmt;
 }
 

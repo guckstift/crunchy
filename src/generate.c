@@ -161,6 +161,13 @@ void gen_stmt(Stmt *stmt)
 			print("if(%n) {\n", stmt->cond);
 			gen_local_block(stmt->body);
 			print("%>}\n");
+
+			if(stmt->else_body) {
+				print("%>else {\n");
+				gen_local_block(stmt->else_body);
+				print("%>}\n");
+			}
+
 			print("%>cur_frame = (Frame*)&frame%i;\n", stmt->parent_block->id);
 			break;
 		default:

@@ -193,6 +193,13 @@ void print_stmt(Stmt *stmt)
 			print("if %n {%+\n", stmt->cond);
 			print_block(stmt->body);
 			print("%-%>}\n");
+
+			if(stmt->else_body) {
+				print("%>else {%+\n");
+				print_block(stmt->else_body);
+				print("%-%>}\n");
+			}
+
 			break;
 		default:
 			print("<unknown-stmt>\n");

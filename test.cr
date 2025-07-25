@@ -1,8 +1,10 @@
-if 1 {
-	var x = "Hello" + "World" + "FooBar";
-	print x;
-	x = x + x;
-	print x;
-}
+var cond = false;
 
-print "";
+if cond {
+	var x = "";
+	print "Hello";
+}
+else {
+	var x = 90;
+	print "Moin";
+}

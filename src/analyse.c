@@ -227,6 +227,7 @@ void a_stmt(Stmt *stmt)
 			a_expr(stmt->cond);
 			stmt->cond = adjust_expr_to_type(stmt->cond, new_type(TY_BOOL));
 			a_block(stmt->body);
+			if(stmt->else_body) a_block(stmt->else_body);
 			break;
 		default:
 			error_at(stmt->start, "INTERNAL: unknown statement to analyse");

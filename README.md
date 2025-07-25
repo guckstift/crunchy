@@ -51,7 +51,7 @@ Here I document every feature implemented so far. This list should grow with eac
   * `print` expression `;`
     * prints the value of expression on a separate line
 * if statements
-  * `if` expression `{` statement* `}`
+  * `if` expression `{` statement* `}` ( `else` `{` statement* `}` )?
 * types
   * `int` : 64 bit signed integer
   * `bool` : boolean value, `true` or `false`

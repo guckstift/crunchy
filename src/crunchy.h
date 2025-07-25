@@ -3,6 +3,7 @@
 
 #define KEYWORDS \
 	_(bool) \
+	_(else) \
 	_(false) \
 	_(if) \
 	_(int) \
@@ -126,7 +127,11 @@ typedef struct Stmt {
 		void *body; // if
 	};
 
-	Expr *init; // vardecl
+	union {
+		Expr *init; // vardecl
+		void *else_body; // if
+	};
+
 	void *next_decl; // vardecl
 } Stmt;
 
