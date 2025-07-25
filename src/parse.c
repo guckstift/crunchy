@@ -7,24 +7,20 @@
 
 Block *p_block();
 
-static char *src_file_start = 0;
 static Token *cur_token = 0;
 static Block *cur_block = 0;
 static int64_t next_block_id = 0;
 
 void parse_error(char *msg)
 {
+	Token *bof = cur_token;
+	while(bof->kind != TK_BOF) bof --;
+	char *src_file_start = bof->start;
 	print("%[f00]error:%[] %s\n", msg);
-	if(!src_file_start) exit(EXIT_FAILURE);
-	print("%i: ", cur_token->line);
-	char *p = cur_token->start;
-	while(p > src_file_start && p[-1] != '\n') p --;
-
-	while(*p && *p != '\n') {
-		fputc(*p, stdout);
-		p ++;
-	}
-
+	print("%[888]%i:%[] ", cur_token->line);
+	char *line_start = cur_token->start;
+	while(line_start > src_file_start && line_start[-1] != '\n') line_start --;
+	for(char *p = line_start; *p && *p != '\n'; p++) fputc(*p, stdout);
 	printf("\n");
 	exit(EXIT_FAILURE);
 }
@@ -106,7 +102,7 @@ Token *eat(Kind kind)
 Token *expect(Kind kind, char *error_msg)
 {
 	Token *token = eat(kind);
-	if(!token) error("missing semicolon after variable declaration");
+	if(!token) error(error_msg);
 	return token;
 }
 
@@ -298,8 +294,7 @@ Block *p_block()
 Block *parse(Token *tokens)
 {
 	cur_token = tokens;
-	if(eat(TK_BOF)) src_file_start = tokens[0].start;
-	else error("INTERNAL: no BOF (beginning of file) present");
+	eat(TK_BOF);
 	Block *main_block = p_block();
 	expect(TK_EOF, "invalid statement");
 	return main_block;
