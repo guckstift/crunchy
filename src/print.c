@@ -1,10 +1,10 @@
 #include <stdarg.h>
 #include "crunchy.h"
 
-void print_token(Token *token);
-void print_type(Type *type);
-void print_expr(Expr *expr);
-void print_stmt(Stmt *stmt);
+int64_t print_token(Token *token);
+int64_t print_type(Type *type);
+int64_t print_expr(Expr *expr);
+int64_t print_stmt(Stmt *stmt);
 
 static int level = 0;
 static FILE *fs = 0;
@@ -29,11 +29,12 @@ void set_escape_mod(char chr, EscapeMod mod)
 	escape_mods[(uint8_t)chr] = mod;
 }
 
-void print(char *msg, ...)
+int64_t print(char *msg, ...)
 {
 	if(!fs) fs = stdout;
 	va_list args;
 	va_start(args, msg);
+	int64_t printed_chars_count = 0;
 
 	while(*msg) {
 		if(*msg == '%') {
@@ -45,23 +46,25 @@ void print(char *msg, ...)
 			}
 			else if(*msg == '%') {
 				fputc('%', fs);
+				printed_chars_count ++;
 			}
 			else if(*msg == 'i') {
-				fprintf(fs, "%li", va_arg(args, int64_t));
+				printed_chars_count += fprintf(fs, "%li", va_arg(args, int64_t));
 			}
 			else if(*msg == 's') {
-				fprintf(fs, "%s", va_arg(args, char*));
+				printed_chars_count += fprintf(fs, "%s", va_arg(args, char*));
 			}
 			else if(*msg == 'S') {
 				char *start = va_arg(args, char*);
 				int64_t length = va_arg(args, int64_t);
-				fwrite(start, 1, length, fs);
+				printed_chars_count += fwrite(start, 1, length, fs);
 			}
 			else if(*msg == 'c') {
 				fputc(va_arg(args, int), fs);
+				printed_chars_count ++;
 			}
 			else if(*msg == '>') {
-				for(int i=0; i<level; i++) fprintf(fs, "\t");
+				for(int i=0; i<level; i++) printed_chars_count += fprintf(fs, "\t");
 			}
 			else if(*msg == '+') {
 				level ++;
@@ -74,13 +77,13 @@ void print(char *msg, ...)
 				Kind *kind = node;
 
 				if(*kind > STMT_KIND_START)
-					print_stmt(node);
+					printed_chars_count += print_stmt(node);
 				else if(*kind > EXPR_KIND_START)
-					print_expr(node);
+					printed_chars_count += print_expr(node);
 				else if(*kind > TYPE_KIND_START)
-					print_type(node);
+					printed_chars_count += print_type(node);
 				else
-					print_token(node);
+					printed_chars_count += print_token(node);
 			}
 			else if(*msg == '[') {
 				msg ++;
@@ -98,17 +101,19 @@ void print(char *msg, ...)
 		}
 		else {
 			fputc(*msg, fs);
+			printed_chars_count ++;
 		}
 
 		msg ++;
 	}
 
 	va_end(args);
+	return printed_chars_count;
 }
 
-void print_token(Token *token)
+int64_t print_token(Token *token)
 {
-	print("%S", token->start, token->length);
+	return print("%S", token->start, token->length);
 }
 
 void print_token_list(Token *tokens)
@@ -138,110 +143,113 @@ void print_token_list(Token *tokens)
 	}
 }
 
-void print_type(Type *type)
+int64_t print_type(Type *type)
 {
 	switch(type->kind) {
 		case TY_INT:
-			print("int");
-			break;
+			return print("int");
 		case TY_BOOL:
-			print("bool");
-			break;
+			return print("bool");
 		case TY_STRING:
-			print("string");
-			break;
+			return print("string");
 		default:
-			print("<unknown-type>");
-			break;
+			return print("<unknown-type>");
 	}
 }
 
-void print_expr(Expr *expr)
+int64_t print_expr(Expr *expr)
 {
 	switch(expr->kind) {
 		case EX_INT:
-			print("%i", expr->ival);
-			break;
+			return print("%i", expr->ival);
 		case EX_BOOL:
-			print("%s", expr->ival ? "true" : "false");
-			break;
-		case EX_STRING:
-			print("\"");
+			return print("%s", expr->ival ? "true" : "false");
+
+		case EX_STRING: {
+			int64_t printed_chars_count = 0;
+			printed_chars_count += print("\"");
 
 			for(int64_t i=0; i < expr->length; i++) {
 				if(expr->chars[i] == '"') {
-					print("\\\"");
+					printed_chars_count += print("\\\"");
 				}
 				else {
-					print("%c", expr->chars[i]);
+					printed_chars_count += print("%c", expr->chars[i]);
 				}
 			}
 
-			print("\"");
-			break;
+			printed_chars_count += print("\"");
+			return printed_chars_count;
+		} break;
+
 		case EX_VAR:
-			print("%n", expr->ident);
-			break;
+			return print("%n", expr->ident);
 		case EX_CAST:
-			print("%n(%n)", expr->type, expr->subexpr);
-			break;
+			return print("%n(%n)", expr->type, expr->subexpr);
 		case EX_BINOP:
-			print("(%n%n%n)", expr->left, expr->op, expr->right);
-			break;
+			return print("(%n%n%n)", expr->left, expr->op, expr->right);
 		default:
-			print("<unknown-expr:%i>", expr->kind);
-			break;
+			return print("<unknown-expr:%i>", expr->kind);
 	}
 }
 
-void print_stmt(Stmt *stmt)
+int64_t print_stmt(Stmt *stmt)
 {
-	print("%>");
+	int64_t printed_chars_count = 0;
+	printed_chars_count += print("%>");
 
 	switch(stmt->kind) {
 		case ST_VARDECL:
-			print("var %n", stmt->ident);
-			if(stmt->type) print(" : %n", stmt->type);
-			if(stmt->init) print(" = %n", stmt->init);
-			print(";\n");
+			printed_chars_count += print("var %n", stmt->ident);
+			if(stmt->type) printed_chars_count += print(" : %n", stmt->type);
+			if(stmt->init) printed_chars_count += print(" = %n", stmt->init);
+			printed_chars_count += print(";\n");
 			break;
 		case ST_PRINT:
-			print("print %n;\n", stmt->value);
+			printed_chars_count += print("print %n;\n", stmt->value);
 			break;
 		case ST_ASSIGN:
-			print("%n = %n;\n", stmt->target, stmt->value);
+			printed_chars_count += print("%n = %n;\n", stmt->target, stmt->value);
 			break;
 		case ST_IF:
-			print("if %n {%+\n", stmt->cond);
-			print_block(stmt->body);
-			print("%-%>}\n");
+			printed_chars_count += print("if %n {%+\n", stmt->cond);
+			printed_chars_count += print_block(stmt->body);
+			printed_chars_count += print("%-%>}\n");
 
 			if(stmt->else_body) {
-				print("%>else {%+\n");
-				print_block(stmt->else_body);
-				print("%-%>}\n");
+				printed_chars_count += print("%>else {%+\n");
+				printed_chars_count += print_block(stmt->else_body);
+				printed_chars_count += print("%-%>}\n");
 			}
 
 			break;
 		default:
-			print("<unknown-stmt>\n");
+			printed_chars_count += print("<unknown-stmt>\n");
 			break;
 	}
+
+	return printed_chars_count;
 }
 
-void print_stmts(Stmt *stmts)
+int64_t print_stmts(Stmt *stmts)
 {
+	int64_t printed_chars_count = 0;
+
 	for(Stmt *stmt = stmts; stmt; stmt = stmt->next)
-		print_stmt(stmt);
+		printed_chars_count += print_stmt(stmt);
+
+	return printed_chars_count;
 }
 
-void print_block(Block *block)
+int64_t print_block(Block *block)
 {
-	print("%># scope: ");
+	int64_t printed_chars_count = 0;
+	printed_chars_count += print("%># scope: ");
 
 	for(Stmt *decl = block->decls; decl; decl = decl->next_decl)
-		print("%n; ", decl->ident);
+		printed_chars_count += print("%n; ", decl->ident);
 
-	print("\n");
-	print_stmts(block->stmts);
+	printed_chars_count += print("\n");
+	printed_chars_count += print_stmts(block->stmts);
+	return printed_chars_count;
 }

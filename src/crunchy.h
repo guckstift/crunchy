@@ -154,9 +154,9 @@ void error(char *msg);
 // print
 void set_print_file(FILE *new_fs);
 void set_escape_mod(char chr, EscapeMod mod);
-void print(char *msg, ...);
+int64_t print(char *msg, ...);
 void print_token_list(Token *tokens);
-void print_block(Block *block);
+int64_t print_block(Block *block);
 
 // lex
 int64_t lex(char *src, Token **tokens_out);

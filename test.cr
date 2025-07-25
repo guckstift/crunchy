@@ -1,2 +1,2 @@
 print 80;
-var x = ;
+var x = 9

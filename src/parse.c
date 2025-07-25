@@ -17,11 +17,28 @@ void parse_error(char *msg)
 	while(bof->kind != TK_BOF) bof --;
 	char *src_file_start = bof->start;
 	print("%[f00]error:%[] %s\n", msg);
-	print("%[888]%i:%[] ", cur_token->line);
+	print("%[888]");
+	int64_t offset = print("%i", cur_token->line);
+	offset += print(":%[] ");
 	char *line_start = cur_token->start;
 	while(line_start > src_file_start && line_start[-1] != '\n') line_start --;
-	for(char *p = line_start; *p && *p != '\n'; p++) fputc(*p, stdout);
+
+	for(char *p = line_start; *p && *p != '\n'; p++) {
+		if(*p == '\t') {
+			if(p < cur_token->start)
+				offset += fprintf(stdout, "  ");
+			else
+				fprintf(stdout, "  ");
+		}
+		else {
+			fputc(*p, stdout);
+			if(p < cur_token->start) offset ++;
+		}
+	}
+
 	printf("\n");
+	for(int64_t i=0; i < offset; i++) printf(" ");
+	print("%[f00]^%[]\n");
 	exit(EXIT_FAILURE);
 }
 
