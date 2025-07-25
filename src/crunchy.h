@@ -77,9 +77,17 @@ typedef struct {
 } Type;
 
 typedef struct {
+	void *next;
+	Type *type;
+	struct Block *parent_block;
+	int64_t id;
+} Temp;
+
+typedef struct {
 	Kind kind;
 	Token *start;
 	uint8_t is_lvalue : 1;
+	Temp *temp;
 	Type *type;
 
 	union {
@@ -129,6 +137,8 @@ typedef struct Block {
 	Stmt *decls;
 	Stmt *last_decl;
 	int64_t num_gc_decls;
+	Temp *temps;
+	Temp *last_temp;
 } Block;
 
 typedef void (*EscapeMod)(va_list);
@@ -150,6 +160,7 @@ int64_t lex(char *src, Token **tokens_out);
 Type *new_type(Kind kind);
 Expr *new_expr(Kind kind, Token *start, uint8_t is_lvalue);
 Stmt *new_stmt(Kind kind, Block *parent, Token *start, Token *end);
+int declare_in(Stmt *decl, Block *block);
 Block *parse(Token *tokens);
 
 // analyse

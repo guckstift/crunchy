@@ -74,6 +74,10 @@ void gen_cast(Type *type, Expr *expr)
 
 void gen_expr(Expr *expr)
 {
+	if(expr->temp) {
+		print("(frame%i.temp%i = ", expr->temp->parent_block->id, expr->temp->id);
+	}
+
 	switch(expr->kind) {
 		case EX_INT:
 			print("%iL", expr->ival);
@@ -100,10 +104,18 @@ void gen_expr(Expr *expr)
 			gen_cast(expr->type, expr->subexpr);
 			break;
 		case EX_BINOP:
-			print("(%n%n%n)", expr->left, expr->op, expr->right);
+			if(expr->type->kind == TY_STRING)
+				print("concat_strings(%n, %n)", expr->left, expr->right);
+			else
+				print("(%n%n%n)", expr->left, expr->op, expr->right);
+
 			break;
 		default:
 			print("/* INTERNAL: unknown expression to generate */");
+	}
+
+	if(expr->temp) {
+		print(")");
 	}
 }
 
@@ -161,6 +173,10 @@ void gen_decls(Block *block)
 	print("%>struct {%+\n");
 	print("%>void *parent;\n");
 	print("%>int64_t num_gc_decls;\n");
+
+	for(Temp *temp = block->temps; temp; temp = temp->next) {
+		print("%>%n temp%i;\n", temp->type, temp->id);
+	}
 
 	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
 		if(decl->type->kind == TY_STRING)

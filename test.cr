@@ -1,13 +1,8 @@
 if 1 {
-	var x = "";
-	x = "";
-	x = "";
-	x = "";
+	var x = "Hello" + "World" + "FooBar";
+	print x;
+	x = x + x;
+	print x;
 }
 
-print "Hello";
-
-print 80;
-
-print 8 + 1;
-print true;
+print "";

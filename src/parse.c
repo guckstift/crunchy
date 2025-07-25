@@ -69,23 +69,32 @@ Stmt *new_stmt(Kind kind, Block *parent, Token *start, Token *end)
 	return stmt;
 }
 
-int declare(Stmt *decl)
+int declare_in(Stmt *decl, Block *block)
 {
-	for(Stmt *d = cur_block->decls; d; d = d->next_decl) {
-		if(d->ident->length == decl->ident->length && memcmp(d->ident->start, decl->ident->start, d->ident->length) == 0)
+	for(Stmt *d = block->decls; d; d = d->next_decl) {
+		if(
+			d->ident->length == decl->ident->length &&
+			memcmp(d->ident->start, decl->ident->start, d->ident->length) == 0
+		) {
 			return 0;
+		}
 	}
 
-	if(cur_block->decls) {
-		cur_block->last_decl->next_decl = decl;
-		cur_block->last_decl = decl;
+	if(block->decls) {
+		block->last_decl->next_decl = decl;
+		block->last_decl = decl;
 	}
 	else {
-		cur_block->decls = decl;
-		cur_block->last_decl = decl;
+		block->decls = decl;
+		block->last_decl = decl;
 	}
 
 	return 1;
+}
+
+int declare(Stmt *decl)
+{
+	return declare_in(decl, cur_block);
 }
 
 Token *eat(Kind kind)

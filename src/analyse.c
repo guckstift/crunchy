@@ -4,6 +4,7 @@
 #include "crunchy.h"
 
 void a_block(Block *block);
+void a_expr(Expr *expr);
 
 static Block *cur_block = 0;
 
@@ -120,6 +121,40 @@ Stmt *lookup(Token *ident)
 	return lookup_in(ident, cur_block);
 }
 
+Temp *declare_temp(Type *type)
+{
+	static int64_t next_temp_id = 1;
+	Temp *temp = calloc(1, sizeof(Temp));
+	temp->next = 0;
+	temp->type = type;
+	temp->parent_block = cur_block;
+	temp->id = next_temp_id ++;
+	if(cur_block->temps) cur_block->last_temp->next = temp;
+	else cur_block->temps = temp;
+	cur_block->last_temp = temp;
+	cur_block->num_gc_decls ++;
+	return temp;
+}
+
+void a_binop(Expr *binop)
+{
+	Expr *left = binop->left;
+	Expr *right = binop->right;
+	a_expr(left);
+	a_expr(right);
+	Type *ltype = left->type;
+	Type *rtype = right->type;
+
+	if(ltype->kind == TY_STRING && rtype->kind == TY_STRING) {
+		binop->type = new_type(TY_STRING);
+	}
+	else {
+		binop->left = adjust_expr_to_type(left, new_type(TY_INT));
+		binop->right = adjust_expr_to_type(right, new_type(TY_INT));
+		binop->type = new_type(TY_INT);
+	}
+}
+
 void a_expr(Expr *expr)
 {
 	switch(expr->kind) {
@@ -131,26 +166,17 @@ void a_expr(Expr *expr)
 			break;
 		case EX_STRING:
 			expr->type = new_type(TY_STRING);
+			expr->temp = declare_temp(expr->type);
 			break;
 		case EX_VAR:
 			expr->decl = lookup(expr->ident);
-
-			if(!expr->decl) {
-				error_at(expr->start, "could not find variable");
-			}
-
-			if(expr->start < expr->decl->end) {
-				error_at(expr->start, "variable used before its declaration");
-			}
-
+			if(!expr->decl) error_at(expr->start, "could not find variable");
+			if(expr->start < expr->decl->end) error_at(expr->start, "variable used before its declaration");
 			expr->type = expr->decl->type;
 			break;
 		case EX_BINOP:
-			a_expr(expr->left);
-			a_expr(expr->right);
-			expr->left = adjust_expr_to_type(expr->left, new_type(TY_INT));
-			expr->right = adjust_expr_to_type(expr->right, new_type(TY_INT));
-			expr->type = new_type(TY_INT);
+			a_binop(expr);
+			if(expr->type->kind == TY_STRING) expr->temp = declare_temp(expr->type);
 			break;
 		default:
 			error_at(expr->start, "INTERNAL: unknown expression to analyse");

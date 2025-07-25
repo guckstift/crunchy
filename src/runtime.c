@@ -47,6 +47,7 @@ void collect_garbage()
 			if(prev) prev->next = block->next;
 			else memory_blocks = block->next;
 			free(block);
+			//printf("## collected %s\n", ((String*)block)->chars);
 		}
 		else {
 			block->marked = 0;
@@ -75,6 +76,7 @@ String *new_string(int64_t length, char *chars)
 	string->length = length;
 	memcpy(string->chars, chars, length);
 	string->chars[length] = 0;
+	//printf("## created %s\n", string->chars);
 	return string;
 }
 
@@ -82,4 +84,17 @@ void print_string(String *str)
 {
 	fwrite(str->chars, 1, str->length, stdout);
 	printf("\n");
+}
+
+String *concat_strings(String *left, String *right)
+{
+	int64_t length = left->length + right->length;
+	int64_t size = sizeof(String) + length + 1;
+	String *string = new_memory_block(TY_STRING, size);
+	string->length = length;
+	memcpy(string->chars, left->chars, left->length);
+	memcpy(string->chars + left->length, right->chars, right->length);
+	string->chars[length] = 0;
+	//printf("## concated %s\n", string->chars);
+	return string;
 }
