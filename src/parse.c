@@ -14,9 +14,9 @@ static int64_t next_block_id = 0;
 
 void parse_error(char *msg)
 {
-	printf("error: %s\n", msg);
+	print("%[f00]error:%[] %s\n", msg);
 	if(!src_file_start) exit(EXIT_FAILURE);
-	printf("%li: ", cur_token->line);
+	print("%i: ", cur_token->line);
 	char *p = cur_token->start;
 	while(p > src_file_start && p[-1] != '\n') p --;
 

@@ -10,6 +10,15 @@ static int level = 0;
 static FILE *fs = 0;
 static EscapeMod escape_mods[256] = {};
 
+static int hex2nibble(char hex)
+{
+	return
+		hex >= 'a' && hex <= 'f' ? hex - 'a' + 10 :
+		hex >= 'A' && hex <= 'F' ? hex - 'A' + 10 :
+		hex >= '0' && hex <= '9' ? hex - '0' :
+		0;
+}
+
 void set_print_file(FILE *new_fs)
 {
 	fs = new_fs;
@@ -72,6 +81,19 @@ void print(char *msg, ...)
 					print_type(node);
 				else
 					print_token(node);
+			}
+			else if(*msg == '[') {
+				msg ++;
+
+				if(*msg == ']') {
+					fprintf(fs, "\x1b[0m");
+				}
+				else {
+					int r = hex2nibble(*msg++) * 0x11;
+					int g = hex2nibble(*msg++) * 0x11;
+					int b = hex2nibble(*msg++) * 0x11;
+					fprintf(fs, "\x1b[38;2;%i;%i;%im", r, g, b);
+				}
 			}
 		}
 		else {
