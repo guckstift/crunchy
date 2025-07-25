@@ -24,11 +24,11 @@ int64_t lex(char *src, Token **tokens_out)
 		int64_t ival = 0;
 
 		if(isspace(*src)) {
-			if(*src == '\n') {
-				line ++;
-			}
-
+			if(*src == '\n') line ++;
 			src ++;
+		}
+		else if(*src == '#') {
+			while(*src && *src != '\n') src ++;
 		}
 		else if(isdigit(*src)) {
 			while(isdigit(*src)) {
@@ -39,10 +39,7 @@ int64_t lex(char *src, Token **tokens_out)
 			emit_token(TK_INT, .ival = ival);
 		}
 		else if(isalpha(*src)) {
-			while(isalpha(*src) || isdigit(*src)) {
-				src ++;
-			}
-
+			while(isalpha(*src) || isdigit(*src)) src ++;
 			int64_t length = src - start;
 			Kind kind = TK_IDENT;
 
@@ -59,14 +56,8 @@ int64_t lex(char *src, Token **tokens_out)
 			while(isprint(*src) && *src != '"') {
 				if(*src == '\\') {
 					src ++;
-
-					if(*src == '"') {
-						src ++;
-					}
-					else {
-						error("invalid escape character");
-					}
-
+					if(*src == '"') src ++;
+					else error("invalid escape character");
 					str_length ++;
 				}
 				else {
@@ -75,10 +66,7 @@ int64_t lex(char *src, Token **tokens_out)
 				}
 			}
 
-			if(*src != '"') {
-				error("unterminated string");
-			}
-
+			if(*src != '"') error("unterminated string");
 			src ++;
 			emit_token(TK_STRING, .str_length = str_length);
 		}
@@ -102,10 +90,7 @@ int64_t lex(char *src, Token **tokens_out)
 			char *output = token->chars;
 
 			for(char *input = token->start + 1; *input != '"'; input ++) {
-				if(*input == '\\') {
-					input ++;
-				}
-
+				if(*input == '\\') input ++;
 				*output = *input;
 				output ++;
 			}

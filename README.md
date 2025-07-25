@@ -35,6 +35,8 @@ gcc -o test ./test.cr.c
 
 Here I document every feature implemented so far. This list should grow with each new commit.
 
+* comments
+  * single line: `#` [^`\n`]*
 * variable declarations
   * `var` IDENTIFIER `:` type `;`
     * the initial value is implicitly `0` for `int` and `false` for `bool`
@@ -64,8 +66,8 @@ Here I document every feature implemented so far. This list should grow with eac
     * must be used not before the end of their own declaration
   * binary operators
     * expression<sub>left</sub> `+` expression<sub>right</sub>
-      * => yields an `int` value
-      * left and right expressions can only be `int` or `bool`
+      * int/bool + int/bool = int
+      * string + string = string
 * conversion
   * `int` to `bool` : x = 0 => `false`, otherwise `true`
   * `bool` to `int` : x = `false` => 0, x = `true` => 1
