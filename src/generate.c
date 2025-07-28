@@ -38,7 +38,7 @@ void gen_token(Token *token)
 
 void gen_var(Token *ident, Block *parent_block)
 {
-	print("(frame%i.%n)", parent_block->id, ident);
+	print("(frame%i.v_%n)", parent_block->id, ident);
 }
 
 void gen_type(Type *type)
@@ -187,12 +187,12 @@ void gen_decls(Block *block)
 
 	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
 		if(decl->type->kind == TY_STRING)
-			print("%>%n %n;\n", decl->type, decl->ident);
+			print("%>%n v_%n;\n", decl->type, decl->ident);
 	}
 
 	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
 		if(decl->type->kind != TY_STRING)
-			print("%>%n %n;\n", decl->type, decl->ident);
+			print("%>%n v_%n;\n", decl->type, decl->ident);
 	}
 
 	Block *parent_block = block->parent;

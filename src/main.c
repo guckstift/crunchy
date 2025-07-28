@@ -5,7 +5,7 @@
 
 void error(char *msg)
 {
-	printf("error: %s\n", msg);
+	print("%[f00]error:%[] %s\n", msg);
 	exit(EXIT_FAILURE);
 }
 
@@ -16,36 +16,38 @@ char *find_src_start(Token *token)
 	return bof->start;
 }
 
-char *find_line_start(Token *token, char *src_start)
+char *find_line_start(char *ptr, char *src_start)
 {
-	char *line_start = token->start;
-	while(line_start > src_start && line_start[-1] != '\n') line_start --;
-	return line_start;
+	while(ptr > src_start && ptr[-1] != '\n') ptr --;
+	return ptr;
 }
 
-void error_at(Token *at, char *msg)
+int64_t print_src_line(char *start, char *cursor, int64_t line)
 {
-	char *src_file_start = find_src_start(at);
-	char *line_start = find_line_start(at, src_file_start);
-	print("%[f00]error:%[] %s\n", msg);
 	print("%[888]");
-	int64_t offset = print("%i", at->line);
-	offset += print(":%[] ");
+	int64_t offset = print("%i:%[] ", line);
 
-	for(char *p = line_start; *p && *p != '\n'; p++) {
+	for(char *p = start; *p && *p != '\n'; p++) {
 		if(*p == '\t') {
-			if(p < at->start)
-				offset += fprintf(stdout, "  ");
-			else
-				fprintf(stdout, "  ");
+			if(p < cursor) offset += fprintf(stdout, "  ");
+			else fprintf(stdout, "  ");
 		}
 		else {
 			fputc(*p, stdout);
-			if(p < at->start) offset ++;
+			if(p < cursor) offset ++;
 		}
 	}
 
 	printf("\n");
+	return offset;
+}
+
+void error_at(Token *at, char *msg)
+{
+	print("%[f00]error:%[] %s\n", msg);
+	char *src_start = find_src_start(at);
+	char *line_start = find_line_start(at->start, src_start);
+	int64_t offset = print_src_line(line_start, at->start, at->line);
 	for(int64_t i=0; i < offset; i++) printf(" ");
 	print("%[f00]^%[]\n");
 	exit(EXIT_FAILURE);
