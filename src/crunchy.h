@@ -150,6 +150,7 @@ typedef void (*EscapeMod)(va_list);
 
 // main
 void error(char *msg);
+void error_at(Token *at, char *msg);
 
 // print
 void set_print_file(FILE *new_fs);

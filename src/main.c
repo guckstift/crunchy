@@ -9,6 +9,48 @@ void error(char *msg)
 	exit(EXIT_FAILURE);
 }
 
+char *find_src_start(Token *token)
+{
+	Token *bof = token;
+	while(bof->kind != TK_BOF) bof --;
+	return bof->start;
+}
+
+char *find_line_start(Token *token, char *src_start)
+{
+	char *line_start = token->start;
+	while(line_start > src_start && line_start[-1] != '\n') line_start --;
+	return line_start;
+}
+
+void error_at(Token *at, char *msg)
+{
+	char *src_file_start = find_src_start(at);
+	char *line_start = find_line_start(at, src_file_start);
+	print("%[f00]error:%[] %s\n", msg);
+	print("%[888]");
+	int64_t offset = print("%i", at->line);
+	offset += print(":%[] ");
+
+	for(char *p = line_start; *p && *p != '\n'; p++) {
+		if(*p == '\t') {
+			if(p < at->start)
+				offset += fprintf(stdout, "  ");
+			else
+				fprintf(stdout, "  ");
+		}
+		else {
+			fputc(*p, stdout);
+			if(p < at->start) offset ++;
+		}
+	}
+
+	printf("\n");
+	for(int64_t i=0; i < offset; i++) printf(" ");
+	print("%[f00]^%[]\n");
+	exit(EXIT_FAILURE);
+}
+
 char *load_text_file(char *file_name)
 {
 	FILE *fs = fopen(file_name, "rb");

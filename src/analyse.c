@@ -8,36 +8,6 @@ void a_expr(Expr *expr);
 
 static Block *cur_block = 0;
 
-void error_at(Token *at, char *msg)
-{
-	printf("error: %s\n", msg);
-	Token *bof = at;
-
-	if(!at) {
-		exit(EXIT_FAILURE);
-	}
-
-	while(bof->kind != TK_BOF) {
-		bof --;
-	}
-
-	char *src_file_start = bof->start;
-	printf("%li: ", at->line);
-	char *p = at->start;
-
-	while(p > src_file_start && p[-1] != '\n') {
-		p --;
-	}
-
-	while(*p && *p != '\n') {
-		fputc(*p, stdout);
-		p ++;
-	}
-
-	printf("\n");
-	exit(EXIT_FAILURE);
-}
-
 Expr *get_default_value(Type *type)
 {
 	Expr *expr = 0;
@@ -68,13 +38,16 @@ Expr *get_default_value(Type *type)
 
 Expr *adjust_expr_to_type(Expr *expr, Type *type)
 {
-	if(expr->type->kind == type->kind) {
-		return expr;
-	}
+	Type *expr_type = expr->type;
 
-	if(expr->type->kind == TY_STRING) {
+	if(expr_type->kind == type->kind)
+		return expr;
+
+	if(expr_type->kind == TY_STRING)
 		error_at(expr->start, "strings can not be converted to some other type");
-	}
+
+	if(type->kind == TY_STRING)
+		error_at(expr->start, "can not convert other types to string");
 
 	if(expr->kind == EX_VAR) {
 		Expr *cast = new_expr(EX_CAST, expr->start, 0);
@@ -90,9 +63,6 @@ Expr *adjust_expr_to_type(Expr *expr, Type *type)
 		case TY_BOOL:
 			expr->kind = EX_BOOL;
 			expr->ival = expr->ival != 0;
-			break;
-		case TY_STRING:
-			error_at(expr->start, "can not convert other types to string");
 			break;
 		default:
 			error_at(expr->start, "INTERNAL: unknown type to adjust expression to");
