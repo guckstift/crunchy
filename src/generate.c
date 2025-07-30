@@ -36,9 +36,12 @@ void gen_token(Token *token)
 	print("%S", token->start, token->length);
 }
 
-void gen_var(Token *ident, Block *parent_block)
+void gen_full_name(Stmt *decl)
 {
-	print("(frame%i.v_%n)", parent_block->id, ident);
+	if(decl->kind == ST_FUNCDECL)
+		print("v_%n", decl->ident);
+	else
+		print("(frame%i.v_%n)", decl->parent_block->id, decl->ident);
 }
 
 void gen_type(Type *type)
@@ -52,6 +55,9 @@ void gen_type(Type *type)
 			break;
 		case TY_STRING:
 			print("String*");
+			break;
+		case TY_FUNC:
+			print("Function");
 			break;
 		default:
 			print("/* INTERNAL: unknown type to generate */");
@@ -98,7 +104,7 @@ void gen_expr(Expr *expr)
 			print("\")");
 			break;
 		case EX_VAR:
-			gen_var(expr->ident, expr->decl->parent_block);
+			gen_full_name(expr->decl);
 			break;
 		case EX_CAST:
 			gen_cast(expr->type, expr->subexpr);
@@ -147,7 +153,7 @@ void gen_stmt(Stmt *stmt)
 	switch(stmt->kind) {
 		case ST_VARDECL:
 			print("%>");
-			gen_var(stmt->ident, stmt->parent_block);
+			gen_full_name(stmt);
 			print(" = %n;\n", stmt->init);
 			break;
 		case ST_FUNCDECL:
@@ -178,7 +184,7 @@ void gen_stmt(Stmt *stmt)
 void gen_decls(Block *block)
 {
 	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
-		if(decl->type->kind == TY_FUNC)
+		if(decl->kind == ST_FUNCDECL)
 			print("%>void v_%n();\n", decl->ident);
 	}
 
@@ -191,12 +197,12 @@ void gen_decls(Block *block)
 	}
 
 	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
-		if(decl->type->kind == TY_STRING)
+		if(decl->type->kind == TY_STRING && decl->kind != ST_FUNCDECL)
 			print("%>%n v_%n;\n", decl->type, decl->ident);
 	}
 
 	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
-		if(decl->type->kind != TY_STRING && decl->type->kind != TY_FUNC)
+		if(decl->type->kind != TY_STRING && decl->kind != ST_FUNCDECL)
 			print("%>%n v_%n;\n", decl->type, decl->ident);
 	}
 
@@ -206,7 +212,7 @@ void gen_decls(Block *block)
 	);
 
 	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
-		if(decl->type->kind == TY_FUNC) {
+		if(decl->kind == ST_FUNCDECL) {
 			print("void v_%n() {%+\n", decl->ident);
 			gen_block(decl->body);
 			print("%-}\n");

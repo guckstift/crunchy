@@ -152,6 +152,8 @@ int64_t print_type(Type *type)
 			return print("bool");
 		case TY_STRING:
 			return print("string");
+		case TY_FUNC:
+			return print("function");
 		default:
 			return print("<unknown-type>");
 	}

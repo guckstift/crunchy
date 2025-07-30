@@ -25,6 +25,8 @@ typedef struct {
 	MemoryBlock *gc_objs[];
 } Frame;
 
+typedef void (*Function)(void);
+
 static MemoryBlock *memory_blocks = 0;
 static Frame *cur_frame = 0;
 
