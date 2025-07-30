@@ -162,15 +162,30 @@ Expr *p_atom()
 	return expr;
 }
 
+Expr *p_call()
+{
+	Expr *callee = p_atom();
+	if(!callee) return 0;
+
+	while(eat(PT_LPAREN)) {
+		expect(PT_RPAREN, "expected ) after (");
+		Expr *call = new_expr(EX_CALL, callee->start, 0);
+		call->callee = callee;
+		callee = call;
+	}
+
+	return callee;
+}
+
 Expr *p_binop()
 {
-	Expr *left = p_atom();
+	Expr *left = p_call();
 	if(!left) return 0;
 
 	while(1) {
 		Token *op = eat(PT_PLUS);
 		if(!op) return left;
-		Expr *right = p_atom();
+		Expr *right = p_call();
 		if(!right) error("expected right side expression after +");
 		Expr *binop = new_expr(EX_BINOP, left->start, 0);
 		binop->left = left;

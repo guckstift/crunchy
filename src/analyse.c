@@ -40,39 +40,39 @@ Expr *get_default_value(Type *type)
 	return expr;
 }
 
+int types_equal(Type *a, Type *b)
+{
+	return a->kind == b->kind;
+}
+
 Expr *adjust_expr_to_type(Expr *expr, Type *type)
 {
-	Type *expr_type = expr->type;
-
-	if(expr_type->kind == type->kind)
+	if(types_equal(expr->type, type))
 		return expr;
 
-	if(expr_type->kind == TY_STRING)
-		error_at(expr->start, "strings can not be converted to some other type");
+	if(
+		expr->type->kind == TY_INT && type->kind == TY_BOOL ||
+		expr->type->kind == TY_BOOL && type->kind == TY_INT
+	) {
+		if(expr->kind == EX_INT) {
+			expr->kind = EX_BOOL;
+			expr->type = type;
+			expr->ival = expr->ival != 0;
+			return expr;
+		}
+		else if(expr->kind == EX_BOOL) {
+			expr->kind = EX_INT;
+			expr->type = type;
+			return expr;
+		}
 
-	if(type->kind == TY_STRING)
-		error_at(expr->start, "can not convert other types to string");
-
-	if(expr->kind == EX_VAR) {
 		Expr *cast = new_expr(EX_CAST, expr->start, 0);
 		cast->type = type;
 		cast->subexpr = expr;
 		return cast;
 	}
 
-	switch(type->kind) {
-		case TY_INT:
-			expr->kind = EX_INT;
-			break;
-		case TY_BOOL:
-			expr->kind = EX_BOOL;
-			expr->ival = expr->ival != 0;
-			break;
-		default:
-			error_at(expr->start, "INTERNAL: unknown type to adjust expression to");
-	}
-
-	return expr;
+	error_at(expr->start, "this type conversion is not allowed");
 }
 
 Stmt *lookup_in(Token *ident, Block *block)
@@ -152,6 +152,10 @@ void a_expr(Expr *expr)
 			a_binop(expr);
 			if(expr->type->kind == TY_STRING) expr->temp = declare_temp(expr->type);
 			break;
+		case EX_CALL:
+			a_expr(expr->callee);
+			expr->type = new_type(TY_VOID);
+			break;
 		default:
 			error_at(expr->start, "INTERNAL: unknown expression to analyse");
 	}
@@ -175,13 +179,14 @@ void a_stmt(Stmt *stmt)
 				stmt->init = get_default_value(stmt->type);
 			}
 
-			if(!stmt->type) {
+			if(!stmt->type)
 				error_at(stmt->start, "could not find out the type for this variable declaration");
-			}
 
-			if(stmt->type->kind == TY_STRING) {
+			if(stmt->type->kind == TY_STRING)
 				cur_block->num_gc_decls ++;
-			}
+
+			if(stmt->type->kind == TY_VOID)
+				error_at(stmt->start, "variable type is empty");
 
 			break;
 		case ST_FUNCDECL:

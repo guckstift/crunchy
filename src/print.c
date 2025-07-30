@@ -146,6 +146,8 @@ void print_token_list(Token *tokens)
 int64_t print_type(Type *type)
 {
 	switch(type->kind) {
+		case TY_VOID:
+			return print("void");
 		case TY_INT:
 			return print("int");
 		case TY_BOOL:
@@ -192,6 +194,8 @@ int64_t print_expr(Expr *expr)
 			return print("%n(%n)", expr->type, expr->subexpr);
 		case EX_BINOP:
 			return print("(%n%n%n)", expr->left, expr->op, expr->right);
+		case EX_CALL:
+			return print("%n()", expr->callee);
 		default:
 			return print("<unknown-expr:%i>", expr->kind);
 	}

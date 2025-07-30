@@ -41,6 +41,7 @@ typedef enum : uint8_t {
 
 	TYPE_KIND_START,
 
+	TY_VOID,
 	TY_INT,
 	TY_BOOL,
 	TY_STRING,
@@ -55,6 +56,7 @@ typedef enum : uint8_t {
 	EX_VAR,
 	EX_CAST,
 	EX_BINOP,
+	EX_CALL,
 
 	STMT_KIND_START,
 
@@ -102,6 +104,7 @@ typedef struct {
 		Token *ident; // var
 		void *subexpr; // cast
 		void *left; // binop
+		void *callee; // call
 		char *chars; // string
 	};
 

@@ -1,13 +1,12 @@
-
-
-var y = x;
-
 function foo()
 {
-	var x = 90;
 	print "Hello";
 }
 
-var x = foo;
+var x : int = true;
+var y : bool = 90;
 
-var z : function;
+if 71 {
+}
+
+x = foo();
