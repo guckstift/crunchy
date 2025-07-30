@@ -219,6 +219,7 @@ Stmt *p_funcdecl()
 {
 	Token *start = cur_token;
 	if(!eat(KW_function)) return 0;
+	if(cur_block->parent) error("functions must be declared at the top level");
 	Token *ident = expect(TK_IDENT, "missing function name after function keyword");
 	expect(PT_LPAREN, "missing '(' after function name");
 	expect(PT_RPAREN, "missing ')' after '('");
