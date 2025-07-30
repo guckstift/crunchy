@@ -29,6 +29,10 @@ Expr *get_default_value(Type *type)
 			expr->chars = "";
 			expr->length = 0;
 			break;
+		case TY_FUNC:
+			expr = new_expr(EX_NOOPFUNC, 0, 0);
+			expr->type = type;
+			break;
 		default:
 			error("INTERNAL: unknown type to get default value for");
 	}

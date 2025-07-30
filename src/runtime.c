@@ -27,6 +27,8 @@ typedef struct {
 
 typedef void (*Function)(void);
 
+void noop(void){}
+
 static MemoryBlock *memory_blocks = 0;
 static Frame *cur_frame = 0;
 

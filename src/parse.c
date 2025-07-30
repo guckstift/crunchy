@@ -128,6 +128,7 @@ Type *p_type()
 	if(eat(KW_int)) return new_type(TY_INT);
 	else if(eat(KW_bool)) return new_type(TY_BOOL);
 	else if(eat(KW_string)) return new_type(TY_STRING);
+	else if(eat(KW_function)) return new_type(TY_FUNC);
 	return 0;
 }
 

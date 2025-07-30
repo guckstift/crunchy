@@ -85,6 +85,9 @@ void gen_expr(Expr *expr)
 	}
 
 	switch(expr->kind) {
+		case EX_NOOPFUNC:
+			print("noop");
+			break;
 		case EX_INT:
 			print("%iL", expr->ival);
 			break;

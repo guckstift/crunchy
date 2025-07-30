@@ -48,6 +48,7 @@ typedef enum : uint8_t {
 
 	EXPR_KIND_START,
 
+	EX_NOOPFUNC,
 	EX_INT,
 	EX_BOOL,
 	EX_STRING,

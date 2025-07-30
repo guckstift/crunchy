@@ -162,6 +162,8 @@ int64_t print_type(Type *type)
 int64_t print_expr(Expr *expr)
 {
 	switch(expr->kind) {
+		case EX_NOOPFUNC:
+			return print("<noop>");
 		case EX_INT:
 			return print("%i", expr->ival);
 		case EX_BOOL:

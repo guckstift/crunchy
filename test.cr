@@ -1,5 +1,7 @@
 
 
+var y = x;
+
 function foo()
 {
 	var x = 90;
@@ -7,4 +9,5 @@ function foo()
 }
 
 var x = foo;
-var y = x;
+
+var z : function;
