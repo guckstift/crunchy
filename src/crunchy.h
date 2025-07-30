@@ -5,6 +5,7 @@
 	_(bool) \
 	_(else) \
 	_(false) \
+	_(function) \
 	_(if) \
 	_(int) \
 	_(print) \
@@ -18,6 +19,8 @@
 	_(':', COLON) \
 	_('{', LCURLY) \
 	_('}', RCURLY) \
+	_('(', LPAREN) \
+	_(')', RPAREN) \
 	_('+', PLUS) \
 
 typedef enum : uint8_t {
@@ -41,6 +44,7 @@ typedef enum : uint8_t {
 	TY_INT,
 	TY_BOOL,
 	TY_STRING,
+	TY_FUNC,
 
 	EXPR_KIND_START,
 
@@ -54,6 +58,7 @@ typedef enum : uint8_t {
 	STMT_KIND_START,
 
 	ST_VARDECL,
+	ST_FUNCDECL,
 	ST_PRINT,
 	ST_ASSIGN,
 	ST_IF,
@@ -116,23 +121,23 @@ typedef struct Stmt {
 	Token *end;
 
 	union {
-		Token *ident; // vardecl
+		Token *ident; // vardecl, funcdecl
 		Expr *target; // assign
 		Expr *cond; // if
 	};
 
 	union {
-		Type *type; // vardecl
+		Expr *init; // vardecl
 		Expr *value; // assign, print
-		void *body; // if
+		void *body; // if, funcdecl
 	};
 
 	union {
-		Expr *init; // vardecl
+		Type *type; // vardecl, funcdecl
 		void *else_body; // if
 	};
 
-	void *next_decl; // vardecl
+	void *next_decl; // vardecl, funcdecl
 } Stmt;
 
 typedef struct Block {

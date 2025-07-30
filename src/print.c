@@ -205,6 +205,11 @@ int64_t print_stmt(Stmt *stmt)
 			if(stmt->init) printed_chars_count += print(" = %n", stmt->init);
 			printed_chars_count += print(";\n");
 			break;
+		case ST_FUNCDECL:
+			printed_chars_count += print("function %n() {%+\n", stmt->ident);
+			printed_chars_count += print_block(stmt->body);
+			printed_chars_count += print("%-%>}\n");
+			break;
 		case ST_PRINT:
 			printed_chars_count += print("print %n;\n", stmt->value);
 			break;

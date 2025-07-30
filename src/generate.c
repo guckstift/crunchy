@@ -14,7 +14,7 @@ void gen_token(Token *token);
 void gen_type(Type *type);
 void gen_expr(Expr *expr);
 void gen_stmt(Stmt *stmt);
-void gen_local_block(Block *block);
+void gen_block(Block *block);
 
 void mod_gen_node(va_list args)
 {
@@ -123,16 +123,16 @@ void gen_print(Expr *value)
 {
 	switch(value->type->kind) {
 		case TY_INT:
-			print("printf(\"%%li\\n\", ");
+			print("%>printf(\"%%li\\n\", ");
 			break;
 		case TY_BOOL:
-			print("printf(\"%%s\\n\", ");
+			print("%>printf(\"%%s\\n\", ");
 			break;
 		case TY_STRING:
-			print("print_string(");
+			print("%>print_string(");
 			break;
 		default:
-			print("// INTERNAL: unknown value type to generate print for\n");
+			print("%>// INTERNAL: unknown value type to generate print for\n");
 			return;
 	}
 
@@ -144,39 +144,44 @@ void gen_print(Expr *value)
 
 void gen_stmt(Stmt *stmt)
 {
-	print("%>");
-
 	switch(stmt->kind) {
 		case ST_VARDECL:
+			print("%>");
 			gen_var(stmt->ident, stmt->parent_block);
 			print(" = %n;\n", stmt->init);
 			break;
+		case ST_FUNCDECL:
+			break;
 		case ST_ASSIGN:
-			print("%n = %n;\n", stmt->target, stmt->value);
+			print("%>%n = %n;\n", stmt->target, stmt->value);
 			break;
 		case ST_PRINT:
 			gen_print(stmt->value);
 			break;
 		case ST_IF:
-			print("if(%n) {\n", stmt->cond);
-			gen_local_block(stmt->body);
-			print("%>}\n");
+			print("%>if(%n) {%+\n", stmt->cond);
+			gen_block(stmt->body);
+			print("%-%>}\n");
 
 			if(stmt->else_body) {
-				print("%>else {\n");
-				gen_local_block(stmt->else_body);
-				print("%>}\n");
+				print("%>else {%+\n");
+				gen_block(stmt->else_body);
+				print("%-%>}\n");
 			}
 
-			print("%>cur_frame = (Frame*)&frame%i;\n", stmt->parent_block->id);
 			break;
 		default:
-			print("// INTERNAL: unknown statement to generate\n");
+			print("%>// INTERNAL: unknown statement to generate\n");
 	}
 }
 
 void gen_decls(Block *block)
 {
+	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
+		if(decl->type->kind == TY_FUNC)
+			print("%>void v_%n();\n", decl->ident);
+	}
+
 	print("%>struct {%+\n");
 	print("%>void *parent;\n");
 	print("%>int64_t num_gc_decls;\n");
@@ -191,35 +196,30 @@ void gen_decls(Block *block)
 	}
 
 	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
-		if(decl->type->kind != TY_STRING)
+		if(decl->type->kind != TY_STRING && decl->type->kind != TY_FUNC)
 			print("%>%n v_%n;\n", decl->type, decl->ident);
 	}
 
-	Block *parent_block = block->parent;
+	print(
+		"%-%>} frame%i = {.parent = %s, .num_gc_decls = %iL};\n",
+		block->id, block->parent ? "cur_frame" : "0", block->num_gc_decls
+	);
 
-	if(parent_block)
-		print("%-%>} frame%i = {.parent = &frame%i", block->id, parent_block->id);
-	else
-		print("%-%>} frame%i = {.parent = 0", block->id);
-
-	print(", .num_gc_decls = %iL};\n", block->num_gc_decls);
-}
-
-void gen_local_block(Block *block)
-{
-	print("%+");
-	gen_decls(block);
-	print("%>cur_frame = (Frame*)&frame%i;\n", block->id);
-	for(Stmt *stmt = block->stmts; stmt; stmt = stmt->next) gen_stmt(stmt);
-	print("%-");
+	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
+		if(decl->type->kind == TY_FUNC) {
+			print("void v_%n() {%+\n", decl->ident);
+			gen_block(decl->body);
+			print("%-}\n");
+		}
+	}
 }
 
 void gen_block(Block *block)
 {
-	print("%+");
+	if(block->parent) gen_decls(block);
 	print("%>cur_frame = (Frame*)&frame%i;\n", block->id);
 	for(Stmt *stmt = block->stmts; stmt; stmt = stmt->next) gen_stmt(stmt);
-	print("%-");
+	print("%>cur_frame = cur_frame->parent;\n");
 }
 
 void generate(Block *block, char *output_file)
@@ -231,10 +231,10 @@ void generate(Block *block, char *output_file)
 
 	print("%s\n\n", runtime_src);
 	gen_decls(block);
-	print("int main(int argc, char **argv) {\n");
+	print("int main(int argc, char **argv) {%+\n");
 	gen_block(block);
-	print("\treturn 0;\n");
-	print("}\n");
+	print("%>return 0;\n");
+	print("%-}\n");
 
 	set_print_file(stdout);
 	set_escape_mod('n', 0);

@@ -180,6 +180,10 @@ void a_stmt(Stmt *stmt)
 			}
 
 			break;
+		case ST_FUNCDECL:
+			a_block(stmt->body);
+			stmt->type = new_type(TY_FUNC);
+			break;
 		case ST_PRINT:
 			a_expr(stmt->value);
 			break;

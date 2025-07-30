@@ -209,11 +209,26 @@ Stmt *p_vardecl()
 	stmt->ident = ident;
 	stmt->type = type;
 	stmt->init = init;
-	stmt->next_decl = 0;
-	if(!declare(stmt)) error("variable is already declared");
+	if(!declare(stmt)) error_at(ident, "name is already declared");
 	expect(PT_SEMICOLON, "missing semicolon after variable declaration");
-	stmt->parent_block = cur_block;
 	stmt->end = cur_token;
+	return stmt;
+}
+
+Stmt *p_funcdecl()
+{
+	Token *start = cur_token;
+	if(!eat(KW_function)) return 0;
+	Token *ident = expect(TK_IDENT, "missing function name after function keyword");
+	expect(PT_LPAREN, "missing '(' after function name");
+	expect(PT_RPAREN, "missing ')' after '('");
+	expect(PT_LCURLY, "missing '{' after function head");
+	Block *body = p_block();
+	expect(PT_RCURLY, "missing '}' after function body");
+	Stmt *stmt = new_stmt(ST_FUNCDECL, cur_block, start, cur_token);
+	stmt->ident = ident;
+	stmt->body = body;
+	if(!declare(stmt)) error_at(ident, "name is already declared");
 	return stmt;
 }
 
@@ -272,6 +287,7 @@ Stmt *p_stmt()
 {
 	Stmt *stmt = 0;
 	(stmt = p_vardecl()) ||
+	(stmt = p_funcdecl()) ||
 	(stmt = p_print()) ||
 	(stmt = p_if()) ||
 	(stmt = p_assign()) ;
