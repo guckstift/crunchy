@@ -1,0 +1,3 @@
+[38;2;255;0;0merror:[0m a variable declaration must have at least either a type specification or an initializer expression
+[38;2;136;136;136m2:[0m var x  "";
+          [38;2;255;0;0m^[0m

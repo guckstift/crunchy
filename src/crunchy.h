@@ -166,11 +166,10 @@ typedef struct Block {
 
 typedef void (*EscapeMod)(va_list);
 
-// main
+// helpers
 void error(char *msg);
 void error_at(Token *at, char *msg, ...);
-
-// helpers
+char *load_text_file(char *file_name);
 Type *new_type(Kind kind);
 Expr *new_expr(Kind kind, Token *start, uint8_t is_lvalue);
 Stmt *new_stmt(Kind kind, Block *parent, Token *start, Token *end);

@@ -1,6 +1,82 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include "crunchy.h"
+
+void error(char *msg)
+{
+	set_print_file(stderr);
+	print("%[f00]error:%[] %s\n", msg);
+	exit(EXIT_FAILURE);
+}
+
+char *find_src_start(Token *token)
+{
+	Token *bof = token;
+	while(bof->kind != TK_BOF) bof --;
+	return bof->start;
+}
+
+char *find_line_start(char *ptr, char *src_start)
+{
+	while(ptr > src_start && ptr[-1] != '\n') ptr --;
+	return ptr;
+}
+
+int64_t print_src_line(char *start, char *cursor, int64_t line)
+{
+	print("%[888]");
+	int64_t offset = print("%i:%[] ", line);
+
+	for(char *p = start; *p && *p != '\n'; p++) {
+		if(*p == '\t') {
+			if(p < cursor) offset += print("  ");
+			else print("  ");
+		}
+		else {
+			print("%c", *p);
+			if(p < cursor) offset ++;
+		}
+	}
+
+	print("\n");
+	return offset;
+}
+
+void error_at(Token *at, char *msg, ...)
+{
+	set_print_file(stderr);
+	va_list args;
+	va_start(args, msg);
+	print("%[f00]error:%[] ");
+	vprint(msg, args);
+	print("\n");
+	va_end(args);
+	char *src_start = find_src_start(at);
+	char *line_start = find_line_start(at->start, src_start);
+	int64_t offset = print_src_line(line_start, at->start, at->line);
+	for(int64_t i=0; i < offset; i++) print(" ");
+	print("%[f00]^%[]\n");
+	exit(EXIT_FAILURE);
+}
+
+char *load_text_file(char *file_name)
+{
+	FILE *fs = fopen(file_name, "rb");
+
+	if(!fs) {
+		error("could not open input file");
+	}
+
+	fseek(fs, 0, SEEK_END);
+	long size = ftell(fs);
+	rewind(fs);
+	char *text = malloc(size + 1);
+	text[size] = 0;
+	fread(text, 1, size, fs);
+	fclose(fs);
+	return text;
+}
 
 Type *new_type(Kind kind)
 {
