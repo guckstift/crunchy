@@ -206,6 +206,9 @@ void a_stmt(Stmt *stmt)
 			a_expr(stmt->value);
 			stmt->value = adjust_expr_to_type(stmt->value, stmt->target->type);
 			break;
+		case ST_CALL:
+			a_expr(stmt->call);
+			break;
 		case ST_IF:
 			a_expr(stmt->cond);
 			stmt->cond = adjust_expr_to_type(stmt->cond, new_type(TY_BOOL));

@@ -119,6 +119,9 @@ void gen_expr(Expr *expr)
 				print("(%n%n%n)", expr->left, expr->op, expr->right);
 
 			break;
+		case EX_CALL:
+			print("%n()", expr->callee);
+			break;
 		default:
 			print("/* INTERNAL: unknown expression to generate */");
 	}
@@ -163,6 +166,9 @@ void gen_stmt(Stmt *stmt)
 			break;
 		case ST_ASSIGN:
 			print("%>%n = %n;\n", stmt->target, stmt->value);
+			break;
+		case ST_CALL:
+			print("%>%n;\n", stmt->call);
 			break;
 		case ST_PRINT:
 			gen_print(stmt->value);

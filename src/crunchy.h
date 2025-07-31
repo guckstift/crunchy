@@ -64,6 +64,7 @@ typedef enum : uint8_t {
 	ST_FUNCDECL,
 	ST_PRINT,
 	ST_ASSIGN,
+	ST_CALL,
 	ST_IF,
 } Kind;
 
@@ -128,6 +129,7 @@ typedef struct Stmt {
 		Token *ident; // vardecl, funcdecl
 		Expr *target; // assign
 		Expr *cond; // if
+		Expr *call; // call
 	};
 
 	union {

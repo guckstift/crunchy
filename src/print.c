@@ -224,6 +224,9 @@ int64_t print_stmt(Stmt *stmt)
 		case ST_ASSIGN:
 			printed_chars_count += print("%n = %n;\n", stmt->target, stmt->value);
 			break;
+		case ST_CALL:
+			printed_chars_count +=  print("%n;\n", stmt->call);
+			break;
 		case ST_IF:
 			printed_chars_count += print("if %n {%+\n", stmt->cond);
 			printed_chars_count += print_block(stmt->body);

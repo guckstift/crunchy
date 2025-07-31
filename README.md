@@ -53,6 +53,9 @@ Here I document every feature implemented so far. This list should grow with eac
     * expression<sub>left</sub> `+` expression<sub>right</sub>
       * int/bool + int/bool = int
       * string + string = string
+  * function call
+    * expression `(` `)`
+      * expression must be callable (function name or function pointer)
 * conversion
   * `int` to `bool` : x = 0 => `false`, otherwise `true`
   * `bool` to `int` : x = `false` => 0, x = `true` => 1
@@ -77,6 +80,10 @@ Here I document every feature implemented so far. This list should grow with eac
 
 * expression<sub>target</sub> `=` expression<sub>value</sub> `;`
   * the target must be an L-value
+
+#### Call statements
+
+* call-expression `;`
 
 #### print statements
 

@@ -13,33 +13,7 @@ static int64_t next_block_id = 0;
 
 void parse_error(char *msg)
 {
-	Token *bof = cur_token;
-	while(bof->kind != TK_BOF) bof --;
-	char *src_file_start = bof->start;
-	print("%[f00]error:%[] %s\n", msg);
-	print("%[888]");
-	int64_t offset = print("%i", cur_token->line);
-	offset += print(":%[] ");
-	char *line_start = cur_token->start;
-	while(line_start > src_file_start && line_start[-1] != '\n') line_start --;
-
-	for(char *p = line_start; *p && *p != '\n'; p++) {
-		if(*p == '\t') {
-			if(p < cur_token->start)
-				offset += fprintf(stdout, "  ");
-			else
-				fprintf(stdout, "  ");
-		}
-		else {
-			fputc(*p, stdout);
-			if(p < cur_token->start) offset ++;
-		}
-	}
-
-	printf("\n");
-	for(int64_t i=0; i < offset; i++) printf(" ");
-	print("%[f00]^%[]\n");
-	exit(EXIT_FAILURE);
+	error_at(cur_token, msg);
 }
 
 Type *new_type(Kind kind)
@@ -286,17 +260,27 @@ Stmt *p_if()
 	return stmt;
 }
 
-Stmt *p_assign()
+Stmt *p_assign_or_call()
 {
 	Expr *target = p_expr();
 	if(!target) return 0;
-	expect(PT_EQUALS, "expected '=' after assignment target");
-	Expr *value = p_expr();
-	if(!value) error("expected assignment value after '='");
-	expect(PT_SEMICOLON, "missing semicolon after variable declaration");
-	Stmt *stmt = new_stmt(ST_ASSIGN, cur_block, target->start, cur_token);
-	stmt->target = target;
-	stmt->value = value;
+
+	if(eat(PT_EQUALS)) {
+		Expr *value = p_expr();
+		if(!value) error("expected assignment value after '='");
+		expect(PT_SEMICOLON, "missing semicolon after variable declaration");
+		Stmt *stmt = new_stmt(ST_ASSIGN, cur_block, target->start, cur_token);
+		stmt->target = target;
+		stmt->value = value;
+		return stmt;
+	}
+
+	if(target->kind != EX_CALL)
+		error_at(target->start, "this is not an assignment nor call statement");
+
+	expect(PT_SEMICOLON, "missing semicolon after call statement");
+	Stmt *stmt = new_stmt(ST_CALL, cur_block, target->start, cur_token);
+	stmt->call = target;
 	return stmt;
 }
 
@@ -307,7 +291,7 @@ Stmt *p_stmt()
 	(stmt = p_funcdecl()) ||
 	(stmt = p_print()) ||
 	(stmt = p_if()) ||
-	(stmt = p_assign()) ;
+	(stmt = p_assign_or_call()) ;
 	return stmt;
 }
 
