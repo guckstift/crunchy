@@ -41,6 +41,9 @@ Here I document every feature implemented so far. This list should grow with eac
   * `bool` : boolean value, `true` or `false`
   * `string` : immutable array of byte characters
   * `function` : type of a function
+  * array type
+    * type<sub>item</sub> `[` `]`
+    * mutable, dynamic sequence of homogenous values
 * expressions
   * decimal integer literal : `[0-9]+`
   * boolean literal : `true` or `false`
