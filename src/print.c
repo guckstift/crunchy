@@ -162,6 +162,8 @@ int64_t print_type(Type *type)
 			return print("string");
 		case TY_FUNC:
 			return print("function");
+		case TY_ARRAY:
+			return print("%n[]", type->subtype);
 		default:
 			return print("<unknown-type>");
 	}
@@ -202,6 +204,20 @@ int64_t print_expr(Expr *expr)
 			return print("(%n%n%n)", expr->left, expr->op, expr->right);
 		case EX_CALL:
 			return print("%n()", expr->callee);
+
+		case EX_ARRAY: {
+			int64_t printed_chars_count = 0;
+			printed_chars_count += print("[");
+
+			for(Expr *item = expr->items; item; item = item->next) {
+				if(item != expr->items) printed_chars_count += print(", ");
+				printed_chars_count += print("%n");
+			}
+
+			printed_chars_count += print("]");
+			return printed_chars_count;
+		} break;
+
 		default:
 			return print("<unknown-expr:%i>", expr->kind);
 	}

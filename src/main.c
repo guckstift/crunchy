@@ -30,8 +30,8 @@ int64_t print_src_line(char *start, char *cursor, int64_t line)
 
 	for(char *p = start; *p && *p != '\n'; p++) {
 		if(*p == '\t') {
-			if(p < cursor) offset += fprintf(stdout, "  ");
-			else fprintf(stdout, "  ");
+			if(p < cursor) offset += print("  ");
+			else print("  ");
 		}
 		else {
 			fputc(*p, stdout);
@@ -39,7 +39,7 @@ int64_t print_src_line(char *start, char *cursor, int64_t line)
 		}
 	}
 
-	printf("\n");
+	print("\n");
 	return offset;
 }
 
@@ -85,20 +85,20 @@ int main(int argc, char **argv)
 
 	char *input_file = argv[1];
 	char *src = load_text_file(input_file);
-	printf("\n# SOURCE\n");
-	printf("%s\n", src);
+	print("\n%[ff0]# SOURCE%[]\n");
+	print("%s\n", src);
 
 	Token *tokens = 0;
 	int64_t token_count = lex(src, &tokens);
-	printf("\n# TOKENS\n");
+	print("\n%[ff0]# TOKENS%[]\n");
 	print_token_list(tokens);
 
 	Block *block = parse(tokens);
-	printf("\n# AST\n");
+	print("\n%[ff0]# AST%[]\n");
 	print_block(block);
 
 	analyse(block);
-	printf("\n# AST (analysed)\n");
+	print("\n%[ff0]# AST (analysed)%[]\n");
 	print_block(block);
 
 	int64_t input_filename_length = strlen(input_file);

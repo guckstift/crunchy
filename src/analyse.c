@@ -33,6 +33,10 @@ Expr *get_default_value(Type *type)
 			expr = new_expr(EX_NOOPFUNC, 0, 0);
 			expr->type = type;
 			break;
+		case TY_ARRAY:
+			expr = new_expr(EX_ARRAY, 0, 0);
+			expr->type = type;
+			break;
 		default:
 			error("INTERNAL: unknown type to get default value for");
 	}
@@ -182,7 +186,7 @@ void a_stmt(Stmt *stmt)
 			if(!stmt->type)
 				error_at(stmt->start, "could not find out the type for this variable declaration");
 
-			if(stmt->type->kind == TY_STRING)
+			if(stmt->type->kind == TY_STRING || stmt->type->kind == TY_ARRAY)
 				cur_block->num_gc_decls ++;
 
 			if(stmt->type->kind == TY_VOID)

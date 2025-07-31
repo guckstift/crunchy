@@ -2,9 +2,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 
 typedef enum : uint8_t {
 	TY_STRING,
+	TY_ARRAY,
 } Type;
 
 typedef struct {
@@ -18,6 +20,12 @@ typedef struct {
 	int64_t length;
 	char chars[];
 } String;
+
+typedef struct {
+	MemoryBlock block;
+	int64_t length;
+	void *items;
+} Array;
 
 typedef struct {
 	void *parent;
@@ -82,6 +90,16 @@ String *new_string(int64_t length, char *chars)
 	string->chars[length] = 0;
 	//printf("## created %s\n", string->chars);
 	return string;
+}
+
+Array *new_array(int64_t itemsize, int64_t length, void *data)
+{
+	Array *array = new_memory_block(TY_ARRAY, sizeof(Array));
+	array->length = length;
+	int64_t data_size = itemsize * length;
+	array->items = calloc(length, itemsize);
+	memcpy(array->items, data, data_size);
+	return array;
 }
 
 void print_string(String *str)

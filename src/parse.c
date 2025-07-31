@@ -92,13 +92,29 @@ Token *expect(Kind kind, char *error_msg)
 	return token;
 }
 
-Type *p_type()
+Type *p_primtype()
 {
 	if(eat(KW_int)) return new_type(TY_INT);
 	else if(eat(KW_bool)) return new_type(TY_BOOL);
 	else if(eat(KW_string)) return new_type(TY_STRING);
 	else if(eat(KW_function)) return new_type(TY_FUNC);
 	return 0;
+}
+
+
+Type *p_type()
+{
+	Type *type = p_primtype();
+	if(!type) return 0;
+
+	while(eat(PT_LBRACK)) {
+		expect(PT_RBRACK, "expected ] after [ to denote an array type");
+		Type *array_type = new_type(TY_ARRAY);
+		array_type->subtype = type;
+		type = array_type;
+	}
+
+	return type;
 }
 
 Expr *p_atom()

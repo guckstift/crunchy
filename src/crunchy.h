@@ -21,6 +21,8 @@
 	_('}', RCURLY) \
 	_('(', LPAREN) \
 	_(')', RPAREN) \
+	_('[', LBRACK) \
+	_(']', RBRACK) \
 	_('+', PLUS) \
 
 typedef enum : uint8_t {
@@ -46,6 +48,7 @@ typedef enum : uint8_t {
 	TY_BOOL,
 	TY_STRING,
 	TY_FUNC,
+	TY_ARRAY,
 
 	EXPR_KIND_START,
 
@@ -57,6 +60,7 @@ typedef enum : uint8_t {
 	EX_CAST,
 	EX_BINOP,
 	EX_CALL,
+	EX_ARRAY,
 
 	STMT_KIND_START,
 
@@ -82,8 +86,9 @@ typedef struct {
 	int64_t str_length;
 } Token;
 
-typedef struct {
+typedef struct Type {
 	Kind kind;
+	struct Type *subtype; // array
 } Type;
 
 typedef struct {
@@ -99,6 +104,7 @@ typedef struct {
 	uint8_t is_lvalue : 1;
 	Temp *temp;
 	Type *type;
+	void *next;
 
 	union {
 		int64_t ival; // int, bool
@@ -107,12 +113,13 @@ typedef struct {
 		void *left; // binop
 		void *callee; // call
 		char *chars; // string
+		void *items; // array
 	};
 
 	union {
 		struct Stmt *decl; // var
 		void *right; // binop
-		int64_t length; // string
+		int64_t length; // string, array
 	};
 
 	Token *op; // binop

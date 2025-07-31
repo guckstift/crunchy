@@ -59,6 +59,9 @@ void gen_type(Type *type)
 		case TY_FUNC:
 			print("Function");
 			break;
+		case TY_ARRAY:
+			print("Array*");
+			break;
 		default:
 			print("/* INTERNAL: unknown type to generate */");
 	}
@@ -121,6 +124,15 @@ void gen_expr(Expr *expr)
 			break;
 		case EX_CALL:
 			print("%n()", expr->callee);
+			break;
+		case EX_ARRAY:
+			print("new_array(sizeof(%n), %i, &(%n[]){", expr->type->subtype, expr->length, expr->type->subtype);
+
+			for(Expr *item = expr->items; item; item = item->next) {
+				print("%n, ", item);
+			}
+
+			print("})");
 			break;
 		default:
 			print("/* INTERNAL: unknown expression to generate */");
@@ -190,6 +202,11 @@ void gen_stmt(Stmt *stmt)
 	}
 }
 
+int is_gc_type(Type *type)
+{
+	return type->kind == TY_STRING || type->kind == TY_ARRAY;
+}
+
 void gen_decls(Block *block)
 {
 	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
@@ -206,12 +223,12 @@ void gen_decls(Block *block)
 	}
 
 	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
-		if(decl->type->kind == TY_STRING && decl->kind != ST_FUNCDECL)
+		if(decl->kind != ST_FUNCDECL && is_gc_type(decl->type))
 			print("%>%n v_%n;\n", decl->type, decl->ident);
 	}
 
 	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
-		if(decl->type->kind != TY_STRING && decl->kind != ST_FUNCDECL)
+		if(decl->kind != ST_FUNCDECL && !is_gc_type(decl->type))
 			print("%>%n v_%n;\n", decl->type, decl->ident);
 	}
 
