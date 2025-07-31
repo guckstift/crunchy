@@ -10,26 +10,8 @@ char runtime_src[] = {
 FILE *ofs = 0;
 static int level = 0;
 
-void gen_token(Token *token);
-void gen_type(Type *type);
 void gen_expr(Expr *expr);
-void gen_stmt(Stmt *stmt);
 void gen_block(Block *block);
-
-void mod_gen_node(va_list args)
-{
-	void *node = va_arg(args, void*);
-	Kind *kind = node;
-
-	if(*kind > STMT_KIND_START)
-		gen_stmt(node);
-	else if(*kind > EXPR_KIND_START)
-		gen_expr(node);
-	else if(*kind > TYPE_KIND_START)
-		gen_type(node);
-	else
-		gen_token(node);
-}
 
 void gen_token(Token *token)
 {
@@ -202,11 +184,6 @@ void gen_stmt(Stmt *stmt)
 	}
 }
 
-int is_gc_type(Type *type)
-{
-	return type->kind == TY_STRING || type->kind == TY_ARRAY;
-}
-
 void gen_decls(Block *block)
 {
 	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
@@ -252,6 +229,21 @@ void gen_block(Block *block)
 	print("%>cur_frame = (Frame*)&frame%i;\n", block->id);
 	for(Stmt *stmt = block->stmts; stmt; stmt = stmt->next) gen_stmt(stmt);
 	print("%>cur_frame = cur_frame->parent;\n");
+}
+
+void mod_gen_node(va_list args)
+{
+	void *node = va_arg(args, void*);
+	Kind *kind = node;
+
+	if(*kind > STMT_KIND_START)
+		gen_stmt(node);
+	else if(*kind > EXPR_KIND_START)
+		gen_expr(node);
+	else if(*kind > TYPE_KIND_START)
+		gen_type(node);
+	else
+		gen_token(node);
 }
 
 void generate(Block *block, char *output_file)

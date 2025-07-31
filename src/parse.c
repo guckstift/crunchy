@@ -11,69 +11,6 @@ static Token *cur_token = 0;
 static Block *cur_block = 0;
 static int64_t next_block_id = 0;
 
-Type *new_type(Kind kind)
-{
-	if(kind == TY_INT) {
-		static Type int_type = {.kind = TY_INT};
-		return &int_type;
-	}
-	else if(kind == TY_BOOL) {
-		static Type bool_type = {.kind = TY_BOOL};
-		return &bool_type;
-	}
-	else if(kind == TY_STRING) {
-		static Type string_type = {.kind = TY_STRING};
-		return &string_type;
-	}
-
-	Type *type = calloc(1, sizeof(Type));
-	type->kind = kind;
-	return type;
-}
-
-Expr *new_expr(Kind kind, Token *start, uint8_t is_lvalue)
-{
-	Expr *expr = calloc(1, sizeof(Expr));
-	expr->kind = kind;
-	expr->start = start;
-	expr->is_lvalue = is_lvalue;
-	return expr;
-}
-
-Stmt *new_stmt(Kind kind, Block *parent, Token *start, Token *end)
-{
-	Stmt *stmt = calloc(1, sizeof(Stmt));
-	stmt->kind = kind;
-	stmt->next = 0;
-	stmt->parent_block = parent;
-	stmt->start = start;
-	stmt->end = end;
-	return stmt;
-}
-
-int declare_in(Stmt *decl, Block *block)
-{
-	for(Stmt *d = block->decls; d; d = d->next_decl) {
-		if(
-			d->ident->length == decl->ident->length &&
-			memcmp(d->ident->start, decl->ident->start, d->ident->length) == 0
-		) {
-			return 0;
-		}
-	}
-
-	if(block->decls) {
-		block->last_decl->next_decl = decl;
-		block->last_decl = decl;
-	}
-	else {
-		block->decls = decl;
-		block->last_decl = decl;
-	}
-
-	return 1;
-}
-
 int declare(Stmt *decl)
 {
 	return declare_in(decl, cur_block);

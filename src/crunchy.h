@@ -170,6 +170,17 @@ typedef void (*EscapeMod)(va_list);
 void error(char *msg);
 void error_at(Token *at, char *msg, ...);
 
+// helpers
+Type *new_type(Kind kind);
+Expr *new_expr(Kind kind, Token *start, uint8_t is_lvalue);
+Stmt *new_stmt(Kind kind, Block *parent, Token *start, Token *end);
+int declare_in(Stmt *decl, Block *block);
+Stmt *lookup_in(Token *ident, Block *block);
+Expr *get_default_value(Type *type);
+int types_equal(Type *a, Type *b);
+int is_gc_type(Type *type);
+Expr *adjust_expr_to_type(Expr *expr, Type *type);
+
 // print
 void set_print_file(FILE *new_fs);
 void set_escape_mod(char chr, EscapeMod mod);
@@ -182,10 +193,6 @@ int64_t print_block(Block *block);
 int64_t lex(char *src, Token **tokens_out);
 
 // parse
-Type *new_type(Kind kind);
-Expr *new_expr(Kind kind, Token *start, uint8_t is_lvalue);
-Stmt *new_stmt(Kind kind, Block *parent, Token *start, Token *end);
-int declare_in(Stmt *decl, Block *block);
 Block *parse(Token *tokens);
 
 // analyse
