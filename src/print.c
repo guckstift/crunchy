@@ -29,11 +29,9 @@ void set_escape_mod(char chr, EscapeMod mod)
 	escape_mods[(uint8_t)chr] = mod;
 }
 
-int64_t print(char *msg, ...)
+int64_t vprint(char *msg, va_list args)
 {
 	if(!fs) fs = stdout;
-	va_list args;
-	va_start(args, msg);
 	int64_t printed_chars_count = 0;
 
 	while(*msg) {
@@ -107,6 +105,14 @@ int64_t print(char *msg, ...)
 		msg ++;
 	}
 
+	return printed_chars_count;
+}
+
+int64_t print(char *msg, ...)
+{
+	va_list args;
+	va_start(args, msg);
+	int64_t printed_chars_count = vprint(msg, args);
 	va_end(args);
 	return printed_chars_count;
 }

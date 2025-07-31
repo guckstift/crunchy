@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include "crunchy.h"
 
 void error(char *msg)
@@ -42,9 +43,14 @@ int64_t print_src_line(char *start, char *cursor, int64_t line)
 	return offset;
 }
 
-void error_at(Token *at, char *msg)
+void error_at(Token *at, char *msg, ...)
 {
-	print("%[f00]error:%[] %s\n", msg);
+	va_list args;
+	va_start(args, msg);
+	print("%[f00]error:%[] ");
+	vprint(msg, args);
+	print("\n");
+	va_end(args);
 	char *src_start = find_src_start(at);
 	char *line_start = find_line_start(at->start, src_start);
 	int64_t offset = print_src_line(line_start, at->start, at->line);

@@ -72,7 +72,7 @@ Expr *adjust_expr_to_type(Expr *expr, Type *type)
 		return cast;
 	}
 
-	error_at(expr->start, "this type conversion is not allowed");
+	error_at(expr->start, "can not convert %n to %n", expr->type, type);
 }
 
 Stmt *lookup_in(Token *ident, Block *block)
@@ -144,8 +144,8 @@ void a_expr(Expr *expr)
 			break;
 		case EX_VAR:
 			expr->decl = lookup(expr->ident);
-			if(!expr->decl) error_at(expr->start, "could not find variable");
-			if(expr->start < expr->decl->end) error_at(expr->start, "variable used before its declaration");
+			if(!expr->decl) error_at(expr->start, "could not find %n", expr->ident);
+			if(expr->start < expr->decl->end) error_at(expr->start, "%n is used before its declaration", expr->ident);
 			expr->type = expr->decl->type;
 			break;
 		case EX_BINOP:
@@ -200,7 +200,7 @@ void a_stmt(Stmt *stmt)
 			a_expr(stmt->target);
 
 			if(!stmt->target->is_lvalue) {
-				error_at(stmt->target->start, "target is not assignable");
+				error_at(stmt->target->start, "this target is not assignable");
 			}
 
 			a_expr(stmt->value);

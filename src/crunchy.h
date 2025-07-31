@@ -161,11 +161,12 @@ typedef void (*EscapeMod)(va_list);
 
 // main
 void error(char *msg);
-void error_at(Token *at, char *msg);
+void error_at(Token *at, char *msg, ...);
 
 // print
 void set_print_file(FILE *new_fs);
 void set_escape_mod(char chr, EscapeMod mod);
+int64_t vprint(char *msg, va_list args);
 int64_t print(char *msg, ...);
 void print_token_list(Token *tokens);
 int64_t print_block(Block *block);

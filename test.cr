@@ -1,9 +1,10 @@
 function foo()
 {
 	print "Hello";
+	print x;
 }
 
-var foo = foo;
+var x = foo;
 
 foo();
 x();

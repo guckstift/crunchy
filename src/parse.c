@@ -3,18 +3,13 @@
 #include <string.h>
 #include "crunchy.h"
 
-#define error(...) parse_error(__VA_ARGS__)
+#define error(...) error_at(cur_token, __VA_ARGS__)
 
 Block *p_block();
 
 static Token *cur_token = 0;
 static Block *cur_block = 0;
 static int64_t next_block_id = 0;
-
-void parse_error(char *msg)
-{
-	error_at(cur_token, msg);
-}
 
 Type *new_type(Kind kind)
 {
@@ -199,7 +194,7 @@ Stmt *p_vardecl()
 	stmt->ident = ident;
 	stmt->type = type;
 	stmt->init = init;
-	if(!declare(stmt)) error_at(ident, "name is already declared");
+	if(!declare(stmt)) error_at(ident, "name %n is already declared", ident);
 	expect(PT_SEMICOLON, "missing semicolon after variable declaration");
 	stmt->end = cur_token;
 	return stmt;
@@ -219,7 +214,7 @@ Stmt *p_funcdecl()
 	Stmt *stmt = new_stmt(ST_FUNCDECL, cur_block, start, cur_token);
 	stmt->ident = ident;
 	stmt->body = body;
-	if(!declare(stmt)) error_at(ident, "name is already declared");
+	if(!declare(stmt)) error_at(ident, "name %n is already declared", ident);
 	return stmt;
 }
 
