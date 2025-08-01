@@ -80,7 +80,11 @@ char *load_text_file(char *file_name)
 
 Type *new_type(Kind kind)
 {
-	if(kind == TY_INT) {
+	if(kind == TY_UNKNOWN) {
+		static Type unknown_type = {.kind = TY_UNKNOWN};
+		return &unknown_type;
+	}
+	else if(kind == TY_INT) {
 		static Type int_type = {.kind = TY_INT};
 		return &int_type;
 	}
@@ -194,7 +198,10 @@ Expr *get_default_value(Type *type)
 
 int types_equal(Type *a, Type *b)
 {
-	return a->kind == b->kind;
+	if(a->kind == TY_ARRAY && b->kind == TY_ARRAY)
+		return types_equal(a->subtype, b->subtype);
+	else
+		return a->kind == b->kind;
 }
 
 int is_gc_type(Type *type)
@@ -227,6 +234,21 @@ Expr *adjust_expr_to_type(Expr *expr, Type *type)
 		cast->type = type;
 		cast->subexpr = expr;
 		return cast;
+	}
+
+	if(expr->type->kind == TY_ARRAY) {
+		Type *inner_expr_type = expr->type;
+		Type *inner_target_type = type;
+
+		while(inner_expr_type->kind == TY_ARRAY && inner_target_type->kind == TY_ARRAY) {
+			inner_expr_type = inner_expr_type->subtype;
+			inner_target_type = inner_target_type->subtype;
+		}
+
+		if(inner_expr_type->kind == TY_UNKNOWN) {
+			*inner_expr_type = *inner_target_type;
+			return expr;
+		}
 	}
 
 	error_at(expr->start, "can not convert %n to %n", expr->type, type);

@@ -105,7 +105,6 @@ Array *new_array(int64_t itemsize, int64_t length, void *data)
 void print_string(String *str)
 {
 	fwrite(str->chars, 1, str->length, stdout);
-	printf("\n");
 }
 
 String *concat_strings(String *left, String *right)

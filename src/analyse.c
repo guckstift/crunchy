@@ -74,9 +74,36 @@ void a_expr(Expr *expr)
 			a_expr(expr->callee);
 			expr->type = new_type(TY_VOID);
 			break;
+
+		case EX_ARRAY: {
+			Type *itemtype = 0;
+
+			for(Expr *item = expr->items; item; item = item->next) {
+				a_expr(item);
+				if(itemtype) item = adjust_expr_to_type(item, itemtype);
+				else itemtype = item->type;
+			}
+
+			if(!itemtype) itemtype = new_type(TY_UNKNOWN);
+			expr->type = new_type(TY_ARRAY);
+			expr->type->subtype = itemtype;
+		} break;
+
 		default:
 			error_at(expr->start, "INTERNAL: unknown expression to analyse");
 	}
+}
+
+void validate_vardecl_type(Stmt *vardecl, Type *type)
+{
+	if(type->kind == TY_VOID)
+		error_at(vardecl->start, "type is empty");
+
+	if(type->kind == TY_UNKNOWN)
+		error_at(vardecl->start, "type is incomplete");
+
+	if(type->kind == TY_ARRAY)
+		validate_vardecl_type(vardecl, type->subtype);
 }
 
 void a_stmt(Stmt *stmt)
@@ -103,9 +130,7 @@ void a_stmt(Stmt *stmt)
 			if(stmt->type->kind == TY_STRING || stmt->type->kind == TY_ARRAY)
 				cur_block->num_gc_decls ++;
 
-			if(stmt->type->kind == TY_VOID)
-				error_at(stmt->start, "variable type is empty");
-
+			validate_vardecl_type(stmt, stmt->type);
 			break;
 		case ST_FUNCDECL:
 			a_block(stmt->body);

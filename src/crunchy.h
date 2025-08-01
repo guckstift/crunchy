@@ -15,6 +15,7 @@
 
 #define PUNCTS \
 	_('=', EQUALS) \
+	_(',', COMMA) \
 	_(';', SEMICOLON) \
 	_(':', COLON) \
 	_('{', LCURLY) \
@@ -43,6 +44,7 @@ typedef enum : uint8_t {
 
 	TYPE_KIND_START,
 
+	TY_UNKNOWN,
 	TY_VOID,
 	TY_INT,
 	TY_BOOL,

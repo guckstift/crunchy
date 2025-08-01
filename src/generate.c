@@ -12,6 +12,7 @@ static int level = 0;
 
 void gen_expr(Expr *expr);
 void gen_block(Block *block);
+void gen_print(Expr *value);
 
 void gen_token(Token *token)
 {
@@ -125,18 +126,38 @@ void gen_expr(Expr *expr)
 	}
 }
 
+void gen_print_array(Expr *value)
+{
+	print("%>printf(\"[\");\n");
+
+	if(value->kind == EX_ARRAY) {
+		for(Expr *item = value->items; item; item = item->next) {
+			if(item != value->items) print("%>printf(\", \");\n");
+			gen_print(item);
+		}
+	}
+	else {
+		error_at(value->start, "INTERNAL: printing non-constant arrays is not supported");
+	}
+
+	print("%>printf(\"]\");\n");
+}
+
 void gen_print(Expr *value)
 {
 	switch(value->type->kind) {
 		case TY_INT:
-			print("%>printf(\"%%li\\n\", ");
+			print("%>printf(\"%%li\", ");
 			break;
 		case TY_BOOL:
-			print("%>printf(\"%%s\\n\", ");
+			print("%>printf(\"%%s\", ");
 			break;
 		case TY_STRING:
 			print("%>print_string(");
 			break;
+		case TY_ARRAY:
+			gen_print_array(value);
+			return;
 		default:
 			print("%>// INTERNAL: unknown value type to generate print for\n");
 			return;
@@ -146,6 +167,12 @@ void gen_print(Expr *value)
 		print("%n ? \"true\" : \"false\");\n", value);
 	else
 		print("%n);\n", value);
+}
+
+void gen_print_line(Expr *value)
+{
+	gen_print(value);
+	print("%>printf(\"\\n\");\n");
 }
 
 void gen_stmt(Stmt *stmt)
@@ -165,7 +192,7 @@ void gen_stmt(Stmt *stmt)
 			print("%>%n;\n", stmt->call);
 			break;
 		case ST_PRINT:
-			gen_print(stmt->value);
+			gen_print_line(stmt->value);
 			break;
 		case ST_IF:
 			print("%>if(%n) {%+\n", stmt->cond);

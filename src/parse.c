@@ -6,6 +6,7 @@
 #define error(...) error_at(cur_token, __VA_ARGS__)
 
 Block *p_block();
+Expr *p_expr();
 
 static Token *cur_token = 0;
 static Block *cur_block = 0;
@@ -14,6 +15,11 @@ static int64_t next_block_id = 0;
 int declare(Stmt *decl)
 {
 	return declare_in(decl, cur_block);
+}
+
+int match(Kind kind)
+{
+	return cur_token->kind == kind;
 }
 
 Token *eat(Kind kind)
@@ -38,7 +44,6 @@ Type *p_primtype()
 	return 0;
 }
 
-
 Type *p_type()
 {
 	Type *type = p_primtype();
@@ -52,6 +57,31 @@ Type *p_type()
 	}
 
 	return type;
+}
+
+Expr *p_array()
+{
+	Token *start = eat(PT_LBRACK);
+	if(!start) return 0;
+	Expr *first_item = 0;
+	Expr *last_item = 0;
+	int64_t length = 0;
+
+	while(1) {
+		Expr *item = p_expr();
+		if(!item) break;
+		length ++;
+		if(last_item) last_item->next = item;
+		else first_item = item;
+		last_item = item;
+		if(!eat(PT_COMMA)) break;
+	}
+
+	expect(PT_RBRACK, "expected ] or ,");
+	Expr *array = new_expr(EX_ARRAY, start, 0);
+	array->items = first_item;
+	array->length = length;
+	return array;
 }
 
 Expr *p_atom()
@@ -79,6 +109,9 @@ Expr *p_atom()
 		expr = new_expr(EX_STRING, literal, 1);
 		expr->chars = literal->chars;
 		expr->length = literal->str_length;
+	}
+	else if(match(PT_LBRACK)) {
+		expr = p_array();
 	}
 
 	return expr;

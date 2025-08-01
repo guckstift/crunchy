@@ -152,6 +152,8 @@ void print_token_list(Token *tokens)
 int64_t print_type(Type *type)
 {
 	switch(type->kind) {
+		case TY_UNKNOWN:
+			return print("unknown");
 		case TY_VOID:
 			return print("void");
 		case TY_INT:
@@ -211,7 +213,7 @@ int64_t print_expr(Expr *expr)
 
 			for(Expr *item = expr->items; item; item = item->next) {
 				if(item != expr->items) printed_chars_count += print(", ");
-				printed_chars_count += print("%n");
+				printed_chars_count += print("%n", item);
 			}
 
 			printed_chars_count += print("]");
