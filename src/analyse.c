@@ -28,6 +28,23 @@ Temp *declare_temp(Type *type)
 	return temp;
 }
 
+void make_temp(Expr *expr)
+{
+	if(!expr->temp) {
+		static int64_t next_temp_id = 1;
+		Temp *temp = calloc(1, sizeof(Temp));
+		temp->next = 0;
+		temp->type = expr->type;
+		temp->parent_block = cur_block;
+		temp->id = next_temp_id ++;
+		if(cur_block->temps) cur_block->last_temp->next = temp;
+		else cur_block->temps = temp;
+		cur_block->last_temp = temp;
+		cur_block->num_gc_decls ++;
+		expr->temp = temp;
+	}
+}
+
 void a_binop(Expr *binop)
 {
 	Expr *left = binop->left;
@@ -58,7 +75,7 @@ void a_expr(Expr *expr)
 			break;
 		case EX_STRING:
 			expr->type = new_type(TY_STRING);
-			expr->temp = declare_temp(expr->type);
+			make_temp(expr);
 			break;
 		case EX_VAR:
 			expr->decl = lookup(expr->ident);
@@ -68,7 +85,7 @@ void a_expr(Expr *expr)
 			break;
 		case EX_BINOP:
 			a_binop(expr);
-			if(expr->type->kind == TY_STRING) expr->temp = declare_temp(expr->type);
+			if(expr->type->kind == TY_STRING) make_temp(expr);
 			break;
 		case EX_CALL:
 			a_expr(expr->callee);
@@ -87,6 +104,7 @@ void a_expr(Expr *expr)
 			if(!itemtype) itemtype = new_type(TY_UNKNOWN);
 			expr->type = new_type(TY_ARRAY);
 			expr->type->subtype = itemtype;
+			make_temp(expr);
 		} break;
 
 		default:

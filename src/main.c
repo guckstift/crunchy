@@ -10,13 +10,13 @@ int main(int argc, char **argv)
 
 	char *input_file = argv[1];
 	char *src = load_text_file(input_file);
-	print("\n%[ff0]# SOURCE%[]\n");
-	print("%s\n", src);
+	// print("\n%[ff0]# SOURCE%[]\n");
+	// print("%s\n", src);
 
 	Token *tokens = 0;
 	int64_t token_count = lex(src, &tokens);
-	print("\n%[ff0]# TOKENS%[]\n");
-	print_token_list(tokens);
+	// print("\n%[ff0]# TOKENS%[]\n");
+	// print_token_list(tokens);
 
 	Block *block = parse(tokens);
 	print("\n%[ff0]# AST%[]\n");
@@ -34,5 +34,6 @@ int main(int argc, char **argv)
 
 	generate(block, output_file);
 
+	print("\n%[ff0]# DONE %[]\n");
 	return 0;
 }

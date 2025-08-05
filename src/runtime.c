@@ -59,7 +59,7 @@ void collect_garbage()
 			if(prev) prev->next = block->next;
 			else memory_blocks = block->next;
 			free(block);
-			//printf("## collected %s\n", ((String*)block)->chars);
+			//printf("## collected %p \n", block);
 		}
 		else {
 			block->marked = 0;
@@ -88,7 +88,7 @@ String *new_string(int64_t length, char *chars)
 	string->length = length;
 	memcpy(string->chars, chars, length);
 	string->chars[length] = 0;
-	//printf("## created %s\n", string->chars);
+	//printf("## created %s %p \n", string->chars, string);
 	return string;
 }
 
@@ -99,6 +99,7 @@ Array *new_array(int64_t itemsize, int64_t length, void *data)
 	int64_t data_size = itemsize * length;
 	array->items = calloc(length, itemsize);
 	memcpy(array->items, data, data_size);
+	//printf("## created array with %li elms %p \n", length, array);
 	return array;
 }
 
