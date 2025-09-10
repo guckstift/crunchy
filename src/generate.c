@@ -13,6 +13,7 @@ static int level = 0;
 void gen_expr(Expr *expr);
 void gen_block(Block *block);
 void gen_print(Expr *value);
+void gen_type_desc_name(Type *type);
 
 void gen_token(Token *token)
 {
@@ -109,7 +110,9 @@ void gen_expr(Expr *expr)
 			print("%n()", expr->callee);
 			break;
 		case EX_ARRAY:
-			print("new_array(sizeof(%n), %i, &(%n[]){", expr->type->subtype, expr->length, expr->type->subtype);
+			print("new_array(&");
+			gen_type_desc_name(expr->type);
+			print(", %i, &(%n[]){", expr->length, expr->type->subtype);
 
 			for(Expr *item = expr->items; item; item = item->next) {
 				print("%n, ", item);
@@ -128,19 +131,21 @@ void gen_expr(Expr *expr)
 
 void gen_print_array(Expr *value)
 {
-	print("%>printf(\"[\");\n");
-
 	if(value->kind == EX_ARRAY) {
+		print("%>printf(\"[\");\n");
+
 		for(Expr *item = value->items; item; item = item->next) {
 			if(item != value->items) print("%>printf(\", \");\n");
 			gen_print(item);
 		}
+
+		print("%>printf(\"]\");\n");
 	}
 	else {
-		error_at(value->start, "INTERNAL: printing non-constant arrays is not supported");
+		print("%>print_array(%n, &", value);
+		gen_type_desc_name(value->type);
+		print(");\n");
 	}
-
-	print("%>printf(\"]\");\n");
 }
 
 void gen_print(Expr *value)
@@ -211,8 +216,52 @@ void gen_stmt(Stmt *stmt)
 	}
 }
 
+void gen_type_desc_data(Type *type)
+{
+	print("{.kind = TY_");
+
+	switch(type->kind) {
+		case TY_INT: print("INT"); break;
+		case TY_BOOL: print("BOOL"); break;
+		case TY_STRING: print("STRING"); break;
+		case TY_FUNC: print("FUNC"); break;
+		case TY_ARRAY: print("ARRAY"); break;
+		default: print("/* invalid type to generate type desc for */");
+	}
+
+	if(type->kind == TY_ARRAY) {
+		print(", .subtype = &");
+		gen_type_desc_name(type->subtype);
+	}
+
+	print("}");
+}
+
+void gen_type_desc_name(Type *type)
+{
+	print("t_");
+
+	for(Type *type_node = type; type_node; type_node = type_node->subtype) {
+		if(type_node->kind == TY_ARRAY) print("array_");
+		else print_type(type_node);
+	}
+}
+
+void gen_type_desc(Type *type)
+{
+	print("%>Type ");
+	gen_type_desc_name(type);
+	print(" = ");
+	gen_type_desc_data(type);
+	print(";\n");
+}
+
 void gen_decls(Block *block)
 {
+	for(Type *type = block->types; type; type = type->next) {
+		gen_type_desc(type);
+	}
+
 	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
 		if(decl->kind == ST_FUNCDECL)
 			print("%>void v_%n();\n", decl->ident);

@@ -198,10 +198,11 @@ Expr *get_default_value(Type *type)
 
 int types_equal(Type *a, Type *b)
 {
+	if(a == b)
+		return 1;
 	if(a->kind == TY_ARRAY && b->kind == TY_ARRAY)
 		return types_equal(a->subtype, b->subtype);
-	else
-		return a->kind == b->kind;
+	return a->kind == b->kind;
 }
 
 int is_gc_type(Type *type)
@@ -246,7 +247,9 @@ Expr *adjust_expr_to_type(Expr *expr, Type *type)
 		}
 
 		if(inner_expr_type->kind == TY_UNKNOWN) {
+			void *next_backup = inner_expr_type->next;
 			*inner_expr_type = *inner_target_type;
+			inner_expr_type->next = next_backup;
 			return expr;
 		}
 	}

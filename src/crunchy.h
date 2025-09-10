@@ -91,6 +91,7 @@ typedef struct {
 typedef struct Type {
 	Kind kind;
 	struct Type *subtype; // array
+	struct Type *next;
 } Type;
 
 typedef struct {
@@ -164,6 +165,8 @@ typedef struct Block {
 	int64_t num_gc_decls;
 	Temp *temps;
 	Temp *last_temp;
+	Type *types;
+	Type *last_type;
 } Block;
 
 typedef void (*EscapeMod)(va_list);
@@ -188,6 +191,7 @@ void set_escape_mod(char chr, EscapeMod mod);
 int64_t vprint(char *msg, va_list args);
 int64_t print(char *msg, ...);
 void print_token_list(Token *tokens);
+int64_t print_type(Type *type);
 int64_t print_block(Block *block);
 
 // lex

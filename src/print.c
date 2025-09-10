@@ -2,7 +2,6 @@
 #include "crunchy.h"
 
 int64_t print_token(Token *token);
-int64_t print_type(Type *type);
 int64_t print_expr(Expr *expr);
 int64_t print_stmt(Stmt *stmt);
 

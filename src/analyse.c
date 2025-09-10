@@ -1,11 +1,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include "crunchy.h"
 
 void a_block(Block *block);
 void a_expr(Expr *expr);
 
+static Block *global_block = 0;
 static Block *cur_block = 0;
 
 Stmt *lookup(Token *ident)
@@ -43,6 +45,30 @@ void make_temp(Expr *expr)
 		cur_block->num_gc_decls ++;
 		expr->temp = temp;
 	}
+}
+
+void record_type(Type *type)
+{
+	assert(type);
+
+	if(type->kind != TY_ARRAY) return;
+
+	for(Type *t = global_block->types; t; t = t->next) {
+		if(types_equal(t, type)) return;
+	}
+
+	if(type->kind == TY_ARRAY) record_type(type->subtype);
+
+	assert(type->next == 0);
+
+	if(global_block->types) {
+		global_block->last_type->next = type;
+	}
+	else {
+		global_block->types = type;
+	}
+
+	global_block->last_type = type;
 }
 
 void a_binop(Expr *binop)
@@ -105,6 +131,7 @@ void a_expr(Expr *expr)
 			expr->type = new_type(TY_ARRAY);
 			expr->type->subtype = itemtype;
 			make_temp(expr);
+			record_type(expr->type);
 		} break;
 
 		default:
@@ -195,5 +222,7 @@ void a_block(Block *block)
 
 void analyse(Block *block)
 {
+	global_block = block;
 	a_block(block);
+	global_block = 0;
 }
