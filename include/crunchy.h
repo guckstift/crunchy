@@ -26,6 +26,15 @@
 	_(']', RBRACK) \
 	_('+', PLUS) \
 
+#define TYPES \
+	_(UNKNOWN) \
+	_(VOID) \
+	_(INT) \
+	_(BOOL) \
+	_(STRING) \
+	_(FUNC) \
+	_(ARRAY) \
+
 typedef enum : uint8_t {
 	TK_BOF,
 	TK_EOF,
@@ -44,13 +53,9 @@ typedef enum : uint8_t {
 
 	TYPE_KIND_START,
 
-	TY_UNKNOWN,
-	TY_VOID,
-	TY_INT,
-	TY_BOOL,
-	TY_STRING,
-	TY_FUNC,
-	TY_ARRAY,
+	#define _(a) TY_ ## a,
+	TYPES
+	#undef _
 
 	EXPR_KIND_START,
 

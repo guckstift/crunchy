@@ -1,12 +1,14 @@
-var z : int[] = [];
-var y = ["hallo"];
+if 1 {
+	var z : int[] = [];
+	var y = ["hallo"];
 
-var x = [1, true];
+	var x = [1, true];
 
-print [["Hello", "World"], ["aa"]];
-print 80;
+	print [["Hello, world!", "World"], ["aa"]];
+	print 80;
+}
 
 var a = [[1], [2]];
 
-print "";
+print "HW";
 print a;

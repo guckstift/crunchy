@@ -2,10 +2,12 @@
 #include <stdarg.h>
 #include "crunchy.h"
 
+/*
 char runtime_src[] = {
 	#include "../build/runtime.c.h"
 	, 0
 };
+*/
 
 FILE *ofs = 0;
 static int level = 0;
@@ -287,7 +289,7 @@ void gen_decls(Block *block)
 
 	print(
 		"%-%>} frame%i = {.parent = %s, .num_gc_decls = %iL};\n",
-		block->id, block->parent ? "cur_frame" : "0", block->num_gc_decls
+		block->id, block->parent ? "get_cur_frame()" : "0", block->num_gc_decls
 	);
 
 	for(Stmt *decl = block->decls; decl; decl = decl->next_decl) {
@@ -302,9 +304,9 @@ void gen_decls(Block *block)
 void gen_block(Block *block)
 {
 	if(block->parent) gen_decls(block);
-	print("%>cur_frame = (Frame*)&frame%i;\n", block->id);
+	print("%>push_frame(&frame%i);\n", block->id);
 	for(Stmt *stmt = block->stmts; stmt; stmt = stmt->next) gen_stmt(stmt);
-	print("%>cur_frame = cur_frame->parent;\n");
+	print("%>pop_frame();\n");
 }
 
 void mod_gen_node(va_list args)
@@ -329,7 +331,9 @@ void generate(Block *block, char *output_file)
 	set_print_file(ofs);
 	set_escape_mod('n', mod_gen_node);
 
-	print("%s\n\n", runtime_src);
+	//print("%s\n\n", runtime_src);
+	//print("#include \"src/runtime.c\"\n");
+	print("#include \"runtime.h\"\n");
 	gen_decls(block);
 	print("int main(int argc, char **argv) {%+\n");
 	gen_block(block);

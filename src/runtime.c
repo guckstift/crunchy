@@ -1,59 +1,32 @@
-#include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include "runtime.h"
 
-typedef enum : uint8_t {
-	TY_UNKNOWN,
-	TY_VOID,
-	TY_INT,
-	TY_BOOL,
-	TY_STRING,
-	TY_FUNC,
-	TY_ARRAY,
-} TypeKind;
+static void noop(void){}
 
-typedef struct Type {
-	TypeKind kind;
-	struct Type *subtype;
-} Type;
-
-typedef struct {
-	void *next;
-	Type *type;
-	uint8_t marked;
-} MemoryBlock;
-
-typedef struct {
-	MemoryBlock block;
-	int64_t length;
-	char chars[];
-} String;
-
-typedef struct {
-	MemoryBlock block;
-	int64_t length;
-	void *items;
-} Array;
-
-typedef struct {
-	void *parent;
-	int64_t num_gc_decls;
-	MemoryBlock *gc_objs[];
-} Frame;
-
-typedef void (*Function)(void);
-
-void noop(void){}
-
-static Type t_int = {.kind = TY_INT};
-static Type t_bool = {.kind = TY_BOOL};
-static Type t_string = {.kind = TY_STRING};
-static Type t_func = {.kind = TY_FUNC};
+Type t_int = {.kind = TY_INT};
+Type t_bool = {.kind = TY_BOOL};
+Type t_string = {.kind = TY_STRING};
+Type t_func = {.kind = TY_FUNC};
 
 static MemoryBlock *memory_blocks = 0;
 static Frame *cur_frame = 0;
+
+void push_frame(void *frame)
+{
+	cur_frame = frame;
+}
+
+void pop_frame()
+{
+	cur_frame = cur_frame->parent;
+}
+
+void *get_cur_frame()
+{
+	return cur_frame;
+}
 
 void mark_array(Array *array, Type *type)
 {
